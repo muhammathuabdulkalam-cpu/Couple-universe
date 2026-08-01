@@ -5,10 +5,13 @@ import { z } from 'zod';
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+// Allow both MONGODB_URI and MONGO_URI for hosting platforms
+const rawMongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/afrin_universe';
+
 const envSchema = z.object({
   PORT: z.string().transform((val) => parseInt(val, 10)).default('5000'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  MONGODB_URI: z.string().default('mongodb://localhost:27017/afrin_universe'),
+  MONGODB_URI: z.string().default(rawMongoUri),
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters long'),
   JWT_ACCESS_EXPIRATION: z.string().default('15m'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters long'),
@@ -20,7 +23,10 @@ const envSchema = z.object({
   RELATIONSHIP_START_DATE: z.string().default('2026-03-26'),
 });
 
-const _env = envSchema.safeParse(process.env);
+const _env = envSchema.safeParse({
+  ...process.env,
+  MONGODB_URI: rawMongoUri,
+});
 
 if (!_env.success) {
   console.error('❌ Invalid environment variables:', JSON.stringify(_env.error.format(), null, 2));
