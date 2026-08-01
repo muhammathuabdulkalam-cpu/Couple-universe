@@ -6,16 +6,29 @@ import { env } from '../config/env.config';
 import { HTTP_STATUS, MESSAGES } from '../constants';
 import { ApiResponse } from '../utils/ApiResponse';
 
-// Helmet Security Headers Middleware
+// Helmet Security Headers Middleware (Configured for Vercel + Render production deployment)
 export const helmetMiddleware = helmet({
-  contentSecurityPolicy: env.NODE_ENV === 'production',
-  crossOriginEmbedderPolicy: env.NODE_ENV === 'production',
+  contentSecurityPolicy: false, // Disabled to allow cross-origin media & fonts
+  crossOriginEmbedderPolicy: false,
 });
 
-// CORS Configuration Middleware
+// Flexible CORS Configuration for Vercel Frontend & Localhost
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    if (!origin || origin === env.CORS_ORIGIN || env.NODE_ENV === 'development') {
+    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = [
+      env.CORS_ORIGIN,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://couple-universe.vercel.app',
+    ].filter(Boolean);
+
+    const isVercelDomain = origin.endsWith('.vercel.app');
+    const isAllowedOrigin = allowedOrigins.includes(origin);
+
+    if (isAllowedOrigin || isVercelDomain || env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       callback(new Error(`CORS policy blocked access for origin: ${origin}`));
@@ -28,7 +41,6 @@ export const corsMiddleware = cors({
 
 /**
  * High-frequency internal endpoints that must be skipped by rate limiting.
- * These are called automatically by the React client on every page load / tab focus.
  */
 const SKIP_RATE_LIMIT_PATHS = [
   '/api/v1/auth/refresh-token',
@@ -41,11 +53,9 @@ const shouldSkip = (req: Request): boolean =>
 
 /**
  * Global Rate Limiter
- * Applied to every API route EXCEPT the whitelisted internal paths above.
- * 1 000 requests per 15-minute window per IP — generous for a private 2-person app.
  */
 export const globalRateLimiter: RequestHandler = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
@@ -60,9 +70,7 @@ export const globalRateLimiter: RequestHandler = rateLimit({
 });
 
 /**
- * Auth-specific Rate Limiter (login / register / password-reset)
- * Stricter: 50 attempts per 15-minute window to prevent brute-force.
- * Applied only on routes that need it (see auth.route.ts).
+ * Auth-specific Rate Limiter
  */
 export const authRateLimiter: RequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000,

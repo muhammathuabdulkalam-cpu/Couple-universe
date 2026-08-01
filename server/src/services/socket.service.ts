@@ -22,7 +22,13 @@ class SocketService {
   public init(httpServer: HttpServer): Server {
     this.io = new Server(httpServer, {
       cors: {
-        origin: env.CORS_ORIGIN || '*',
+        origin: (origin, callback) => {
+          if (!origin || origin.endsWith('.vercel.app') || origin === env.CORS_ORIGIN || env.NODE_ENV === 'development') {
+            callback(null, true);
+          } else {
+            callback(null, true);
+          }
+        },
         credentials: true,
       },
       pingTimeout: 60000,
