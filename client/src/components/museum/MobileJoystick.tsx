@@ -53,7 +53,6 @@ export const MobileJoystick: React.FC<MobileJoystickProps> = ({ onChange }) => {
       ref={baseRef}
       className="w-[88px] h-[88px] rounded-full bg-obsidian-950/70 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl"
       onTouchMove={(e) => {
-        e.preventDefault();
         const touch = e.touches[0];
         handleTouch(touch.clientX, touch.clientY);
       }}

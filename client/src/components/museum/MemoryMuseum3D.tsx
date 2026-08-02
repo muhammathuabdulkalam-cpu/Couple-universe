@@ -1,130 +1,130 @@
 /**
  * MemoryMuseum3D.tsx
  * 
- * Phase 1: Main museum container.
- * Assembles Canvas, Building, Camera, Lighting, HUD, Mobile controls.
- * WebGL guard with graceful fallback to Grid view.
+ * Main Entry Container for 3D Memory Museum (Gallery View Mode X).
+ * Reuses existing Media Engine, Zustand stores, React Query cache, and MediaViewerModal.
  */
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sparkles } from '@react-three/drei';
-import * as THREE from 'three';
-import { Sparkles as SparklesIcon } from 'lucide-react';
-import { AlbumItem, MediaItem } from '../../types/index.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { useUIStore } from '../../store/uiStore.js';
+import { MediaItem, AlbumItem } from '../../types/index.js';
 import { MuseumBuilding } from './MuseumBuilding.js';
-import { MuseumCamera } from './MuseumCamera.js';
+import { MuseumCamera, CameraTarget } from './MuseumCamera.js';
 import { MuseumHUD } from './MuseumHUD.js';
 import { MobileJoystick } from './MobileJoystick.js';
+import { MuseumGalleryWalls } from './MuseumGalleryWalls.js';
+import { AmbientAtmosphere } from './AmbientAtmosphere.js';
+import { MuseumRoom } from './WallLayoutEngine.js';
 
 interface MemoryMuseum3DProps {
   mediaItems: MediaItem[];
   albums: AlbumItem[];
 }
 
-// ─── WebGL detection ───────────────────────────────────
-function checkWebGL(): boolean {
-  try {
-    const canvas = document.createElement('canvas');
-    const gl =
-      canvas.getContext('webgl2') ||
-      canvas.getContext('webgl') ||
-      canvas.getContext('experimental-webgl');
-    return !!gl;
-  } catch {
-    return false;
-  }
-}
-
-export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albums: _albums }) => {
-  const { setViewMode } = useMediaStore();
+export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems }) => {
+  const { setViewMode, searchQuery, openViewer } = useMediaStore();
   const { addToast } = useUIStore();
 
   const [webglReady, setWebglReady] = useState<boolean | null>(null);
-  const [showGuide, setShowGuide] = useState(true);
   const [isPointerLocked, setIsPointerLocked] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const [joystickInput, setJoystickInput] = useState({ x: 0, y: 0 });
 
-  // ─── WebGL check on mount ────────────────────────
+  // Camera & Navigation state
+  const [cameraPos, setCameraPos] = useState<[number, number, number]>([0, 1.65, 0.5]);
+  const [cameraYaw, setCameraYaw] = useState<number>(Math.PI);
+  const [cameraTarget, setCameraTarget] = useState<CameraTarget | null>(null);
+
+  const activeRoomId = useMemo(() => {
+    const [x, , z] = cameraPos;
+    if (z > -2) return 'entry';
+    if (z > -12) return 'lobby';
+    if (x < -8) return 'west-wing';
+    if (x > 8) return 'east-wing';
+    if (z < -28) return 'north-hall';
+    return 'main-hall';
+  }, [cameraPos]);
+
+  // Test WebGL availability on mount
   useEffect(() => {
-    const supported = checkWebGL();
-    setWebglReady(supported);
-
-    if (!supported) {
-      addToast(
-        'WebGL Not Available',
-        'Your browser does not support 3D rendering. Switching to Grid View.',
-        'info'
-      );
-      setViewMode('grid');
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      setWebglReady(Boolean(gl));
+    } catch {
+      setWebglReady(false);
     }
   }, []);
 
-  // ─── Auto-hide guide after 8 seconds ─────────────
-  useEffect(() => {
-    if (showGuide) {
-      const timer = setTimeout(() => setShowGuide(false), 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [showGuide]);
-
-  // ─── Mobile swipe look handler (right half of screen) ──
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [_mobileYaw, setMobileYaw] = useState(0);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    // Only use right half of screen for look
-    if (touch.clientX > window.innerWidth * 0.4) {
-      setTouchStart({ x: touch.clientX, y: touch.clientY });
-    }
-  }, []);
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (!touchStart) return;
-      const touch = e.touches[0];
-      const dx = touch.clientX - touchStart.x;
-      setMobileYaw((prev) => prev - dx * 0.003);
-      setTouchStart({ x: touch.clientX, y: touch.clientY });
-    },
-    [touchStart]
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setTouchStart(null);
-  }, []);
-
-  // ─── Loading state ───────────────────────────────
-  if (webglReady === null) {
+  // WebGL Fallback if device lacks hardware acceleration
+  if (webglReady === false) {
     return (
-      <div className="w-full h-[75vh] min-h-[550px] rounded-3xl glass-card border border-white/10 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-sm font-extrabold text-white animate-pulse">
-          <SparklesIcon className="w-5 h-5 text-amrin" /> Building Memory Museum...
-        </div>
+      <div className="flex flex-col items-center justify-center h-[60vh] bg-obsidian-950/80 rounded-3xl border border-white/10 p-8 text-center text-white">
+        <h3 className="text-xl font-bold text-amber-400 mb-2">WebGL 3D Not Supported</h3>
+        <p className="text-sm text-slate-300 mb-6 max-w-md">
+          Your browser or device GPU does not support 3D WebGL rendering.
+        </p>
+        <button
+          type="button"
+          onClick={() => setViewMode('grid')}
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-afzal to-amrin text-white font-bold shadow-lg"
+        >
+          Switch to 2D Grid Gallery
+        </button>
       </div>
     );
   }
 
-  if (!webglReady) return null;
+  // Camera update callback from MuseumCamera
+  const handleCameraUpdate = useCallback((pos: [number, number, number], yaw: number) => {
+    setCameraPos(pos);
+    setCameraYaw(yaw);
+  }, []);
+
+  // Room selection handler from MiniMap or RoomNavigator
+  const handleSelectRoom = useCallback((room: MuseumRoom) => {
+    setCameraTarget({
+      pos: room.centerPos,
+      yaw: room.targetYaw,
+      onComplete: () => {
+        addToast(room.name, 'Entered gallery room', 'info');
+      },
+    });
+  }, [addToast]);
+
+  // Artwork selection handler (smooth fly-to before opening MediaViewerModal)
+  const handleSelectArtwork = useCallback((
+    media: MediaItem,
+    pos: [number, number, number],
+    rot: [number, number, number]
+  ) => {
+    // Calculate target position in front of artwork (0.85m off artwork face)
+    const yaw = rot[1];
+    const standDistance = 0.85;
+    const targetX = pos[0] + Math.sin(yaw) * standDistance;
+    const targetZ = pos[2] + Math.cos(yaw) * standDistance;
+
+    setCameraTarget({
+      pos: [targetX, 1.65, targetZ],
+      yaw: yaw + Math.PI, // face artwork directly
+      onComplete: () => {
+        openViewer(media); // Open existing MediaViewerModal
+      },
+    });
+  }, [openViewer]);
 
   return (
-    <div
-      className="relative w-full h-[78vh] min-h-[580px] max-h-[900px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-[#0f172a] select-none"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* ─── R3F Canvas ─────────────────────────── */}
+    <div className="relative w-full h-[calc(100vh-6rem)] rounded-3xl overflow-hidden bg-obsidian-950 border border-white/10 shadow-2xl select-none">
+      {/* ─── 3D Canvas Container ────────────────────── */}
       <Canvas
         shadows
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           alpha: false,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.1,
+          failIfMajorPerformanceCaveat: false,
         }}
         camera={{
           fov: 65,
@@ -134,54 +134,50 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
         }}
         className="w-full h-full"
       >
-        {/* Global lighting — ambient + directional fill, NO shadow-casting to save GPU texture units */}
+        {/* Global ambient & directional lighting */}
         <ambientLight intensity={0.55} color="#fef3c7" />
-        <directionalLight
-          position={[5, 12, -10]}
-          intensity={0.9}
-        />
-        {/* Warm tint fill */}
-        <hemisphereLight
-          intensity={0.3}
-          color="#fff7ed"
-          groundColor="#78350f"
-        />
+        <directionalLight position={[5, 12, -10]} intensity={0.9} color="#ffffff" />
+        <hemisphereLight intensity={0.3} color="#fff7ed" groundColor="#78350f" />
 
-        {/* Floating dust particles */}
-        <Sparkles
-          count={60}
-          scale={[40, 5, 40]}
-          position={[0, 2.5, -18]}
-          size={2}
-          speed={0.15}
-          opacity={0.4}
-          color="#fbbf24"
-        />
+        {/* Ambient Atmosphere (volumetric dust & 3D doorway signs) */}
+        <AmbientAtmosphere />
 
         {/* Museum architecture */}
-        <Suspense fallback={null}>
-          <MuseumBuilding />
-        </Suspense>
+        <MuseumBuilding />
 
-        {/* Camera controller */}
+        {/* Dynamic Wall-Mounted Artworks */}
+        <MuseumGalleryWalls
+          mediaItems={mediaItems}
+          searchQuery={searchQuery}
+          onSelectArtwork={handleSelectArtwork}
+        />
+
+        {/* First-person & Fly-To Camera controller */}
         <MuseumCamera
           joystickInput={joystickInput}
           isPointerLocked={isPointerLocked}
           onPointerLockChange={setIsPointerLocked}
+          target={cameraTarget}
+          onTargetComplete={() => setCameraTarget(null)}
+          onCameraUpdate={handleCameraUpdate}
         />
       </Canvas>
 
-      {/* ─── 2D HUD Overlay ─────────────────────── */}
+      {/* ─── 2D HUD Overlays ────────────────────── */}
       <MuseumHUD
         isPointerLocked={isPointerLocked}
         showGuide={showGuide}
-        onToggleGuide={() => setShowGuide((v) => !v)}
+        onToggleGuide={() => setShowGuide((prev) => !prev)}
         mediaCount={mediaItems.length}
+        cameraPos={cameraPos}
+        cameraYaw={cameraYaw}
+        activeRoomId={activeRoomId}
+        onSelectRoom={handleSelectRoom}
       />
 
-      {/* ─── Mobile Joystick (touch devices only) ── */}
-      <div className="sm:hidden absolute bottom-6 left-6 z-20 pointer-events-auto">
-        <MobileJoystick onChange={setJoystickInput} />
+      {/* Mobile Touch Joystick */}
+      <div className="absolute bottom-6 left-6 z-30 sm:hidden">
+        <MobileJoystick onChange={(vec) => setJoystickInput(vec)} />
       </div>
     </div>
   );
