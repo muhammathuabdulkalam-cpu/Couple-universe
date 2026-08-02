@@ -71,10 +71,9 @@ export const BottomNav: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => setIsMobileMenuOpen(true)}
-                  className="relative flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-semibold text-slate-400 hover:text-white transition-colors"
+                  className="relative flex items-center justify-center p-2 text-slate-400 hover:text-white transition-colors"
                 >
-                  <Sparkles className="w-5 h-5 text-amrin-glow" />
-                  <span>Menu</span>
+                  <Sparkles className="w-6 h-6 text-amrin-glow" />
                 </button>
               );
             }
@@ -85,33 +84,26 @@ export const BottomNav: React.FC = () => {
               <Link
                 key={item.path + idx}
                 to={item.path}
-                className="relative flex flex-col items-center gap-1 py-1 px-3 text-[10px] font-semibold transition-colors"
+                className="relative flex items-center justify-center p-2 transition-colors"
               >
                 <motion.div
                   animate={{ scale: isActive ? 1.15 : 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
                   {item.label === 'Profile' && user?.avatar ? (
-                    <div className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-colors ${
+                    <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-colors ${
                       isActive ? 'border-amrin-glow shadow-md shadow-amrin/40' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}>
                       <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
                     </div>
                   ) : (
                     <Icon
-                      className={`w-5 h-5 transition-colors ${
+                      className={`w-6 h-6 transition-colors ${
                         isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
                       }`}
                     />
                   )}
                 </motion.div>
-                <span
-                  className={`transition-colors ${
-                    isActive ? 'text-white font-bold' : 'text-slate-400'
-                  }`}
-                >
-                  {item.label}
-                </span>
 
                 {isActive && (
                   <motion.div
