@@ -24,7 +24,7 @@ const Wall: React.FC<{
   size: [number, number, number];
   rotation?: [number, number, number];
 }> = ({ position, size, rotation = [0, 0, 0] }) => (
-  <mesh position={position} rotation={rotation} castShadow receiveShadow>
+  <mesh position={position} rotation={rotation}>
     <boxGeometry args={size} />
     <meshStandardMaterial color={WALL_COLOR} roughness={0.75} metalness={0.05} />
   </mesh>
@@ -61,11 +61,11 @@ const TrackLight: React.FC<{
 }> = ({ position, target = [position[0], 0, position[2]], intensity = 2.0 }) => (
   <group position={position}>
     {/* Physical light fixture housing */}
-    <mesh castShadow>
+    <mesh>
       <cylinderGeometry args={[0.06, 0.08, 0.15, 8]} />
       <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
     </mesh>
-    {/* Actual spotlight */}
+    {/* Actual spotlight — NO castShadow to stay within GPU texture limits */}
     <spotLight
       position={[0, -0.1, 0]}
       target-position={target}
@@ -73,9 +73,6 @@ const TrackLight: React.FC<{
       penumbra={0.7}
       intensity={intensity}
       color="#fffbeb"
-      castShadow
-      shadow-mapSize-width={256}
-      shadow-mapSize-height={256}
     />
   </group>
 );
@@ -105,17 +102,17 @@ const DoorwayArch: React.FC<{
   return (
     <group position={position} rotation={rotation}>
       {/* Left door jamb */}
-      <mesh position={[-width / 2 - frameThickness / 2, height / 2, 0]} castShadow>
+      <mesh position={[-width / 2 - frameThickness / 2, height / 2, 0]}>
         <boxGeometry args={[frameThickness, height, frameDepth]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.25} />
       </mesh>
       {/* Right door jamb */}
-      <mesh position={[width / 2 + frameThickness / 2, height / 2, 0]} castShadow>
+      <mesh position={[width / 2 + frameThickness / 2, height / 2, 0]}>
         <boxGeometry args={[frameThickness, height, frameDepth]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.25} />
       </mesh>
       {/* Top lintel */}
-      <mesh position={[0, height + frameThickness / 2, 0]} castShadow>
+      <mesh position={[0, height + frameThickness / 2, 0]}>
         <boxGeometry args={[width + frameThickness * 2, frameThickness, frameDepth]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.25} />
       </mesh>
@@ -130,7 +127,7 @@ const Column: React.FC<{
 }> = ({ position, height = CEILING_HEIGHT }) => (
   <group position={position}>
     {/* Column shaft */}
-    <mesh position={[0, height / 2, 0]} castShadow receiveShadow>
+    <mesh position={[0, height / 2, 0]}>
       <boxGeometry args={[0.35, height, 0.35]} />
       <meshStandardMaterial color={WALL_COLOR} roughness={0.6} metalness={0.05} />
     </mesh>
@@ -182,17 +179,17 @@ export const MuseumBuilding: React.FC = () => {
       <mesh position={[0, 0, -18]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[50, 50]} />
         <MeshReflectorMaterial
-          blur={[400, 200]}
-          resolution={512}
-          mirror={0.35}
-          mixBlur={0.6}
-          mixStrength={1.0}
-          roughness={0.45}
-          depthScale={1.2}
+          blur={[300, 100]}
+          resolution={256}
+          mirror={0.25}
+          mixBlur={0.5}
+          mixStrength={0.8}
+          roughness={0.5}
+          depthScale={1.0}
           minDepthThreshold={0.4}
           maxDepthThreshold={1.4}
           color={FLOOR_COLOR}
-          metalness={0.15}
+          metalness={0.1}
         />
       </mesh>
 
@@ -257,7 +254,7 @@ export const MuseumBuilding: React.FC = () => {
       <DoorwayArch position={[0, 0, -12]} width={3.0} height={3.2} />
 
       {/* Reception desk (decorative) */}
-      <mesh position={[0, 0.5, -4]} castShadow receiveShadow>
+      <mesh position={[0, 0.5, -4]}>
         <boxGeometry args={[3.5, 1.0, 0.8]} />
         <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.6} />
       </mesh>

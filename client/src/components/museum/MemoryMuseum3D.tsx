@@ -118,7 +118,7 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
     >
       {/* ─── R3F Canvas ─────────────────────────── */}
       <Canvas
-        shadows="soft"
+        shadows
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -134,18 +134,11 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
         }}
         className="w-full h-full"
       >
-        {/* Global lighting */}
-        <ambientLight intensity={0.45} color="#fef3c7" />
+        {/* Global lighting — ambient + directional fill, NO shadow-casting to save GPU texture units */}
+        <ambientLight intensity={0.55} color="#fef3c7" />
         <directionalLight
           position={[5, 12, -10]}
-          intensity={0.8}
-          castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-camera-left={-25}
-          shadow-camera-right={25}
-          shadow-camera-top={25}
-          shadow-camera-bottom={-25}
+          intensity={0.9}
         />
         {/* Warm tint fill */}
         <hemisphereLight
