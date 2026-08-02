@@ -91,11 +91,19 @@ export const BottomNav: React.FC = () => {
                   animate={{ scale: isActive ? 1.15 : 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 >
-                  <Icon
-                    className={`w-5 h-5 transition-colors ${
-                      isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
-                    }`}
-                  />
+                  {item.label === 'Profile' && user?.avatar ? (
+                    <div className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-colors ${
+                      isActive ? 'border-amrin-glow shadow-md shadow-amrin/40' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}>
+                      <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    </div>
+                  ) : (
+                    <Icon
+                      className={`w-5 h-5 transition-colors ${
+                        isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
+                      }`}
+                    />
+                  )}
                 </motion.div>
                 <span
                   className={`transition-colors ${
