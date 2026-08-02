@@ -143,6 +143,8 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
       status: user.status,
       avatar: user.avatar,
+      bio: user.bio,
+      birthday: (user as any).birthday,
     },
     accessToken,
   });
@@ -208,6 +210,8 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
       status: user.status,
       avatar: user.avatar,
+      bio: user.bio,
+      birthday: (user as any).birthday,
       lastLoginAt: user.lastLoginAt,
     },
     accessToken,
@@ -283,6 +287,8 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
       status: user.status,
       avatar: user.avatar,
+      bio: user.bio,
+      birthday: (user as any).birthday,
     },
   });
 });

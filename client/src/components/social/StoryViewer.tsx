@@ -53,6 +53,7 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
 
   const handleDeleteStory = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this story?')) return;
     try {
       await axiosClient.delete(`/stories/${current._id}`);
       addToast('Story Deleted', 'Story removed successfully.', 'info');

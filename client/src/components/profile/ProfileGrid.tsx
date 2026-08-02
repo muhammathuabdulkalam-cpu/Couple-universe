@@ -233,9 +233,9 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({ activeTab, targetUser 
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg mx-auto px-0 sm:px-4"
+              className="w-full max-w-lg mx-auto px-0 sm:px-4 mt-8"
             >
-              <FeedCard activity={selectedPost} autoOpenComments={false} highlighted={false} variant="modal" />
+              <FeedCard activity={selectedPost} autoOpenComments={false} highlighted={false} />
             </motion.div>
           </div>
         )}

@@ -31,8 +31,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
   const isSelfProfile = isSelf !== undefined ? isSelf : String(displayUser?._id) === String(currentUser?._id);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/welcome');
+    if (window.confirm('Are you sure you want to log out?')) {
+      await logout();
+      navigate('/welcome');
+    }
   };
 
   const isCoOwner = displayUser?.role === 'CO_OWNER' || displayUser?.name?.toLowerCase().includes('amrin');

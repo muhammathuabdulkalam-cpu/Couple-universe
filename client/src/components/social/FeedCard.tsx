@@ -82,6 +82,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
   };
 
   const handleDeletePost = async () => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
     try {
       await axiosClient.delete(`/feed/${activity._id}`);
       addToast('Post Deleted', 'Social feed post deleted successfully.', 'info');
