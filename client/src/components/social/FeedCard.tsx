@@ -125,7 +125,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       {/* 1. Instagram Post Header */}
       <div className="p-3.5 flex items-center justify-between border-b border-white/5 bg-obsidian-950/60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[2px] shadow-md shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0">
             <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {activity.userId.avatar ? (
                 <img src={activity.userId.avatar} alt={activity.userId.name} className="w-full h-full object-cover" />
@@ -195,7 +195,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
                 transition={{ duration: 0.4 }}
                 className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
               >
-                <Heart className="w-24 h-24 text-rose-500 fill-rose-500 filter drop-shadow-2xl animate-pulse" />
+                <Heart className="w-24 h-24 text-heart fill-heart filter drop-shadow-2xl animate-pulse" />
               </motion.div>
             )}
           </AnimatePresence>
@@ -210,11 +210,11 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
             <button
               type="button"
               onClick={() => handleReact('❤️')}
-              className="text-slate-300 hover:text-rose-400 transition-colors p-1"
+              className="text-slate-300 hover:text-heart transition-colors p-1"
             >
               <Heart
                 className={`w-6 h-6 transition-transform active:scale-125 ${
-                  myReaction ? 'text-rose-500 fill-rose-500' : 'text-slate-300'
+                  myReaction ? 'text-heart fill-heart' : 'text-slate-300'
                 }`}
               />
             </button>
