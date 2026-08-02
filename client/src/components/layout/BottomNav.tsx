@@ -4,6 +4,7 @@ import {
   Heart,
   Home,
   Image,
+  Menu,
   Plus,
   Sparkles,
   User,
@@ -38,7 +39,7 @@ export const BottomNav: React.FC = () => {
     { label: 'Home', path: '/dashboard', icon: Home, isAction: false },
     { label: 'Gallery', path: '/gallery', icon: Image, isAction: false },
     { label: 'Create', path: '#create', icon: Plus, isAction: true },
-    { label: 'Menu', path: '#menu', icon: Sparkles, isAction: false, isMenuToggle: true },
+    { label: 'Menu', path: '#menu', icon: Menu, isAction: false, isMenuToggle: true },
     { label: 'Profile', path: '/profile', icon: User, isAction: false },
   ];
 
@@ -73,7 +74,7 @@ export const BottomNav: React.FC = () => {
                   onClick={() => setIsMobileMenuOpen(true)}
                   className="relative flex items-center justify-center p-2 text-slate-400 hover:text-white transition-colors"
                 >
-                  <Sparkles className="w-6 h-6 text-amrin-glow" />
+                  <Icon className="w-6 h-6" />
                 </button>
               );
             }
