@@ -7,8 +7,13 @@ export type NotificationType =
   | 'COMMENT_REPLY'
   | 'STORY_REACTION'
   | 'STORY_VIEW'
+  | 'STORY_REPLY'
+  | 'MEMORY_REACTION'
+  | 'BIRTHDAY'
   | 'ANNIVERSARY'
   | 'CALENDAR_REMINDER'
+  | 'MESSAGE'
+  | 'MENTION'
   | 'SYSTEM';
 
 export interface INotification extends Document {
@@ -17,10 +22,13 @@ export interface INotification extends Document {
   senderId?: mongoose.Types.ObjectId;
   type: NotificationType;
   message: string;
+  targetType?: string;
+  targetId?: mongoose.Types.ObjectId;
   referenceId?: mongoose.Types.ObjectId;
   refModel?: string;
   isRead: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const notificationSchema = new Schema<INotification>(
@@ -36,13 +44,20 @@ const notificationSchema = new Schema<INotification>(
         'COMMENT_REPLY',
         'STORY_REACTION',
         'STORY_VIEW',
+        'STORY_REPLY',
+        'MEMORY_REACTION',
+        'BIRTHDAY',
         'ANNIVERSARY',
         'CALENDAR_REMINDER',
+        'MESSAGE',
+        'MENTION',
         'SYSTEM',
       ],
       required: true,
     },
     message: { type: String, required: true, maxlength: 500 },
+    targetType: { type: String, default: null },
+    targetId: { type: Schema.Types.ObjectId, default: null },
     referenceId: { type: Schema.Types.ObjectId, default: null },
     refModel: { type: String, default: null },
     isRead: { type: Boolean, default: false, index: true },
@@ -51,7 +66,7 @@ const notificationSchema = new Schema<INotification>(
 );
 
 notificationSchema.index({ recipientId: 1, createdAt: -1 });
-notificationSchema.index({ recipientId: 1, isRead: 1 });
+notificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
 
 export const Notification: Model<INotification> = mongoose.model<INotification>(
   'Notification',

@@ -3,10 +3,34 @@ import { HTTP_STATUS, PLATFORM_CONSTANTS } from '../constants';
 import { Conversation } from '../models/conversation.model';
 import { Message } from '../models/message.model';
 import { User } from '../models/user.model';
+import { notificationService } from '../services/notification.service';
 import { socketService } from '../services/socket.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
+
+/**
+ * Get total unread chat messages count across user conversations
+ */
+export const getUnreadChatCount = catchAsync(async (req: Request, res: Response) => {
+  const currentUser = req.user!;
+
+  const userConversations = await Conversation.find({
+    participants: currentUser._id,
+    isDeleted: false,
+  }).select('_id');
+
+  const conversationIds = userConversations.map((c) => c._id);
+
+  const count = await Message.countDocuments({
+    conversationId: { $in: conversationIds },
+    sender: { $ne: currentUser._id },
+    'readBy.userId': { $ne: currentUser._id },
+    isDeleted: false,
+  });
+
+  return ApiResponse.success(res, 'Unread chat count retrieved', { count });
+});
 
 /**
  * Create or Get Existing Conversation
@@ -173,12 +197,10 @@ export const sendMessage = catchAsync(async (req: Request, res: Response) => {
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl mimeType width height')
     .populate('replyToMessageId', 'content sender type');
 
-  // Emit real-time socket event
+  // Emit real-time socket event to conversation room
   try {
     socketService.getIO().to(conversationId).emit('receive_message', populatedMessage);
-  } catch (e) {
-    // Socket emit fallback silent catch
-  }
+  } catch (e) {}
 
   return ApiResponse.created(res, 'Message sent successfully', populatedMessage);
 });

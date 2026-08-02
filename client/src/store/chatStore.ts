@@ -9,6 +9,7 @@ interface ChatState {
   typingUsers: Record<string, string[]>;
   replyingToMessage: MessageItem | null;
   mobileView: 'list' | 'chat';
+  wallpaper: string;
 
   setConversations: (conversations: ConversationItem[]) => void;
   setActiveConversation: (conversation: ConversationItem | null) => void;
@@ -20,6 +21,7 @@ interface ChatState {
   setUserOnline: (userId: string, isOnline: boolean) => void;
   setTypingUser: (conversationId: string, userName: string, isTyping: boolean) => void;
   setMobileView: (mobileView: 'list' | 'chat') => void;
+  setWallpaper: (wallpaper: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -30,6 +32,7 @@ export const useChatStore = create<ChatState>((set) => ({
   typingUsers: {},
   replyingToMessage: null,
   mobileView: 'list',
+  wallpaper: typeof window !== 'undefined' ? localStorage.getItem('afrin_chat_wallpaper') || 'midnight' : 'midnight',
 
   setConversations: (conversations) => set({ conversations }),
   setActiveConversation: (activeConversation) => set({ activeConversation }),
@@ -95,4 +98,10 @@ export const useChatStore = create<ChatState>((set) => ({
     }),
 
   setMobileView: (mobileView) => set({ mobileView }),
+  setWallpaper: (wallpaper) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('afrin_chat_wallpaper', wallpaper);
+    }
+    set({ wallpaper });
+  },
 }));

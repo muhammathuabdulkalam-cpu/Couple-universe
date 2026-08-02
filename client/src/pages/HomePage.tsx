@@ -12,8 +12,12 @@ import { Skeleton } from '../components/ui/Skeleton.js';
 import { useAuthStore } from '../store/authStore.js';
 import { ActivityItem, ApiResponse } from '../types/index.js';
 
+import { useLocation } from 'react-router-dom';
+
 export const HomePage: React.FC = () => {
   const { user } = useAuthStore();
+  const location = useLocation();
+  const locationState = location.state as { highlightId?: string; openComments?: boolean; openLikes?: boolean } | null;
 
   // Fetch Social Feed Activities
   const { data: feedData, isLoading: isFeedLoading } = useQuery<ApiResponse<ActivityItem[]>>({
@@ -48,7 +52,28 @@ export const HomePage: React.FC = () => {
   // Show featured banner on Dashboard Home Feed ONLY if partner birthday is in <= 10 days
   const showDashboardBirthdayBanner = daysLeft <= 10;
 
-  const activities = feedData?.data || [];
+  const rawActivities = feedData?.data || [];
+
+  // Re-order activities so highlighted post from notification is placed at index 0
+  const sortedActivities = React.useMemo(() => {
+    if (!locationState?.highlightId) return rawActivities;
+
+    const targetId = locationState.highlightId;
+    const matchIndex = rawActivities.findIndex(
+      (a) =>
+        a._id === targetId ||
+        a.referenceId === targetId ||
+        (typeof a.referenceId === 'object' && (a.referenceId as any)?._id === targetId)
+    );
+
+    if (matchIndex > 0) {
+      const matched = rawActivities[matchIndex];
+      const rest = rawActivities.filter((_, i) => i !== matchIndex);
+      return [matched, ...rest];
+    }
+
+    return rawActivities;
+  }, [rawActivities, locationState?.highlightId]);
 
   return (
     <div className="space-y-3.5 pb-16 max-w-7xl mx-auto select-none">
@@ -81,11 +106,25 @@ export const HomePage: React.FC = () => {
             <Skeleton className="h-64 rounded-3xl" />
             <Skeleton className="h-64 rounded-3xl" />
           </div>
-        ) : activities.length > 0 ? (
+        ) : sortedActivities.length > 0 ? (
           <div className="space-y-4">
-            {activities.map((act) => (
-              <FeedCard key={act._id} activity={act} />
-            ))}
+            {sortedActivities.map((act) => {
+              const isTarget =
+                Boolean(locationState?.highlightId) &&
+                (act._id === locationState?.highlightId ||
+                  act.referenceId === locationState?.highlightId ||
+                  (typeof act.referenceId === 'object' && (act.referenceId as any)?._id === locationState?.highlightId));
+
+              return (
+                <FeedCard
+                  key={act._id}
+                  activity={act}
+                  autoOpenComments={isTarget && Boolean(locationState?.openComments)}
+                  autoOpenLikes={isTarget && Boolean(locationState?.openLikes)}
+                  highlighted={isTarget}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="glass-panel rounded-3xl p-8 text-center space-y-3 border border-white/5">

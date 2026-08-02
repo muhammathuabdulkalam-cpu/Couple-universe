@@ -43,20 +43,28 @@ export const corsMiddleware = cors({
  * High-frequency internal endpoints that must be skipped by rate limiting.
  */
 const SKIP_RATE_LIMIT_PATHS = [
+  '/api/v1/auth/login',
+  '/api/v1/auth/logout',
   '/api/v1/auth/refresh-token',
   '/api/v1/auth/system-status',
   '/api/v1/health',
+  '/api/v1/notifications/unread-count',
+  '/api/v1/chat/unread-count',
 ];
 
-const shouldSkip = (req: Request): boolean =>
-  SKIP_RATE_LIMIT_PATHS.some((path) => req.path === path || req.url?.startsWith(path));
+const shouldSkip = (req: Request): boolean => {
+  // Always skip rate limiting in development environment
+  if (env.NODE_ENV === 'development') return true;
+  const targetUrl = req.originalUrl || req.url || req.path || '';
+  return SKIP_RATE_LIMIT_PATHS.some((path) => targetUrl.includes(path));
+};
 
 /**
  * Global Rate Limiter
  */
 export const globalRateLimiter: RequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 10000,
   standardHeaders: true,
   legacyHeaders: false,
   skip: shouldSkip,
@@ -74,9 +82,10 @@ export const globalRateLimiter: RequestHandler = rateLimit({
  */
 export const authRateLimiter: RequestHandler = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: shouldSkip,
   handler: (_req, res) => {
     return ApiResponse.error(
       res,

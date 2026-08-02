@@ -35,6 +35,9 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
 
+  // Create mode state: POST or STORY
+  const [createType, setCreateType] = useState<'POST' | 'STORY'>('POST');
+
   // Crop & Transform state
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const [rotation, setRotation] = useState<number>(0);
@@ -51,6 +54,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const resetState = () => {
     setStep('SELECT');
+    setCreateType('POST');
     setSelectedFile(null);
     setPreviewUrl(null);
     setSelectedMediaId(null);
@@ -144,8 +148,8 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         }
 
         const formData = new FormData();
-        formData.append('file', uploadBlob, 'instagram_post.jpg');
-        formData.append('title', caption.slice(0, 40) || 'Instagram Post');
+        formData.append('file', uploadBlob, createType === 'STORY' ? 'story_media.jpg' : 'instagram_post.jpg');
+        formData.append('title', caption.slice(0, 40) || (createType === 'STORY' ? '24h Story' : 'Instagram Post'));
         formData.append('caption', caption);
         formData.append('visibility', visibility);
         if (tags) formData.append('tags', tags);
@@ -159,25 +163,38 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         finalImageUrl = mediaData.secureUrl || mediaData.optimizedUrl;
       }
 
-      if (!finalImageUrl) throw new Error('No media selected for post');
+      if (!finalImageUrl) throw new Error('No media selected');
 
-      // 2. Create Social Post Activity
-      const res = await axiosClient.post('/feed', {
-        type: 'MEMORY_CREATED',
-        referenceId: finalMediaId || undefined,
-        refModel: 'Media',
-        title: caption.trim() || 'Shared a post ❤️',
-        description: location ? `📍 ${location}` : undefined,
-        imageUrl: finalImageUrl,
-      });
-
-      return res.data;
+      // 2. Publish as 24h Story or Feed Post
+      if (createType === 'STORY') {
+        const res = await axiosClient.post('/stories', {
+          mediaId: finalMediaId,
+          caption: caption.trim() || undefined,
+          visibility: visibility === 'COUPLE' ? 'PARTNER' : visibility,
+        });
+        return res.data;
+      } else {
+        const res = await axiosClient.post('/feed', {
+          type: 'MEMORY_CREATED',
+          referenceId: finalMediaId || undefined,
+          refModel: 'Media',
+          title: caption.trim() || 'Shared a post ❤️',
+          description: location ? `📍 ${location}` : undefined,
+          imageUrl: finalImageUrl,
+        });
+        return res.data;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['feed'] });
+      qc.invalidateQueries({ queryKey: ['stories'] });
       qc.invalidateQueries({ queryKey: ['profileGridContent'] });
       qc.invalidateQueries({ queryKey: ['media'] });
-      addToast('Post Shared!', 'Your post has been published to the feed and profile.', 'success');
+      addToast(
+        createType === 'STORY' ? 'Story Shared! ❤️' : 'Post Shared! 📸',
+        createType === 'STORY' ? 'Your 24h story has been published.' : 'Your post has been published to the feed.',
+        'success'
+      );
       resetState();
       onClose();
     },
@@ -221,7 +238,33 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* STEP 1: MEDIA SELECTION */}
         {step === 'SELECT' && (
-          <div className="p-8 space-y-6 text-center flex-1 flex flex-col items-center justify-center">
+          <div className="p-6 sm:p-8 space-y-5 text-center flex-1 flex flex-col items-center justify-center">
+            {/* Mode Switcher: Post vs Story */}
+            <div className="flex items-center justify-center p-1 rounded-2xl bg-white/5 border border-white/10 w-full max-w-xs mx-auto">
+              <button
+                type="button"
+                onClick={() => setCreateType('POST')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  createType === 'POST'
+                    ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Camera className="w-3.5 h-3.5" /> Post
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateType('STORY')}
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  createType === 'STORY'
+                    ? 'bg-gradient-to-r from-afzal via-amrin to-heart text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" /> 24h Story
+              </button>
+            </div>
+
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-2xl">
               <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amrin-glow">
                 <ImageIcon className="w-9 h-9" />
@@ -229,8 +272,14 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="space-y-1">
-              <h4 className="text-base font-bold text-white">Drag photos and videos here</h4>
-              <p className="text-xs text-slate-400">Share your favorite moments with partner and family</p>
+              <h4 className="text-base font-bold text-white">
+                {createType === 'STORY' ? 'Create a 24h Story' : 'Create a New Post'}
+              </h4>
+              <p className="text-xs text-slate-400">
+                {createType === 'STORY'
+                  ? 'Share an instant moment that expires in 24 hours'
+                  : 'Share your favorite photos and videos with partner and family'}
+              </p>
             </div>
 
             <div className="w-full max-w-xs space-y-3 pt-2">

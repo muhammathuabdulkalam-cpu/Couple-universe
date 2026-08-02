@@ -57,6 +57,22 @@ export const getFeed = catchAsync(async (req: Request, res: Response) => {
 });
 
 /**
+ * Get a single activity post by ID
+ */
+export const getActivityById = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const activity = await Activity.findById(id)
+    .populate('userId', 'name email avatar role')
+    .populate('referenceId');
+
+  if (!activity) {
+    throw new AppError('Post activity not found.', HTTP_STATUS.NOT_FOUND);
+  }
+
+  return ApiResponse.success(res, 'Post activity retrieved.', activity);
+});
+
+/**
  * Create a Social Post Activity Entry (HTTP Controller)
  */
 export const createActivityHandler = catchAsync(async (req: Request, res: Response) => {

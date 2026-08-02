@@ -40,11 +40,50 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
       postsCount,
       memoriesCount,
       eventsCount,
+      followersCount: partner ? 1 : 0,
+      followingCount: partner ? 1 : 0,
     },
+    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
+    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
     relationshipStartDate: '2026-03-26T00:00:00.000Z',
   };
 
   return ApiResponse.success(res, 'Profile details fetched successfully', profileData);
+});
+
+/**
+ * Get Super Owner (CO) Profile Details
+ */
+export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Response) => {
+  const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('-password');
+  if (!superOwner) {
+    throw new AppError('Super Owner profile not found.', HTTP_STATUS.NOT_FOUND);
+  }
+
+  const partner = await User.findOne({ role: ROLES.CO_OWNER }).select('name email role avatar bio birthday');
+
+  const postsCount = await Activity.countDocuments({
+    userId: superOwner._id,
+    type: { $ne: 'STORY_CREATED' },
+  });
+  const memoriesCount = await TimelineEvent.countDocuments({ owner: superOwner._id, isDeleted: false });
+  const eventsCount = await CalendarEvent.countDocuments({ owner: superOwner._id, isDeleted: false });
+
+  const profileData = {
+    ...superOwner.toObject(),
+    partner: partner ? partner.toObject() : null,
+    stats: {
+      postsCount,
+      memoriesCount,
+      eventsCount,
+      followersCount: partner ? 1 : 0,
+      followingCount: partner ? 1 : 0,
+    },
+    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
+    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
+  };
+
+  return ApiResponse.success(res, 'Super Owner profile details fetched successfully', profileData);
 });
 
 /**

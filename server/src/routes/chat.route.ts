@@ -7,6 +7,7 @@ import {
   forwardMessage,
   getConversationById,
   getConversationMessages,
+  getUnreadChatCount,
   getUserConversations,
   markMessageRead,
   searchChat,
@@ -25,6 +26,9 @@ import {
 const router = Router();
 
 router.use(authenticate);
+
+// Unread Count Endpoint
+router.get('/unread-count', getUnreadChatCount);
 
 // Search Endpoint
 router.get('/search', searchChat);

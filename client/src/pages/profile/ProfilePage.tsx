@@ -2,29 +2,38 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Clock, Grid, Image as ImageIcon, Tag } from 'lucide-react';
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
-import { MediaViewerModal } from '../../components/media/MediaViewerModal.js';
 import { LoveCounter } from '../../components/profile/LoveCounter.js';
 import { ProfileGrid } from '../../components/profile/ProfileGrid.js';
 import { ProfileHeader } from '../../components/profile/ProfileHeader.js';
 import { Skeleton } from '../../components/ui/Skeleton.js';
+import { useAuthStore } from '../../store/authStore.js';
 import { ApiResponse } from '../../types/index.js';
 
 type TabType = 'posts' | 'stories' | 'memories' | 'tagged';
 
 export const ProfilePage: React.FC = () => {
+  const location = useLocation();
+  const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('posts');
+
+  const locationState = location.state as { targetUserId?: string; userId?: string } | null;
+  const targetUserId = locationState?.targetUserId || locationState?.userId;
+
+  const isSelfProfile = !targetUserId || String(targetUserId) === String(currentUser?._id);
 
   // Fetch Profile Stats & Details
   const { data: profileData, isLoading, refetch } = useQuery<any>({
-    queryKey: ['userProfile'],
+    queryKey: ['userProfile', targetUserId],
     queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<any>>('/profile');
+      const endpoint = targetUserId ? `/profile/${targetUserId}` : '/profile';
+      const res = await axiosClient.get<ApiResponse<any>>(endpoint);
       return res.data.data!;
     },
   });
 
-  const stats = profileData?.stats || { postsCount: 0, memoriesCount: 0, eventsCount: 0 };
+  const stats = profileData?.stats || { postsCount: 0, memoriesCount: 0, eventsCount: 0, followersCount: 1, followingCount: 1 };
 
   const tabs = [
     { id: 'posts', label: 'POSTS', icon: Grid },
@@ -41,7 +50,7 @@ export const ProfilePage: React.FC = () => {
       {isLoading ? (
         <Skeleton className="h-48 rounded-3xl" />
       ) : (
-        <ProfileHeader stats={stats} onRefresh={() => refetch()} />
+        <ProfileHeader profileUser={profileData} stats={stats} isSelf={isSelfProfile} onRefresh={() => refetch()} />
       )}
 
       {/* 2. Compact Real-time Love Togetherness Counter */}
@@ -77,11 +86,8 @@ export const ProfilePage: React.FC = () => {
         })}
       </div>
 
-      {/* 4. Instagram 3-Column Photo Grid for target profile */}
+      {/* 4. Instagram 3-Column Photo Grid with Single Post Modal on Thumbnail Click */}
       <ProfileGrid activeTab={activeTab} targetUser={profileData} />
-
-      {/* Media Lightbox */}
-      <MediaViewerModal />
     </div>
   );
 };

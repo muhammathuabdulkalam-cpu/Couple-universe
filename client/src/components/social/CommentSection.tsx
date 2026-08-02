@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart, Reply, Send, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
+import { socketClient } from '../../api/socketClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { ApiResponse, CommentItem, CommentTargetType } from '../../types/index.js';
 
@@ -18,6 +19,23 @@ export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
 
   const queryKey = ['comments', targetType, targetId];
+
+  // Real-time socket listener for instant comment updates
+  useEffect(() => {
+    const socket = socketClient.getSocket();
+    if (!socket) return;
+
+    const handleCommentAdded = (data: { targetType: string; targetId: string; comment: any }) => {
+      if (data.targetType === targetType && data.targetId === targetId) {
+        qc.invalidateQueries({ queryKey });
+      }
+    };
+
+    socket.on('comment_added', handleCommentAdded);
+    return () => {
+      socket.off('comment_added', handleCommentAdded);
+    };
+  }, [targetType, targetId, queryKey, qc]);
 
   const { data: comments = [], isLoading } = useQuery<CommentItem[]>({
     queryKey,

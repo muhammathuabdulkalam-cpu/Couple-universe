@@ -2,12 +2,11 @@ import { Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
 import { Block } from '../models/block.model';
 import { Follow } from '../models/follow.model';
-import { Notification } from '../models/notification.model';
 import { User } from '../models/user.model';
+import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
-import { getSocketServer } from '../utils/socketServer';
 
 /**
  * Follow a user
@@ -43,20 +42,17 @@ export const followUser = catchAsync(async (req: Request, res: Response) => {
     status: 'ACCEPTED',
   });
 
-  // Send notification
-  const notif = await Notification.create({
+  // Send notification via Notification Engine Service
+  await notificationService.publish({
     recipientId: targetId,
     senderId: actor._id,
     type: 'FOLLOW',
     message: `${actor.name} started following you.`,
+    targetType: 'USER',
+    targetId: actor._id,
     referenceId: follow._id,
     refModel: 'Follow',
   });
-
-  const io = getSocketServer();
-  if (io) {
-    io.to(`user:${targetId}`).emit('notification_created', notif);
-  }
 
   return ApiResponse.created(res, 'Followed successfully.', follow);
 });

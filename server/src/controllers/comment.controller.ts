@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS, PLATFORM_CONSTANTS } from '../constants';
 import { Comment } from '../models/comment.model';
-import { Notification } from '../models/notification.model';
+import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
-import { getSocketServer } from '../utils/socketServer';
+
+import { socketService } from '../services/socket.service';
 
 /**
  * Create a comment or reply
@@ -24,22 +25,31 @@ export const createComment = catchAsync(async (req: Request, res: Response) => {
 
   const populated = await comment.populate('userId', 'name email avatar');
 
-  // Notify content author
+  // Notify content author via Notification Engine Service
   if (authorId && authorId !== user._id.toString()) {
     const notifType = parentCommentId ? 'COMMENT_REPLY' : 'COMMENT';
-    const notif = await Notification.create({
+    await notificationService.publish({
       recipientId: authorId,
       senderId: user._id,
       type: notifType,
       message: parentCommentId
         ? `${user.name} replied to your comment.`
         : `${user.name} commented on your ${targetType.toLowerCase()}.`,
+      targetType: targetType.toUpperCase(),
+      targetId,
       referenceId: targetId,
       refModel: targetType,
     });
-    const io = getSocketServer();
-    if (io) io.to(`user:${authorId}`).emit('notification_created', notif);
   }
+
+  // Emit real-time socket event for instant comment updates
+  try {
+    socketService.getIO().emit('comment_added', {
+      targetType,
+      targetId,
+      comment: populated,
+    });
+  } catch (_err) {}
 
   return ApiResponse.created(res, 'Comment added.', populated);
 });

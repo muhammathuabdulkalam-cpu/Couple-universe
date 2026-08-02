@@ -2,16 +2,20 @@ import { useQuery } from '@tanstack/react-query';
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { socketClient } from '../../api/socketClient.js';
+import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import { useNotificationStore } from '../../store/notificationStore.js';
 import { ApiResponse, MessageItem } from '../../types/index.js';
 import { MessageBubble } from './MessageBubble.js';
 
 export const MessageContainer: React.FC = () => {
-  const { activeConversation, messages, setMessages } = useChatStore();
+  const { user } = useAuthStore();
+  const { activeConversation, messages, setMessages, mobileView } = useChatStore();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const conversationId = activeConversation?._id;
+  const currentUserId = user?._id || user?.id;
 
   // Fetch Conversation Messages via React Query
   const { data: fetchedMessages, isLoading } = useQuery<MessageItem[]>({
@@ -31,6 +35,61 @@ export const MessageContainer: React.FC = () => {
     }
   }, [conversationId, fetchedMessages, setMessages]);
 
+  const currentMessages = conversationId ? messages[conversationId] || [] : [];
+  const markedAsReadRef = useRef<Set<string>>(new Set());
+
+  // Auto mark unread messages as read upon viewing inside the open chat window
+  useEffect(() => {
+    if (!conversationId || !currentUserId || currentMessages.length === 0) return;
+
+    // On mobile viewports (< 1024px), ONLY mark messages read if user is INSIDE the open chat thread (mobileView === 'chat')
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile && mobileView !== 'chat') return;
+
+    const unreadMessages = currentMessages.filter((m) => {
+      if (markedAsReadRef.current.has(m._id)) return false;
+
+      const sId = typeof m.sender === 'object' ? (m.sender._id || m.sender.id) : m.sender;
+      const isSelf = Boolean(sId && sId.toString() === currentUserId.toString());
+      const isReadByMe = Boolean(
+        m.readBy?.some((r) => {
+          const rId = typeof r.userId === 'object' ? ((r.userId as any)._id || (r.userId as any).id) : r.userId;
+          return rId && rId.toString() === currentUserId.toString();
+        })
+      );
+      return !isSelf && !isReadByMe;
+    });
+
+    if (unreadMessages.length > 0) {
+      const unreadIds = unreadMessages.map((m) => m._id);
+      unreadIds.forEach((id) => markedAsReadRef.current.add(id));
+
+      const socket = socketClient.getSocket();
+      if (socket && socket.connected) {
+        socket.emit('mark_read', { conversationId, messageIds: unreadIds });
+      }
+
+      unreadIds.forEach((id) => {
+        axiosClient.patch(`/chat/messages/${id}/read`).catch(() => {});
+      });
+
+      // Update local Zustand store so unreadMessages evaluates to empty array immediately
+      const updatedMessages = currentMessages.map((m) => {
+        if (unreadIds.includes(m._id)) {
+          const existingReadBy = m.readBy || [];
+          return {
+            ...m,
+            readBy: [...existingReadBy, { userId: currentUserId, readAt: new Date().toISOString() }],
+          };
+        }
+        return m;
+      });
+
+      setMessages(conversationId, updatedMessages);
+      useNotificationStore.getState().fetchUnreadCounts();
+    }
+  }, [conversationId, currentMessages, currentUserId, setMessages]);
+
   // Join Socket Room
   useEffect(() => {
     if (!conversationId) return;
@@ -46,8 +105,6 @@ export const MessageContainer: React.FC = () => {
       }
     };
   }, [conversationId]);
-
-  const currentMessages = conversationId ? messages[conversationId] || [] : [];
 
   const scrollToBottom = () => {
     if (containerRef.current) {
@@ -90,13 +147,33 @@ export const MessageContainer: React.FC = () => {
     return acc;
   }, {});
 
+  const { wallpaper } = useChatStore();
+
+  const getWallpaperClass = (preset: string) => {
+    switch (preset) {
+      case 'aurora':
+        return 'bg-gradient-to-br from-indigo-950/80 via-purple-950/80 to-pink-950/80';
+      case 'stars':
+        return 'bg-gradient-to-b from-slate-950 via-blue-950/90 to-slate-950 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:24px_24px]';
+      case 'doodle':
+        return 'bg-slate-950 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]';
+      case 'rose':
+        return 'bg-gradient-to-br from-rose-950/80 via-obsidian-950 to-pink-950/80';
+      case 'emerald':
+        return 'bg-gradient-to-br from-emerald-950/80 via-obsidian-950 to-teal-950/80';
+      case 'midnight':
+      default:
+        return 'bg-obsidian-950/60';
+    }
+  };
+
   return (
     <div
       ref={(el) => {
         containerRef.current = el;
         if (el) el.scrollTop = el.scrollHeight;
       }}
-      className="flex-1 min-h-0 overflow-y-auto overscroll-none p-3 sm:p-4 bg-obsidian-950/40"
+      className={`flex-1 min-h-0 overflow-y-auto overscroll-none p-3 sm:p-4 transition-all duration-300 ${getWallpaperClass(wallpaper)}`}
     >
       <div className="flex flex-col justify-end min-h-full space-y-4">
         {isLoading ? (

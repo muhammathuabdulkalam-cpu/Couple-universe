@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NAVIGATION_CONFIG, NavItem } from '../../config/navigation.config.js';
 import { useAuthStore } from '../../store/authStore.js';
+import { useNotificationStore } from '../../store/notificationStore.js';
 import { MediaPicker } from '../media/MediaPicker.js';
 import { CreatePostModal } from '../social/CreatePostModal.js';
 import { StoryCreator } from '../social/StoryCreator.js';
@@ -25,6 +26,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
   const location = useLocation();
   const { user } = useAuthStore();
+  const { unreadChatCount } = useNotificationStore();
   const userRole = user?.role || 'INVITED_USER';
 
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
@@ -181,7 +183,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                           </motion.span>
                         )}
 
-                        {isExpanded && item.badge && (
+                        {isExpanded && item.path === '/chat' && unreadChatCount > 0 && (
+                          <span className="ml-auto bg-gradient-to-r from-amrin to-heart text-white text-[10px] font-extrabold rounded-full px-2 py-0.5 shadow-md">
+                            {unreadChatCount}
+                          </span>
+                        )}
+
+                        {isExpanded && item.badge && item.path !== '/chat' && (
                           <Badge variant="violet" size="sm" className="ml-auto text-[9px] px-1.5 py-0">
                             {item.badge}
                           </Badge>

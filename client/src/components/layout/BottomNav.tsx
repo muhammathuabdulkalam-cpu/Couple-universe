@@ -14,12 +14,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { NAVIGATION_CONFIG } from '../../config/navigation.config.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import { useNotificationStore } from '../../store/notificationStore.js';
 import { CreatePostModal } from '../social/CreatePostModal.js';
 
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { user } = useAuthStore();
   const { mobileView } = useChatStore();
+  const { unreadChatCount } = useNotificationStore();
   const userRole = user?.role || 'INVITED_USER';
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -149,6 +151,7 @@ export const BottomNav: React.FC = () => {
                   {allowedNavItems.map((nav) => {
                     const NavIcon = nav.icon;
                     const isNavActive = location.pathname === nav.path;
+                    const isChatNav = nav.path === '/chat';
 
                     return (
                       <Link
@@ -165,7 +168,14 @@ export const BottomNav: React.FC = () => {
                           <NavIcon className={`w-4 h-4 ${isNavActive ? 'text-amrin-glow' : 'text-slate-400'}`} />
                           <span>{nav.label}</span>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                        <div className="flex items-center gap-2">
+                          {isChatNav && unreadChatCount > 0 && (
+                            <span className="bg-gradient-to-r from-amrin to-heart text-white text-[10px] font-extrabold rounded-full px-2 py-0.5 shadow-md">
+                              {unreadChatCount}
+                            </span>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-slate-500" />
+                        </div>
                       </Link>
                     );
                   })}

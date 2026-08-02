@@ -462,6 +462,7 @@ export interface StoryItem {
   visibility: StoryVisibility;
   expiresAt: string;
   viewedBy: string[];
+  views?: Array<{ userId: { _id: string; name: string; avatar?: string } | string; viewedAt?: string }>;
   reactions: StoryReaction[];
   isDeleted: boolean;
   createdAt: string;
@@ -525,16 +526,23 @@ export type NotificationType =
   | 'COMMENT_REPLY'
   | 'STORY_REACTION'
   | 'STORY_VIEW'
+  | 'STORY_REPLY'
+  | 'MEMORY_REACTION'
+  | 'BIRTHDAY'
   | 'ANNIVERSARY'
   | 'CALENDAR_REMINDER'
+  | 'MESSAGE'
+  | 'MENTION'
   | 'SYSTEM';
 
 export interface NotificationItem {
   _id: string;
   recipientId: string;
-  senderId?: { _id: string; name: string; avatar?: string };
+  senderId?: { _id: string; name: string; avatar?: string; role?: string };
   type: NotificationType;
   message: string;
+  targetType?: string;
+  targetId?: string;
   referenceId?: string;
   refModel?: string;
   isRead: boolean;

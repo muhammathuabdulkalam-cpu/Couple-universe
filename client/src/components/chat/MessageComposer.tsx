@@ -34,17 +34,23 @@ export const MessageComposer: React.FC = () => {
   if (!activeConversation) return null;
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setText(e.target.value);
+    const val = e.target.value;
+    setText(val);
 
-    // Emit socket typing events
+    // Emit socket typing events only when user is actually typing text
     const socket = socketClient.getSocket();
     if (socket && socket.connected) {
-      socket.emit('typing_start', { conversationId: activeConversation._id });
+      if (val.trim().length > 0) {
+        socket.emit('typing_start', { conversationId: activeConversation._id });
 
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          socket.emit('typing_stop', { conversationId: activeConversation._id });
+        }, 1500);
+      } else {
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         socket.emit('typing_stop', { conversationId: activeConversation._id });
-      }, 2000);
+      }
     }
   };
 

@@ -8,7 +8,11 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse, MediaItem, StoryItem } from '../../types/index.js';
 
+import { useLocation } from 'react-router-dom';
+
 export const StoriesPage: React.FC = () => {
+  const location = useLocation();
+  const locationState = location.state as { highlightStoryId?: string; openActivitySheet?: boolean } | null;
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const qc = useQueryClient();
@@ -27,6 +31,16 @@ export const StoriesPage: React.FC = () => {
       return res.data.data ?? [];
     },
   });
+
+  // Auto open highlighted story from notification
+  React.useEffect(() => {
+    if (locationState?.highlightStoryId && stories.length > 0) {
+      const found = stories.find((s) => s._id === locationState.highlightStoryId);
+      if (found) {
+        setActiveStory(found);
+      }
+    }
+  }, [locationState, stories]);
 
   const createStoryMutation = useMutation({
     mutationFn: () =>

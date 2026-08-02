@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES } from '../constants';
 import { Activity } from '../models/activity.model';
-import { Notification } from '../models/notification.model';
 import { Story } from '../models/story.model';
+import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
-import { getSocketServer } from '../utils/socketServer';
 
 /**
  * Create a new Story (references existing Media._id from the vault)
@@ -59,6 +58,8 @@ export const getActiveStories = catchAsync(async (req: Request, res: Response) =
   })
     .populate('userId', 'name email avatar')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl width height mimeType duration')
+    .populate('viewedBy', 'name email avatar')
+    .populate('reactions.userId', 'name email avatar')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -73,7 +74,8 @@ export const getStoryById = catchAsync(async (req: Request, res: Response) => {
   const story = await Story.findById(req.params.id)
     .populate('userId', 'name email avatar')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl width height mimeType duration')
-    .populate('reactions.userId', 'name avatar');
+    .populate('viewedBy', 'name email avatar')
+    .populate('reactions.userId', 'name email avatar');
 
   if (!story || story.isDeleted) throw new AppError('Story not found.', HTTP_STATUS.NOT_FOUND);
 
@@ -89,28 +91,33 @@ export const viewStory = catchAsync(async (req: Request, res: Response) => {
 
   if (!story || story.isDeleted) throw new AppError('Story not found.', HTTP_STATUS.NOT_FOUND);
 
-  // Add viewer if not already present
-  if (!story.viewedBy.some((id) => id.toString() === viewer._id.toString())) {
+  const viewerIdStr = viewer._id.toString();
+  const isOwner = story.userId.toString() === viewerIdStr;
+
+  // Story authors viewing their own story should NOT record views or trigger notifications
+  if (!isOwner) {
+    const alreadyViewed = story.viewedBy.some((id) => (id._id || id).toString() === viewerIdStr);
     story.viewedBy.push(viewer._id);
     await story.save();
 
-    // Notify story owner (not for self-views)
-    if (story.userId.toString() !== viewer._id.toString()) {
-      const notif = await Notification.create({
+    if (!alreadyViewed) {
+      // Notify story owner via Notification Engine Service
+      await notificationService.publish({
         recipientId: story.userId,
         senderId: viewer._id,
         type: 'STORY_VIEW',
         message: `${viewer.name} viewed your story.`,
+        targetType: 'STORY',
+        targetId: story._id,
         referenceId: story._id,
         refModel: 'Story',
       });
-
-      const io = getSocketServer();
-      if (io) io.to(`user:${story.userId}`).emit('notification_created', notif);
     }
   }
 
-  return ApiResponse.success(res, 'Story viewed.', { viewCount: story.viewedBy.length });
+  const nonOwnerViews = story.viewedBy.filter((id) => (id._id || id).toString() !== story.userId.toString());
+  const uniqueViewCount = new Set(nonOwnerViews.map((id) => (id._id || id).toString())).size;
+  return ApiResponse.success(res, 'Story viewed.', { viewCount: uniqueViewCount });
 });
 
 /**
@@ -130,21 +137,25 @@ export const reactToStory = catchAsync(async (req: Request, res: Response) => {
   }
   await story.save();
 
-  // Notify owner
+  // Notify owner via Notification Engine Service
   if (emoji && story.userId.toString() !== reactor._id.toString()) {
-    const notif = await Notification.create({
+    await notificationService.publish({
       recipientId: story.userId,
       senderId: reactor._id,
       type: 'STORY_REACTION',
       message: `${reactor.name} reacted ${emoji} to your story.`,
+      targetType: 'STORY',
+      targetId: story._id,
       referenceId: story._id,
       refModel: 'Story',
     });
-    const io = getSocketServer();
-    if (io) io.to(`user:${story.userId}`).emit('notification_created', notif);
   }
 
-  return ApiResponse.success(res, emoji ? 'Reacted to story.' : 'Reaction removed.', story.reactions);
+  const updated = await Story.findById(story._id)
+    .populate('viewedBy', 'name email avatar')
+    .populate('reactions.userId', 'name email avatar');
+
+  return ApiResponse.success(res, emoji ? 'Reacted to story.' : 'Reaction removed.', updated?.reactions || story.reactions);
 });
 
 /**

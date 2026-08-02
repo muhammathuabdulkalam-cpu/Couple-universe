@@ -4,7 +4,6 @@ import {
   ChevronRight,
   CloudSun,
   Heart,
-  MessageSquare,
   Music,
   Play,
   Plus,
@@ -13,7 +12,6 @@ import {
   Zap,
 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { AnniversaryCountdownWidget } from '../dashboard/AnniversaryCountdownWidget.js';
 import { BirthdayCountdown } from '../dashboard/BirthdayCountdown.js';
 import { TodaysMemoryWidget } from '../dashboard/TodaysMemoryWidget.js';
@@ -21,13 +19,36 @@ import { Badge } from '../ui/Badge.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { axiosClient } from '../../api/axiosClient.js';
+import { useAuthStore } from '../../store/authStore.js';
+import { ApiResponse } from '../../types/index.js';
+import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
+
 interface RightContextPanelProps {
   isOpen: boolean;
   onToggle: () => void;
 }
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
+
+  // Fetch Partner Profile Details for floating partner avatar icon
+  const { data: profileData } = useQuery<any>({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const res = await axiosClient.get<ApiResponse<any>>('/profile');
+      return res.data.data;
+    },
+  });
+
+  const partner = profileData?.partner;
+  const partnerName = partner?.name || (user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal');
+  const partnerAvatar = partner?.avatar;
 
   const panelContent = (
     <div className="space-y-4">
@@ -100,17 +121,33 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
       {/* Gradient-Border Circular Floating Trigger Buttons on Mobile Viewports */}
       <div className="fixed right-3 bottom-20 z-40 md:hidden flex flex-col gap-3 items-center select-none">
         
-        {/* 1. Quick Chat Circular Button with Couple Gradient Border */}
-        <Link
-          to="/chat"
-          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-afzal via-amrin to-heart shadow-2xl active:scale-95 transition-transform"
-          aria-label="Open Quick Chat"
-          title="Open Quick Chat"
+        {/* 1. Partner Profile Floating Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (partner?._id) {
+              navigate('/profile', { state: { targetUserId: partner._id } });
+            } else {
+              navigate('/profile');
+            }
+          }}
+          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-afzal via-amrin to-heart shadow-2xl active:scale-95 transition-transform group flex items-center justify-center relative"
+          aria-label={`View ${partnerName}'s Profile`}
+          title={`View ${partnerName}'s Profile`}
         >
-          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amrin-glow">
-            <MessageSquare className="w-5 h-5 fill-amrin/20" />
+          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-white font-bold text-xs overflow-hidden p-0.5">
+            {partnerAvatar ? (
+              <img
+                src={partnerAvatar}
+                alt={partnerName}
+                className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <span>{partnerName?.[0] || '❤️'}</span>
+            )}
           </div>
-        </Link>
+          <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute bottom-0 right-0 shadow-md" />
+        </button>
 
         {/* 2. Activity Context Circular Button with Radiant Gradient Border */}
         <button
@@ -187,6 +224,12 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <Sparkles className="w-4 h-4 text-amrin-glow" /> Activity Panel
         </button>
       )}
+
+      {/* Super Owner (CO) Profile Viewer Modal */}
+      <SuperOwnerProfileModal
+        isOpen={isSuperOwnerModalOpen}
+        onClose={() => setIsSuperOwnerModalOpen(false)}
+      />
     </>
   );
 };

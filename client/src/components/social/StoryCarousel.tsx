@@ -21,26 +21,55 @@ export const StoryCarousel: React.FC = () => {
     staleTime: 15_000,
   });
 
+  const currentUserIdStr = (user?._id || user?.id || '').toString();
+
   // Group active stories by user ID string
   const grouped = stories.reduce<Record<string, StoryItem[]>>((acc, s) => {
-    const uid = String(s.userId._id || s.userId);
+    const rawId = s.userId._id || (s.userId as any).id || s.userId;
+    const uid = String(rawId);
     if (!acc[uid]) acc[uid] = [];
     acc[uid].push(s);
     return acc;
   }, {});
 
-  const users = Object.values(grouped);
+  // My active stories
+  const myStories = grouped[currentUserIdStr] || [];
+  const hasMyStories = myStories.length > 0;
+
+  // Filter out current user from other user bubbles list to prevent duplicate story bubbles
+  const partnerUserStoriesList = Object.entries(grouped)
+    .filter(([uid]) => uid !== currentUserIdStr)
+    .map(([, userStories]) => userStories);
+
+  const handleYourStoryClick = () => {
+    if (hasMyStories) {
+      setActiveStory(myStories[0]);
+    } else {
+      setShowStoryCreator(true);
+    }
+  };
+
+  const handlePlusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowStoryCreator(true);
+  };
 
   return (
     <>
       <div className="flex gap-4 overflow-x-auto scrollbar-hide px-1 select-none items-center py-0.5 max-w-full">
-        {/* Your Story Bubble */}
+        {/* Your Story Bubble (Views your story if present, else opens Creator) */}
         <div className="flex flex-col items-center gap-1 shrink-0">
           <div
-            onClick={() => setShowStoryCreator(true)}
+            onClick={handleYourStoryClick}
             className="relative cursor-pointer group shrink-0"
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
+            <div
+              className={`w-14 h-14 rounded-full p-[2px] shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden ${
+                hasMyStories
+                  ? 'bg-gradient-to-tr from-afzal via-amrin to-heart'
+                  : 'bg-slate-700/80'
+              }`}
+            >
               <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center overflow-hidden shrink-0">
                 {user?.avatar ? (
                   <img
@@ -53,15 +82,21 @@ export const StoryCarousel: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-sky-500 border-2 border-obsidian-950 flex items-center justify-center shadow-md">
-              <Plus className="w-2.5 h-2.5 text-white stroke-[3]" />
+
+            {/* Plus badge to add new story */}
+            <div
+              onClick={handlePlusClick}
+              className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-sky-500 hover:bg-sky-400 border-2 border-obsidian-950 flex items-center justify-center shadow-md transition-colors"
+              title="Add to Story"
+            >
+              <Plus className="w-3 h-3 text-white stroke-[3]" />
             </div>
           </div>
           <span className="text-[10px] font-bold text-slate-300 w-14 text-center truncate">Your Story</span>
         </div>
 
         {/* Other Active User Story Bubbles */}
-        {users.map((userStories) => {
+        {partnerUserStoriesList.map((userStories) => {
           const first = userStories[0];
           const storyUser = first.userId;
           const isViewed = first.viewedBy?.includes(user?._id ?? '');
@@ -101,7 +136,7 @@ export const StoryCarousel: React.FC = () => {
           );
         })}
 
-        {users.length === 0 && (
+        {partnerUserStoriesList.length === 0 && !hasMyStories && (
           <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 py-1 px-3 glass-panel rounded-full border border-white/5 shrink-0">
             <span>Share a 24h Story</span>
             <span className="text-amrin-glow">✨</span>
@@ -113,7 +148,7 @@ export const StoryCarousel: React.FC = () => {
       {activeStory && (
         <StoryViewer
           story={activeStory}
-          allStories={grouped[String(activeStory.userId._id || activeStory.userId)] ?? []}
+          allStories={grouped[String(activeStory.userId._id || (activeStory.userId as any).id || activeStory.userId)] ?? []}
           onClose={() => setActiveStory(null)}
         />
       )}

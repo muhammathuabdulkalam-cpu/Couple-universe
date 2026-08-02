@@ -12,17 +12,25 @@ import { ReportModal } from './ReportModal.js';
 
 interface Props {
   activity: ActivityItem;
+  autoOpenComments?: boolean;
+  autoOpenLikes?: boolean;
+  highlighted?: boolean;
 }
 
-export const FeedCard: React.FC<Props> = ({ activity }) => {
+export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, autoOpenLikes = false, highlighted = false }) => {
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const qc = useQueryClient();
-  const [showComments, setShowComments] = useState(false);
-  const [showPicker, setShowPicker] = useState(false);
+  const [showComments, setShowComments] = useState(autoOpenComments);
+  const [showPicker, setShowPicker] = useState(autoOpenLikes);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
+
+  React.useEffect(() => {
+    if (autoOpenComments) setShowComments(true);
+    if (autoOpenLikes) setShowPicker(true);
+  }, [autoOpenComments, autoOpenLikes]);
 
   const targetId = activity.referenceId || activity._id;
   const targetType = (activity.refModel === 'TimelineEvent' ? 'MEMORY' : activity.refModel === 'Story' ? 'STORY' : 'ACTIVITY') as 'MEMORY' | 'STORY' | 'ACTIVITY';
@@ -106,7 +114,11 @@ export const FeedCard: React.FC<Props> = ({ activity }) => {
   }
 
   return (
-    <div className="glass-card rounded-3xl border border-white/10 shadow-xl overflow-hidden mb-5 transition-all hover:border-white/20 select-none w-full max-w-full">
+    <div
+      className={`glass-card rounded-3xl border shadow-xl overflow-hidden mb-5 transition-all select-none w-full max-w-full ${
+        highlighted ? 'border-amrin shadow-2xl ring-2 ring-amrin/50' : 'border-white/10 hover:border-white/20'
+      }`}
+    >
       {/* 1. Instagram Post Header */}
       <div className="p-3.5 flex items-center justify-between border-b border-white/5 bg-obsidian-950/60">
         <div className="flex items-center gap-3">

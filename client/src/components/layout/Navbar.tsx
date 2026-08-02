@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
   Heart,
   LogIn,
   LogOut,
+  MessageCircle,
   Moon,
   Search,
   Settings,
@@ -15,11 +15,9 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
+import { useNotificationStore } from '../../store/notificationStore.js';
 import { useUIStore } from '../../store/uiStore.js';
-import { ApiResponse } from '../../types/index.js';
-import { NotificationPanel } from '../social/NotificationPanel.js';
 import { Badge } from '../ui/Badge.js';
 import { Button } from '../ui/Button.js';
 
@@ -27,22 +25,9 @@ export const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useUIStore();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const { unreadNotifCount, unreadChatCount, toggleNotifDrawer } = useNotificationStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Fetch unread notification count
-  const { data: unreadData } = useQuery<{ count: number }>({
-    queryKey: ['unreadNotifications'],
-    queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<{ count: number }>>('/notifications/unread-count');
-      return res.data.data!;
-    },
-    enabled: isAuthenticated,
-    refetchInterval: 15_000,
-  });
-
-  const unreadCount = unreadData?.count || 0;
 
   const handleLogout = async () => {
     setIsDropdownOpen(false);
@@ -102,19 +87,33 @@ export const Navbar: React.FC = () => {
               {/* Notification Icon & Panel */}
               <div className="relative">
                 <button
-                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  onClick={() => toggleNotifDrawer()}
                   className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"
                   aria-label="Notifications"
                 >
                   <Bell className="w-4 h-4" />
-                  {unreadCount > 0 && (
-                    <>
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-heart rounded-full animate-ping" />
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-heart rounded-full" />
-                    </>
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-afzal to-heart text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-heart animate-pulse">
+                      {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                    </span>
                   )}
                 </button>
-                <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+              </div>
+
+              {/* Direct Messages Chat Icon */}
+              <div className="relative">
+                <Link
+                  to="/chat"
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative block"
+                  aria-label="Direct Messages"
+                >
+                  <MessageCircle className="w-4 h-4 text-slate-300 hover:text-amrin-glow" />
+                  {unreadChatCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-amrin via-amrin-glow to-heart text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-amrin/40 animate-pulse">
+                      {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                    </span>
+                  )}
+                </Link>
               </div>
 
               {/* Theme Toggle */}

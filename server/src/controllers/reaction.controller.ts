@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS } from '../constants';
-import { Notification } from '../models/notification.model';
 import { Reaction } from '../models/reaction.model';
+import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { catchAsync } from '../utils/catchAsync';
-import { getSocketServer } from '../utils/socketServer';
 
 /**
  * Toggle reaction — adds if not present or changes emoji; removes if same emoji sent
@@ -35,18 +34,19 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
     result = await Reaction.create({ userId: user._id, targetId, targetType, emoji });
     message = 'Reaction added.';
 
-    // Notify content author (if provided and not self)
+    // Notify content author via Notification Engine Service
     if (authorId && authorId !== user._id.toString()) {
-      const notif = await Notification.create({
+      const notifType = targetType.toUpperCase() === 'STORY' ? 'STORY_REACTION' : 'REACTION';
+      await notificationService.publish({
         recipientId: authorId,
         senderId: user._id,
-        type: 'REACTION',
+        type: notifType,
         message: `${user.name} reacted ${emoji} to your ${targetType.toLowerCase()}.`,
+        targetType: targetType.toUpperCase(),
+        targetId,
         referenceId: targetId,
         refModel: targetType,
       });
-      const io = getSocketServer();
-      if (io) io.to(`user:${authorId}`).emit('notification_created', notif);
     }
   }
 

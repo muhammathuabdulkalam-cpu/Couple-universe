@@ -1,12 +1,15 @@
 import { Request, Response } from 'express';
 import { HTTP_STATUS, PLATFORM_CONSTANTS } from '../constants';
+import { Conversation } from '../models/conversation.model';
+import { Message } from '../models/message.model';
 import { Notification } from '../models/notification.model';
+import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
 
 /**
- * Get all notifications for the current user
+ * Get all notifications for the current user (chronological, newest first)
  */
 export const getNotifications = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
@@ -14,9 +17,9 @@ export const getNotifications = catchAsync(async (req: Request, res: Response) =
   const limit = parseInt(req.query.limit as string, 10) || PLATFORM_CONSTANTS.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
 
-  const total = await Notification.countDocuments({ recipientId: user._id });
-  const notifications = await Notification.find({ recipientId: user._id })
-    .populate('senderId', 'name avatar')
+  const total = await Notification.countDocuments({ recipientId: user._id, type: { $ne: 'MESSAGE' } });
+  const notifications = await Notification.find({ recipientId: user._id, type: { $ne: 'MESSAGE' } })
+    .populate('senderId', 'name avatar role')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -27,12 +30,31 @@ export const getNotifications = catchAsync(async (req: Request, res: Response) =
 });
 
 /**
- * Get unread notification count
+ * Get unread notification and chat counts
  */
 export const getUnreadCount = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  const count = await Notification.countDocuments({ recipientId: user._id, isRead: false });
-  return ApiResponse.success(res, 'Unread count retrieved.', { count });
+  const notifCount = await notificationService.getUnreadCount(user._id);
+
+  const userConversations = await Conversation.find({
+    participants: user._id,
+    isDeleted: false,
+  }).select('_id');
+
+  const conversationIds = userConversations.map((c) => c._id);
+
+  const chatCount = await Message.countDocuments({
+    conversationId: { $in: conversationIds },
+    sender: { $ne: user._id },
+    'readBy.userId': { $ne: user._id },
+    isDeleted: false,
+  });
+
+  return ApiResponse.success(res, 'Unread count retrieved.', {
+    count: notifCount,
+    unreadNotifications: notifCount,
+    unreadChat: chatCount,
+  });
 });
 
 /**
@@ -44,8 +66,11 @@ export const markRead = catchAsync(async (req: Request, res: Response) => {
 
   if (!notif) throw new AppError('Notification not found.', HTTP_STATUS.NOT_FOUND);
 
-  notif.isRead = true;
-  await notif.save();
+  if (!notif.isRead) {
+    notif.isRead = true;
+    await notif.save();
+    await notificationService.syncUnreadCount(user._id);
+  }
 
   return ApiResponse.success(res, 'Notification marked as read.', notif);
 });
@@ -56,6 +81,7 @@ export const markRead = catchAsync(async (req: Request, res: Response) => {
 export const markAllRead = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
   await Notification.updateMany({ recipientId: user._id, isRead: false }, { isRead: true });
+  await notificationService.syncUnreadCount(user._id);
   return ApiResponse.success(res, 'All notifications marked as read.');
 });
 
@@ -66,5 +92,6 @@ export const deleteNotification = catchAsync(async (req: Request, res: Response)
   const user = req.user!;
   const notif = await Notification.findOneAndDelete({ _id: req.params.id, recipientId: user._id });
   if (!notif) throw new AppError('Notification not found.', HTTP_STATUS.NOT_FOUND);
+  await notificationService.syncUnreadCount(user._id);
   return ApiResponse.success(res, 'Notification deleted.');
 });

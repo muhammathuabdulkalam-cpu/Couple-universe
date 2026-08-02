@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { BottomNav } from '../components/layout/BottomNav.js';
 import { Breadcrumb } from '../components/layout/Breadcrumb.js';
+import { MobileHeader } from '../components/layout/MobileHeader.js';
 import { Navbar } from '../components/layout/Navbar.js';
 import { RightContextPanel } from '../components/layout/RightContextPanel.js';
 import { Sidebar } from '../components/layout/Sidebar.js';
 import { ToastContainer } from '../components/layout/ToastContainer.js';
+import { NotificationPanel } from '../components/social/NotificationPanel.js';
+import { useAuthStore } from '../store/authStore.js';
+import { useNotificationStore } from '../store/notificationStore.js';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +19,18 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(!fullViewport);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const { accessToken } = useAuthStore();
+  const { initSocketListeners, fetchUnreadCounts } = useNotificationStore();
+
+  React.useEffect(() => {
+    if (accessToken) {
+      const cleanup = initSocketListeners(accessToken);
+      fetchUnreadCounts();
+      return () => {
+        if (cleanup) cleanup();
+      };
+    }
+  }, [accessToken, initSocketListeners, fetchUnreadCounts]);
 
   return (
     <div className="relative flex flex-col bg-obsidian-950 text-slate-100 h-[100dvh] overflow-x-hidden overflow-y-hidden select-none w-full max-w-full">
@@ -22,8 +38,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
       <div className="pointer-events-none absolute top-0 left-1/4 w-[600px] h-[600px] bg-afzal/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-amrin/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" style={{ animationDelay: '2s' }} />
 
-      {/* Top Navigation Bar (Hidden when fullViewport is true for Chat page) */}
-      {!fullViewport && <Navbar />}
+      {/* Top Navigation Bar & Instagram Mobile Header */}
+      {!fullViewport && (
+        <>
+          <MobileHeader />
+          <Navbar />
+        </>
+      )}
 
       {/* Main Application Workspace Shell */}
       <div className="flex w-full max-w-[1920px] mx-auto flex-1 min-h-0 overflow-hidden">
@@ -56,6 +77,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+
+      {/* Global Notification Drawer & Panel */}
+      <NotificationPanel />
 
       {/* Dynamic Toast Notifications */}
       <ToastContainer />

@@ -38,7 +38,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
   React.useEffect(() => {
     if (convData) {
       setConversations(convData);
-      if (!activeConversation && convData.length > 0) {
+      // Auto-select first conversation ONLY on desktop screens (>= 1024px)
+      if (!activeConversation && convData.length > 0 && window.innerWidth >= 1024) {
         setActiveConversation(convData[0]);
       }
     }
@@ -102,28 +103,59 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
         {filteredConversations.length > 0 ? (
           filteredConversations.map((c) => {
             const isActive = activeConversation?._id === c._id;
-            const otherParticipant = c.participants?.find((p) => p._id !== user?.id && p.id !== user?.id);
-            const isOnline = otherParticipant ? onlineUsers[otherParticipant._id] : false;
+            const currentUserId = user?._id || user?.id;
+            const otherParticipant = c.participants?.find((p) => (p._id || p.id) !== currentUserId);
+            const isOnline = otherParticipant ? onlineUsers[otherParticipant._id || otherParticipant.id || ''] : false;
 
             const partnerName = otherParticipant?.name || (user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal');
             const partnerRole = otherParticipant?.role || (user?.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER');
-
             const isCoOwner = partnerRole === 'CO_OWNER' || partnerName.toLowerCase().includes('amrin');
+
+            // Unread state determination
+            const lastMsg = c.lastMessageId;
+            const senderId = lastMsg?.sender
+              ? (typeof lastMsg.sender === 'object' ? (lastMsg.sender._id || lastMsg.sender.id) : lastMsg.sender)
+              : null;
+            const isSender = Boolean(senderId && currentUserId && senderId.toString() === currentUserId.toString());
+            const hasRead = Boolean(
+              lastMsg?.readBy?.some((r) => {
+                const rId = typeof r.userId === 'object' ? ((r.userId as any)._id || (r.userId as any).id) : r.userId;
+                return rId && currentUserId && rId.toString() === currentUserId.toString();
+              })
+            );
+            const isUnread = Boolean(lastMsg && !isSender && !hasRead);
+
+            const handleCardClick = () => {
+              setActiveConversation(c);
+
+              // Mark as read immediately
+              if (isUnread && lastMsg?._id) {
+                axiosClient.patch(`/chat/messages/${lastMsg._id}/read`).catch(() => {});
+                // Update local conversation lastMessageId readBy
+                const updatedReadBy = [...(lastMsg.readBy || []), { userId: currentUserId || '', readAt: new Date().toISOString() }];
+                const updatedLastMsg = { ...lastMsg, readBy: updatedReadBy };
+                const updatedConvs = (conversations || []).map((item) =>
+                  item._id === c._id ? { ...item, lastMessageId: updatedLastMsg } : item
+                );
+                setConversations(updatedConvs);
+              }
+
+              if (onSelectConversation) onSelectConversation();
+            };
 
             return (
               <div
                 key={c._id}
-                onClick={() => {
-                  setActiveConversation(c);
-                  if (onSelectConversation) onSelectConversation();
-                }}
+                onClick={handleCardClick}
                 className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                   isActive
-                    ? 'bg-gradient-to-r from-afzal/20 to-amrin/20 border-amrin/40 shadow-lg'
+                    ? 'bg-gradient-to-r from-afzal/20 via-amrin/20 to-heart/20 border-amrin/40 shadow-lg ring-1 ring-amrin/30'
+                    : isUnread
+                    ? 'bg-gradient-to-r from-afzal/15 via-amrin/15 to-heart/15 border-amrin/30 shadow-md'
                     : 'glass-card border-white/5 hover:border-white/20'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="relative shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center font-bold text-white text-sm shadow overflow-hidden">
                       {otherParticipant?.avatar ? (
@@ -137,9 +169,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                     )}
                   </div>
 
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className={`text-xs truncate flex items-center gap-1.5 ${isUnread ? 'font-black text-white' : 'font-semibold text-slate-200'}`}>
                         <span>{partnerName}</span>
                         {isCoOwner && (
                           <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-amrin/20 text-amrin-glow border-amrin/40">
@@ -147,18 +179,25 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                           </span>
                         )}
                       </h4>
+
+                      {lastMsg && (
+                        <span className={`text-[10px] shrink-0 ${isUnread ? 'font-extrabold text-amrin-glow' : 'font-mono text-slate-400'}`}>
+                          {new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
                     </div>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                      {c.lastMessageId?.content || 'No messages yet'}
-                    </p>
+
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className={`text-[11px] truncate ${isUnread ? 'text-slate-100 font-extrabold' : 'text-slate-400 font-normal'}`}>
+                        {lastMsg ? (isSender ? `You: ${lastMsg.content || 'Attachment'}` : lastMsg.content || 'Attachment') : 'No messages yet'}
+                      </p>
+
+                      {isUnread && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-amrin to-heart shadow-md shadow-heart shrink-0 animate-pulse" />
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                {c.lastMessageId && (
-                  <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                    {new Date(c.lastMessageId.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
               </div>
             );
           })
