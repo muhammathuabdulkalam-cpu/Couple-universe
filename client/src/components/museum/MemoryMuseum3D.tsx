@@ -1,202 +1,194 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * MemoryMuseum3D.tsx
+ * 
+ * Phase 1: Main museum container.
+ * Assembles Canvas, Building, Camera, Lighting, HUD, Mobile controls.
+ * WebGL guard with graceful fallback to Grid view.
+ */
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Compass, Info, MapPin, Sparkles, X } from 'lucide-react';
+import { Sparkles } from '@react-three/drei';
+import * as THREE from 'three';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 import { AlbumItem, MediaItem } from '../../types/index.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { useUIStore } from '../../store/uiStore.js';
-import { MuseumScene } from './MuseumScene.js';
+import { MuseumBuilding } from './MuseumBuilding.js';
+import { MuseumCamera } from './MuseumCamera.js';
+import { MuseumHUD } from './MuseumHUD.js';
+import { MobileJoystick } from './MobileJoystick.js';
 
 interface MemoryMuseum3DProps {
   mediaItems: MediaItem[];
   albums: AlbumItem[];
 }
 
-export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albums }) => {
-  const { setViewMode, searchQuery } = useMediaStore();
+// ─── WebGL detection ───────────────────────────────────
+function checkWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl =
+      canvas.getContext('webgl2') ||
+      canvas.getContext('webgl') ||
+      canvas.getContext('experimental-webgl');
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
+
+export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albums: _albums }) => {
+  const { setViewMode } = useMediaStore();
   const { addToast } = useUIStore();
 
-  const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
-  const [activeRoomId, setActiveRoomId] = useState<string>('all');
-  const [showControlsGuide, setShowControlsGuide] = useState(true);
-  const [joystickPos, setJoystickPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [webglReady, setWebglReady] = useState<boolean | null>(null);
+  const [showGuide, setShowGuide] = useState(true);
+  const [isPointerLocked, setIsPointerLocked] = useState(false);
+  const [joystickInput, setJoystickInput] = useState({ x: 0, y: 0 });
 
-  // WebGL Availability Guard
+  // ─── WebGL check on mount ────────────────────────
   useEffect(() => {
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (gl) {
-        setHasWebGL(true);
-      } else {
-        setHasWebGL(false);
-      }
-    } catch (e) {
-      setHasWebGL(false);
-    }
-  }, []);
+    const supported = checkWebGL();
+    setWebglReady(supported);
 
-  // WebGL Fallback Notification
-  useEffect(() => {
-    if (hasWebGL === false) {
+    if (!supported) {
       addToast(
-        'WebGL Unsupported',
-        'Your browser or GPU does not support 3D rendering. Falling back to Grid View.',
+        'WebGL Not Available',
+        'Your browser does not support 3D rendering. Switching to Grid View.',
         'info'
       );
       setViewMode('grid');
     }
-  }, [hasWebGL]);
+  }, []);
 
-  if (hasWebGL === null) {
+  // ─── Auto-hide guide after 8 seconds ─────────────
+  useEffect(() => {
+    if (showGuide) {
+      const timer = setTimeout(() => setShowGuide(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showGuide]);
+
+  // ─── Mobile swipe look handler (right half of screen) ──
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [_mobileYaw, setMobileYaw] = useState(0);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    // Only use right half of screen for look
+    if (touch.clientX > window.innerWidth * 0.4) {
+      setTouchStart({ x: touch.clientX, y: touch.clientY });
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchStart) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStart.x;
+      setMobileYaw((prev) => prev - dx * 0.003);
+      setTouchStart({ x: touch.clientX, y: touch.clientY });
+    },
+    [touchStart]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    setTouchStart(null);
+  }, []);
+
+  // ─── Loading state ───────────────────────────────
+  if (webglReady === null) {
     return (
-      <div className="w-full h-[600px] rounded-3xl glass-card border border-white/10 flex items-center justify-center text-white">
-        <div className="flex items-center gap-3 text-sm font-extrabold animate-pulse">
-          <Sparkles className="w-5 h-5 text-amrin" /> Initializing 3D Art Gallery...
+      <div className="w-full h-[75vh] min-h-[550px] rounded-3xl glass-card border border-white/10 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-sm font-extrabold text-white animate-pulse">
+          <SparklesIcon className="w-5 h-5 text-amrin" /> Building Memory Museum...
         </div>
       </div>
     );
   }
 
-  if (hasWebGL === false) return null;
+  if (!webglReady) return null;
 
   return (
-    <div className="relative w-full h-[78vh] min-h-[580px] max-h-[880px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-obsidian-950 select-none">
-      
-      {/* 1. React Three Fiber Canvas */}
+    <div
+      className="relative w-full h-[78vh] min-h-[580px] max-h-[900px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-[#0f172a] select-none"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* ─── R3F Canvas ─────────────────────────── */}
       <Canvas
-        shadows
+        shadows="soft"
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           alpha: false,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.1,
         }}
-        camera={{ position: [0, 1.6, 5], fov: 60 }}
+        camera={{
+          fov: 65,
+          near: 0.1,
+          far: 100,
+          position: [0, 1.65, 0.5],
+        }}
         className="w-full h-full"
       >
-        <MuseumScene
-          mediaItems={mediaItems}
-          albums={albums}
-          searchQuery={searchQuery}
-          activeRoomId={activeRoomId}
-          joystickPos={joystickPos}
-          onNavigateRoom={(roomId) => setActiveRoomId(roomId)}
+        {/* Global lighting */}
+        <ambientLight intensity={0.45} color="#fef3c7" />
+        <directionalLight
+          position={[5, 12, -10]}
+          intensity={0.8}
+          castShadow
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-left={-25}
+          shadow-camera-right={25}
+          shadow-camera-top={25}
+          shadow-camera-bottom={-25}
+        />
+        {/* Warm tint fill */}
+        <hemisphereLight
+          intensity={0.3}
+          color="#fff7ed"
+          groundColor="#78350f"
+        />
+
+        {/* Floating dust particles */}
+        <Sparkles
+          count={60}
+          scale={[40, 5, 40]}
+          position={[0, 2.5, -18]}
+          size={2}
+          speed={0.15}
+          opacity={0.4}
+          color="#fbbf24"
+        />
+
+        {/* Museum architecture */}
+        <Suspense fallback={null}>
+          <MuseumBuilding />
+        </Suspense>
+
+        {/* Camera controller */}
+        <MuseumCamera
+          joystickInput={joystickInput}
+          isPointerLocked={isPointerLocked}
+          onPointerLockChange={setIsPointerLocked}
         />
       </Canvas>
 
-      {/* 2. Apple-Style Glassmorphism Top Control Bar */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        {/* Left: Gallery Title & Active Room Badge */}
-        <div className="flex items-center gap-2 pointer-events-auto bg-obsidian-950/85 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/10 shadow-2xl">
-          <Sparkles className="w-4 h-4 text-amrin-glow" />
-          <div>
-            <div className="text-xs font-extrabold text-white tracking-wide">3D Memory Museum</div>
-            <div className="text-[10px] text-slate-400 font-mono">
-              {activeRoomId === 'all'
-                ? 'Main Gallery Room'
-                : albums.find((a) => a._id === activeRoomId)?.name || 'Album Room'}
-            </div>
-          </div>
-        </div>
+      {/* ─── 2D HUD Overlay ─────────────────────── */}
+      <MuseumHUD
+        isPointerLocked={isPointerLocked}
+        showGuide={showGuide}
+        onToggleGuide={() => setShowGuide((v) => !v)}
+        mediaCount={mediaItems.length}
+      />
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <button
-            type="button"
-            onClick={() => setShowControlsGuide((v) => !v)}
-            className="p-2.5 rounded-xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 text-slate-300 hover:text-white transition-colors"
-            title="Controls & Guide"
-          >
-            <Info className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-colors"
-          >
-            <X className="w-4 h-4" /> Exit 3D View
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Bottom Mini-Map & Room Selector Overlay */}
-      <div className="absolute bottom-4 right-4 z-20 pointer-events-auto hidden sm:flex items-center gap-2 bg-obsidian-950/90 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl">
-        <div className="flex items-center gap-1.5 px-2 text-xs font-bold text-slate-300">
-          <MapPin className="w-3.5 h-3.5 text-amrin-glow" /> Rooms:
-        </div>
-        <button
-          type="button"
-          onClick={() => setActiveRoomId('all')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            activeRoomId === 'all'
-              ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          Main Room
-        </button>
-        {albums.map((alb) => (
-          <button
-            key={alb._id}
-            type="button"
-            onClick={() => setActiveRoomId(alb._id)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              activeRoomId === alb._id
-                ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {alb.name}
-          </button>
-        ))}
-      </div>
-
-      {/* 4. Controls & Navigation Guide Modal Overlay */}
-      <AnimatePresence>
-        {showControlsGuide && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute top-16 left-4 z-20 max-w-xs bg-obsidian-950/90 backdrop-blur-xl border border-white/15 p-4 rounded-2xl text-white shadow-2xl space-y-2 pointer-events-auto"
-          >
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-amrin">
-                <Compass className="w-4 h-4" /> Navigation & Controls
-              </div>
-              <button onClick={() => setShowControlsGuide(false)} className="text-slate-400 hover:text-white">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <div className="text-[11px] text-slate-300 space-y-1.5 font-mono">
-              <p>• <strong className="text-white">WASD / Arrow Keys</strong> : Walk in room</p>
-              <p>• <strong className="text-white">Shift Key</strong> : Sprint speed</p>
-              <p>• <strong className="text-white">Mouse Drag</strong> : Look 360°</p>
-              <p>• <strong className="text-white">Click Artwork</strong> : Open Lightbox Viewer</p>
-              <p>• <strong className="text-white">Mobile</strong> : Touch Joystick (Bottom Left)</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 5. Mobile Virtual Touch Joystick */}
+      {/* ─── Mobile Joystick (touch devices only) ── */}
       <div className="sm:hidden absolute bottom-6 left-6 z-20 pointer-events-auto">
-        <div
-          className="w-24 h-24 rounded-full bg-obsidian-950/85 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl"
-          onTouchMove={(e) => {
-            const touch = e.touches[0];
-            const rect = e.currentTarget.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            const dx = (touch.clientX - centerX) / (rect.width / 2);
-            const dy = (touch.clientY - centerY) / (rect.height / 2);
-            setJoystickPos({ x: Math.max(-1, Math.min(1, dx)), y: Math.max(-1, Math.min(1, dy)) });
-          }}
-          onTouchEnd={() => setJoystickPos({ x: 0, y: 0 })}
-        >
-          <div className="w-8 h-8 rounded-full bg-amrin/80 shadow-lg border border-white/40" />
-        </div>
+        <MobileJoystick onChange={setJoystickInput} />
       </div>
     </div>
   );
