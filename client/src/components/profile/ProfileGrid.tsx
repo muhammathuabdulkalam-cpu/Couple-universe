@@ -220,26 +220,22 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({ activeTab, targetUser 
       {/* Instagram Single Post Overlay Modal */}
       <AnimatePresence>
         {selectedPost && (
-          <div className="fixed inset-0 z-[300] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md select-none">
+          <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl select-none overflow-y-auto pt-14 pb-10">
+            {/* Floating Close Button */}
+            <button
+              onClick={() => setSelectedPost(null)}
+              className="fixed top-4 right-4 z-[310] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-md"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg max-h-[90vh] bg-obsidian-950 border border-white/15 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+              className="w-full max-w-lg mx-auto px-0 sm:px-4"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-obsidian-950/90">
-                <span className="text-xs font-bold text-white tracking-tight">Post Details</span>
-                <button
-                  onClick={() => setSelectedPost(null)}
-                  className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3 sm:p-4 scrollbar-hide">
-                <FeedCard activity={selectedPost} autoOpenComments={true} highlighted={true} />
-              </div>
+              <FeedCard activity={selectedPost} autoOpenComments={false} highlighted={false} variant="modal" />
             </motion.div>
           </div>
         )}

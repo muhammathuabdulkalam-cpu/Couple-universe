@@ -15,9 +15,10 @@ interface Props {
   autoOpenComments?: boolean;
   autoOpenLikes?: boolean;
   highlighted?: boolean;
+  variant?: 'default' | 'modal';
 }
 
-export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, autoOpenLikes = false, highlighted = false }) => {
+export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, autoOpenLikes = false, highlighted = false, variant = 'default' }) => {
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const qc = useQueryClient();
@@ -115,9 +116,11 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
 
   return (
     <div
-      className={`glass-card rounded-3xl border shadow-xl overflow-hidden mb-5 transition-all select-none w-full max-w-full ${
-        highlighted ? 'border-amrin shadow-2xl ring-2 ring-amrin/50' : 'border-white/10 hover:border-white/20'
-      }`}
+      className={`transition-all select-none w-full max-w-full ${
+        variant === 'modal'
+          ? 'bg-transparent text-white'
+          : 'glass-card rounded-3xl border shadow-xl mb-5 overflow-hidden border-white/10 hover:border-white/20'
+      } ${highlighted ? 'border-amrin shadow-2xl ring-2 ring-amrin/50' : ''}`}
     >
       {/* 1. Instagram Post Header */}
       <div className="p-3.5 flex items-center justify-between border-b border-white/5 bg-obsidian-950/60">
