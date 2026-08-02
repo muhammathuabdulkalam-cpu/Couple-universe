@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Compass, Info, Sparkles, X } from 'lucide-react';
+import { Compass, Info, MapPin, Sparkles, X } from 'lucide-react';
 import { AlbumItem, MediaItem } from '../../types/index.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { MuseumScene } from './MuseumScene.js';
-import { MuseumControls } from './MuseumControls.js';
 
 interface MemoryMuseum3DProps {
   mediaItems: MediaItem[];
@@ -18,7 +17,7 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
   const { addToast } = useUIStore();
 
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>('all');
+  const [activeRoomId, setActiveRoomId] = useState<string>('all');
   const [showControlsGuide, setShowControlsGuide] = useState(true);
   const [joystickPos, setJoystickPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -37,12 +36,12 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
     }
   }, []);
 
-  // WebGL Failure Graceful Fallback
+  // WebGL Fallback Notification
   useEffect(() => {
     if (hasWebGL === false) {
       addToast(
         'WebGL Unsupported',
-        'Your device or browser does not support WebGL. Falling back to Grid View.',
+        'Your browser or GPU does not support 3D rendering. Falling back to Grid View.',
         'info'
       );
       setViewMode('grid');
@@ -53,7 +52,7 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
     return (
       <div className="w-full h-[600px] rounded-3xl glass-card border border-white/10 flex items-center justify-center text-white">
         <div className="flex items-center gap-3 text-sm font-extrabold animate-pulse">
-          <Sparkles className="w-5 h-5 text-amrin" /> Loading 3D Memory Museum...
+          <Sparkles className="w-5 h-5 text-amrin" /> Initializing 3D Art Gallery...
         </div>
       </div>
     );
@@ -62,9 +61,9 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
   if (hasWebGL === false) return null;
 
   return (
-    <div className="relative w-full h-[75vh] min-h-[550px] max-h-[850px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-obsidian-950 select-none">
+    <div className="relative w-full h-[78vh] min-h-[580px] max-h-[880px] rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-obsidian-950 select-none">
       
-      {/* 1. R3F 3D Canvas */}
+      {/* 1. React Three Fiber Canvas */}
       <Canvas
         shadows
         gl={{
@@ -72,7 +71,7 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
           powerPreference: 'high-performance',
           alpha: false,
         }}
-        camera={{ position: [0, 1.6, 6], fov: 60 }}
+        camera={{ position: [0, 1.6, 5], fov: 60 }}
         className="w-full h-full"
       >
         <MuseumScene
@@ -80,29 +79,32 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
           albums={albums}
           searchQuery={searchQuery}
           activeRoomId={activeRoomId}
-          onSelectRoom={(roomId) => setActiveRoomId(roomId)}
-          onSelectFrame={(_, _pos) => {
-            // Camera alignment trigger
-          }}
+          joystickPos={joystickPos}
+          onNavigateRoom={(roomId) => setActiveRoomId(roomId)}
         />
-        <MuseumControls mobileMoveVector={joystickPos} />
       </Canvas>
 
-      {/* 2. Glassmorphism Top Header Bar */}
+      {/* 2. Apple-Style Glassmorphism Top Control Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto bg-obsidian-950/80 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 shadow-2xl">
+        {/* Left: Gallery Title & Active Room Badge */}
+        <div className="flex items-center gap-2 pointer-events-auto bg-obsidian-950/85 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-white/10 shadow-2xl">
           <Sparkles className="w-4 h-4 text-amrin-glow" />
-          <span className="text-xs font-extrabold text-white tracking-wide">3D Memory Museum</span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-slate-300">
-            {mediaItems.length} Artworks
-          </span>
+          <div>
+            <div className="text-xs font-extrabold text-white tracking-wide">3D Memory Museum</div>
+            <div className="text-[10px] text-slate-400 font-mono">
+              {activeRoomId === 'all'
+                ? 'Main Gallery Room'
+                : albums.find((a) => a._id === activeRoomId)?.name || 'Album Room'}
+            </div>
+          </div>
         </div>
 
+        {/* Right: Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
             type="button"
             onClick={() => setShowControlsGuide((v) => !v)}
-            className="p-2 rounded-xl bg-obsidian-950/80 backdrop-blur-xl border border-white/10 text-slate-300 hover:text-white transition-colors"
+            className="p-2.5 rounded-xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 text-slate-300 hover:text-white transition-colors"
             title="Controls & Guide"
           >
             <Info className="w-4 h-4" />
@@ -111,14 +113,46 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
           <button
             type="button"
             onClick={() => setViewMode('grid')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-obsidian-950/80 backdrop-blur-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-obsidian-950/85 backdrop-blur-xl border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-colors"
           >
-            <X className="w-4 h-4" /> Exit Museum
+            <X className="w-4 h-4" /> Exit 3D View
           </button>
         </div>
       </div>
 
-      {/* 3. Controls & Navigation Guide Modal Overlay */}
+      {/* 3. Bottom Mini-Map & Room Selector Overlay */}
+      <div className="absolute bottom-4 right-4 z-20 pointer-events-auto hidden sm:flex items-center gap-2 bg-obsidian-950/90 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl">
+        <div className="flex items-center gap-1.5 px-2 text-xs font-bold text-slate-300">
+          <MapPin className="w-3.5 h-3.5 text-amrin-glow" /> Rooms:
+        </div>
+        <button
+          type="button"
+          onClick={() => setActiveRoomId('all')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            activeRoomId === 'all'
+              ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          Main Room
+        </button>
+        {albums.map((alb) => (
+          <button
+            key={alb._id}
+            type="button"
+            onClick={() => setActiveRoomId(alb._id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              activeRoomId === alb._id
+                ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {alb.name}
+          </button>
+        ))}
+      </div>
+
+      {/* 4. Controls & Navigation Guide Modal Overlay */}
       <AnimatePresence>
         {showControlsGuide && (
           <motion.div
@@ -129,26 +163,27 @@ export const MemoryMuseum3D: React.FC<MemoryMuseum3DProps> = ({ mediaItems, albu
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <div className="flex items-center gap-2 text-xs font-extrabold text-amrin">
-                <Compass className="w-4 h-4" /> Controls & Navigation
+                <Compass className="w-4 h-4" /> Navigation & Controls
               </div>
               <button onClick={() => setShowControlsGuide(false)} className="text-slate-400 hover:text-white">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="text-[11px] text-slate-300 space-y-1 font-mono">
-              <p>• <strong className="text-white">WASD / Arrows</strong> : Walk inside museum</p>
-              <p>• <strong className="text-white">Mouse Drag</strong> : Look around 360°</p>
+            <div className="text-[11px] text-slate-300 space-y-1.5 font-mono">
+              <p>• <strong className="text-white">WASD / Arrow Keys</strong> : Walk in room</p>
+              <p>• <strong className="text-white">Shift Key</strong> : Sprint speed</p>
+              <p>• <strong className="text-white">Mouse Drag</strong> : Look 360°</p>
               <p>• <strong className="text-white">Click Artwork</strong> : Open Lightbox Viewer</p>
-              <p>• <strong className="text-white">Mobile</strong> : Touch Joystick & Swipe</p>
+              <p>• <strong className="text-white">Mobile</strong> : Touch Joystick (Bottom Left)</p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 4. Touch Joystick Overlay for Mobile Viewports (sm:hidden) */}
+      {/* 5. Mobile Virtual Touch Joystick */}
       <div className="sm:hidden absolute bottom-6 left-6 z-20 pointer-events-auto">
         <div
-          className="w-24 h-24 rounded-full bg-obsidian-950/80 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl"
+          className="w-24 h-24 rounded-full bg-obsidian-950/85 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl"
           onTouchMove={(e) => {
             const touch = e.touches[0];
             const rect = e.currentTarget.getBoundingClientRect();
