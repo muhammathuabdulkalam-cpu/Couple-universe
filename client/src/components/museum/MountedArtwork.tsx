@@ -1,25 +1,18 @@
 /**
  * MountedArtwork.tsx
  * 
- * Premium Wall-Mounted Artwork for 3D Memory Museum.
- * Features:
- * - Premium oak wood frame with dark bevel
- * - Crisp white museum mat board
- * - Realistic glass reflection layer
- * - Museum plaque with title, capture date, album, location & favorite heart
- * - Aspect ratio preservation (portrait, landscape, square)
- * - Cloudinary thumbnailUrl texture (lightweight)
- * - Video play badge & duration overlay
- * - Smooth hover physics (scale, Z-translation off wall, spotlight intensity)
- * - Search/Filter highlighting & dimming
- * - Camera fly-to on click before opening existing MediaViewerModal
+ * Clean Modern Wall-Mounted Artwork Component.
+ * - Pure framed artwork ONLY (zero text plaques or floating labels).
+ * - Anisotropic texture filtering for crystal-clear photo rendering from all angles.
+ * - Layered depth hierarchy preventing z-fighting & wall clipping.
+ * - Smooth frame scale & spotlight hover physics.
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import { useTexture, Html } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { Play, Heart, MapPin, Calendar, Film } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { MediaItem } from '../../types/index.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 
@@ -31,17 +24,7 @@ interface MountedArtworkProps {
   onSelectArtwork?: (media: MediaItem, position: [number, number, number], rotation: [number, number, number]) => void;
 }
 
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return 'Memory';
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return 'Memory';
-  }
-}
-
-export const MountedArtwork: React.FC<MountedArtworkProps> = ({
+const MountedArtworkImpl: React.FC<MountedArtworkProps> = ({
   media,
   position,
   rotation,
@@ -50,49 +33,87 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
 }) => {
   const { openViewer } = useMediaStore();
   const [hovered, setHovered] = useState(false);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
 
   const groupRef = useRef<THREE.Group>(null);
   const currentScale = useRef(1);
   const currentZOffset = useRef(0);
   const spotlightRef = useRef<THREE.SpotLight>(null);
 
-  // Texture URL selection — strictly use lightweight thumbnails inside 3D canvas
-  const textureUrl = media.thumbnailUrl || media.optimizedUrl || media.secureUrl;
+  // Prioritize high-resolution original image for crystal sharpness
+  const textureUrl = media.secureUrl || (media as any).url || media.optimizedUrl || media.thumbnailUrl;
 
-  const texture = useTexture(textureUrl, (tx) => {
-    if (tx instanceof THREE.Texture) {
-      tx.colorSpace = THREE.SRGBColorSpace;
-      tx.needsUpdate = true;
-    }
-  });
+  useEffect(() => {
+    let isMounted = true;
+    if (!textureUrl) return;
+
+    const loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+
+    loader.load(
+      textureUrl,
+      (tx) => {
+        if (isMounted) {
+          tx.colorSpace = THREE.SRGBColorSpace;
+          tx.anisotropy = 8;
+          tx.minFilter = THREE.LinearMipmapLinearFilter;
+          tx.magFilter = THREE.LinearFilter;
+          tx.needsUpdate = true;
+          setTexture(tx);
+        }
+      },
+      undefined,
+      () => {
+        if (isMounted && media.thumbnailUrl && media.thumbnailUrl !== textureUrl) {
+          loader.load(media.thumbnailUrl, (tx2) => {
+            if (isMounted) {
+              tx2.colorSpace = THREE.SRGBColorSpace;
+              tx2.anisotropy = 4;
+              tx2.needsUpdate = true;
+              setTexture(tx2);
+            }
+          });
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+    };
+  }, [textureUrl, media.thumbnailUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (texture) {
+        texture.dispose();
+      }
+    };
+  }, [texture]);
 
   const isVideo = Boolean(media.mimeType?.startsWith('video') || (media as any).type === 'video');
 
-  // Dynamic aspect ratio calculation to prevent any image cropping
   const dims = useMemo(() => {
-    let aspect = 1;
+    let aspect = 1.33;
     if (media.width && media.height && media.height > 0) {
       aspect = media.width / media.height;
     } else if (media.aspectRatio) {
       aspect = media.aspectRatio;
     }
 
-    const baseH = 1.35;
-    const w = Math.min(Math.max(baseH * aspect, 0.85), 2.5);
+    const baseH = 1.4;
+    const w = Math.min(Math.max(baseH * aspect, 0.9), 2.2);
     const h = baseH;
 
     return {
       canvasW: w,
       canvasH: h,
-      matW: w + 0.16,
-      matH: h + 0.16,
-      frameW: w + 0.28,
-      frameH: h + 0.28,
-      frameDepth: 0.06,
+      matW: w + 0.14,
+      matH: h + 0.14,
+      frameW: w + 0.24,
+      frameH: h + 0.24,
+      frameDepth: 0.05,
     };
   }, [media]);
-
-  const formattedDate = useMemo(() => formatDate(media.memoryDate || media.takenAt), [media]);
 
   const isMatch = useMemo(() => {
     if (!searchQuery.trim()) return false;
@@ -108,8 +129,8 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
   const dimmed = isSearchActive && !isMatch;
 
   useFrame((_, delta) => {
-    const targetScale = hovered ? 1.03 : 1.0;
-    const targetZ = hovered ? 0.06 : 0.0;
+    const targetScale = hovered ? 1.04 : 1.0;
+    const targetZ = hovered ? 0.04 : 0.0;
     const lerpSpeed = Math.min(delta * 10, 0.3);
 
     currentScale.current += (targetScale - currentScale.current) * lerpSpeed;
@@ -120,7 +141,7 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
     }
 
     if (spotlightRef.current) {
-      const targetIntensity = isMatch ? 4.5 : hovered ? 3.0 : 1.4;
+      const targetIntensity = isMatch ? 3.5 : hovered ? 2.5 : 1.2;
       spotlightRef.current.intensity += (targetIntensity - spotlightRef.current.intensity) * lerpSpeed;
     }
   });
@@ -133,8 +154,6 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
       openViewer(media);
     }
   };
-
-  const locationName = typeof media.location === 'string' ? media.location : media.location?.name;
 
   return (
     <group position={position} rotation={rotation}>
@@ -152,53 +171,62 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
         }}
         onClick={handleClick}
       >
-        {/* 1. Wall Shadow */}
-        <mesh position={[0, -0.05, -0.01]}>
-          <planeGeometry args={[dims.frameW + 0.1, dims.frameH + 0.3]} />
-          <meshBasicMaterial color="#000000" transparent opacity={hovered ? 0.45 : 0.25} />
+        {/* 1. Wall Shadow Plate */}
+        <mesh position={[0, 0, -0.005]}>
+          <planeGeometry args={[dims.frameW + 0.06, dims.frameH + 0.06]} />
+          <meshBasicMaterial color="#000000" transparent opacity={hovered ? 0.4 : 0.2} />
         </mesh>
 
-        {/* 2. Oak Outer Frame */}
+        {/* 2. Premium Dark Wood Frame */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[dims.frameW, dims.frameH, dims.frameDepth]} />
           <meshStandardMaterial
-            color={isMatch ? '#e11d48' : hovered ? '#0284c7' : '#271c19'}
-            roughness={0.4}
+            color={isMatch ? '#e11d48' : hovered ? '#0284c7' : '#1e1b18'}
+            roughness={0.35}
             metalness={0.3}
             emissive={isMatch ? '#f43f5e' : hovered ? '#38bdf8' : '#000000'}
             emissiveIntensity={isMatch ? 0.4 : hovered ? 0.25 : 0}
           />
         </mesh>
 
-        {/* 3. Beveled Inner Wood Trim */}
-        <mesh position={[0, 0, 0.015]}>
-          <boxGeometry args={[dims.matW + 0.04, dims.matH + 0.04, 0.04]} />
-          <meshStandardMaterial color="#451a03" roughness={0.6} metalness={0.2} />
+        {/* 3. Inner Wood Bevel */}
+        <mesh position={[0, 0, 0.012]}>
+          <boxGeometry args={[dims.matW + 0.03, dims.matH + 0.03, 0.03]} />
+          <meshStandardMaterial color="#382119" roughness={0.5} metalness={0.2} />
         </mesh>
 
-        {/* 4. White Museum Mat Board */}
-        <mesh position={[0, 0, 0.03]}>
+        {/* 4. White Mat Board */}
+        <mesh position={[0, 0, 0.025]}>
           <planeGeometry args={[dims.matW, dims.matH]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.92} metalness={0.0} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.9} metalness={0.0} />
         </mesh>
 
         {/* 5. Photo Canvas */}
-        <mesh position={[0, 0, 0.035]}>
+        <mesh position={[0, 0, 0.03]}>
           <planeGeometry args={[dims.canvasW, dims.canvasH]} />
-          <meshBasicMaterial
-            map={texture}
-            transparent={dimmed}
-            opacity={dimmed ? 0.25 : 1.0}
-            side={THREE.FrontSide}
-          />
+          {texture ? (
+            <meshBasicMaterial
+              map={texture}
+              transparent={dimmed}
+              opacity={dimmed ? 0.25 : 1.0}
+              side={THREE.DoubleSide}
+            />
+          ) : (
+            <meshStandardMaterial
+              color="#334155"
+              roughness={0.5}
+              metalness={0.2}
+              side={THREE.DoubleSide}
+            />
+          )}
         </mesh>
 
-        {/* 6. Protective Glass Sheet */}
-        <mesh position={[0, 0, 0.04]}>
+        {/* 6. Glass Sheet */}
+        <mesh position={[0, 0, 0.035]}>
           <planeGeometry args={[dims.canvasW, dims.canvasH]} />
           <meshPhysicalMaterial
             transparent
-            opacity={0.15}
+            opacity={0.12}
             roughness={0.1}
             metalness={0.9}
             clearcoat={1.0}
@@ -207,72 +235,35 @@ export const MountedArtwork: React.FC<MountedArtworkProps> = ({
           />
         </mesh>
 
-        {/* 7. Video Badge Overlay */}
+        {/* 7. Video Badge */}
         {isVideo && (
-          <group position={[0, 0, 0.05]}>
+          <group position={[0, 0, 0.045]}>
             <Html transform center distanceFactor={3.2}>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-obsidian-950/80 backdrop-blur-md border border-white/30 text-white shadow-xl pointer-events-none select-none">
-                <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
-                  <Play className="w-3 h-3 fill-white ml-0.5" />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-obsidian-950/85 backdrop-blur-md border border-white/30 text-white shadow-xl pointer-events-none select-none">
+                <div className="w-3.5 h-3.5 rounded-full bg-amber-500 flex items-center justify-center">
+                  <Play className="w-2 h-2 fill-white ml-0.5" />
                 </div>
-                <span className="text-[10px] font-mono font-bold tracking-wider">
+                <span className="text-[8px] font-mono font-bold tracking-wider">
                   {media.duration ? `${Math.floor(media.duration / 60)}:${String(Math.floor(media.duration % 60)).padStart(2, '0')}` : 'VIDEO'}
                 </span>
               </div>
             </Html>
           </group>
         )}
-
-        {/* 8. Museum Plaque Below Frame */}
-        <group position={[0, -dims.frameH / 2 - 0.16, 0.02]}>
-          <mesh position={[0, 0, 0]}>
-            <boxGeometry args={[Math.max(dims.frameW * 0.75, 1.0), 0.18, 0.01]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
-          </mesh>
-
-          <Html transform center distanceFactor={3.6} position={[0, 0, 0.01]}>
-            <div className="w-[220px] bg-slate-900/90 text-white px-3 py-1.5 rounded-lg border border-amber-500/30 shadow-2xl backdrop-blur-md flex items-center justify-between pointer-events-none select-none">
-              <div className="min-w-0 flex-1 pr-2">
-                <div className="text-[11px] font-extrabold truncate text-amber-100 tracking-tight">
-                  {media.title || 'Untitled Memory'}
-                </div>
-                <div className="flex items-center gap-2 text-[9px] text-slate-400 font-mono mt-0.5">
-                  <span className="flex items-center gap-0.5">
-                    <Calendar className="w-2.5 h-2.5 text-amber-400/80" />
-                    {formattedDate}
-                  </span>
-                  {locationName && (
-                    <span className="flex items-center gap-0.5 truncate max-w-[80px]">
-                      <MapPin className="w-2.5 h-2.5 text-rose-400" />
-                      {locationName}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 shrink-0">
-                {media.isFavorite && (
-                  <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />
-                )}
-                {isVideo && (
-                  <Film className="w-3.5 h-3.5 text-amber-400" />
-                )}
-              </div>
-            </div>
-          </Html>
-        </group>
       </group>
 
-      {/* 9. Artwork Spotlight */}
+      {/* 8. Focused Artwork Spotlight */}
       <spotLight
         ref={spotlightRef}
-        position={[0, 1.4, 0.7]}
+        position={[0, 1.2, 0.6]}
         target-position={[0, 0, 0]}
-        angle={0.45}
-        penumbra={0.65}
-        intensity={isMatch ? 4.5 : 1.4}
+        angle={0.4}
+        penumbra={0.7}
+        intensity={isMatch ? 3.5 : 1.2}
         color={isMatch ? '#fb7185' : '#fffbeb'}
       />
     </group>
   );
 };
+
+export const MountedArtwork = React.memo(MountedArtworkImpl);

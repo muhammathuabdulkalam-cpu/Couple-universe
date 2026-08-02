@@ -10,7 +10,7 @@ interface RootLayoutProps {
 export const RootLayout: React.FC<RootLayoutProps> = ({ children }) => {
   return (
     <div className="relative min-h-screen flex flex-col bg-obsidian-950 text-slate-100 overflow-hidden">
-      
+
       {/* Background Ambient Glow Elements */}
       <div className="pointer-events-none absolute top-0 left-1/4 w-[500px] h-[500px] bg-afzal/15 rounded-full blur-[140px] animate-pulse-glow" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-amrin/15 rounded-full blur-[140px] animate-pulse-glow" style={{ animationDelay: '1.5s' }} />

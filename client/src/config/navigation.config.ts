@@ -60,7 +60,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
   // -------------------------------------------------------
   {
     key: 'gallery',
-    label: 'Shared Gallery',
+    label: '3D Gallery',
     path: '/gallery',
     icon: Image,
     section: 'memories',

@@ -1,12 +1,11 @@
 /**
  * WallLayoutEngine.ts
  * 
- * Dynamic Wall Layout Engine for the 3D Memory Museum.
- * 
- * Automatically calculates rows, columns, margins, spacing, and 3D positions/rotations
- * for wall-mounted artworks across exhibition rooms based on media aspect ratios and album metadata.
- * 
- * Never hardcodes positions — dynamically adapts to any number of photos/videos.
+ * Dynamic Wall Layout Engine for "Afzal ❤️ Amrin" Memory Museum.
+ * Features:
+ * - Default spawn location: "Love Gallery (Center)" facing feature wall at z=4.5
+ * - Navigation sequence: Love Gallery (Center) -> Love Gallery (End) -> Travel Gallery -> Family Gallery -> Master Gallery
+ * - Dynamic hall depth scaling matched to media count
  */
 
 import { MediaItem } from '../../types/index.js';
@@ -16,12 +15,11 @@ export interface WallDefinition {
   roomId: string;
   roomName: string;
   direction: 'north' | 'south' | 'east' | 'west';
-  wallX?: number; // Fixed X coordinate for East/West walls
-  wallZ?: number; // Fixed Z coordinate for North/South walls
-  minCoord: number; // Starting coordinate along wall axis
-  maxCoord: number; // Ending coordinate along wall axis
-  height: number;   // Usable wall height (m)
-  centerHeight: number; // Eye-level center height (m)
+  wallX?: number;
+  wallZ?: number;
+  startCoord: number;
+  endCoord: number;
+  centerHeight: number;
 }
 
 export interface PlacedArtwork {
@@ -38,155 +36,119 @@ export interface MuseumRoom {
   name: string;
   centerPos: [number, number, number];
   targetYaw: number;
-  walls: WallDefinition[];
 }
 
-// ─── DEFINITION OF ALL MUSEUM ROOMS & WALL SURFACES ───────
 export class MuseumLayoutEngine {
-  static getRooms(): MuseumRoom[] {
+  static getHallDepth(mediaCount: number): number {
+    const validCount = Math.max(1, mediaCount);
+    const itemsPerSide = Math.ceil(validCount / 2);
+    const footprint = 1.6;
+    const computedSpan = itemsPerSide * footprint;
+    return Math.max(22, Math.min(computedSpan + 6, 60));
+  }
+
+  static getRooms(mediaCount: number = 18): MuseumRoom[] {
+    const depth = this.getHallDepth(mediaCount);
+    const endZ = -depth + 4;
+
     return [
-      {
-        id: 'entry',
-        name: 'Vestibule',
-        centerPos: [0, 1.65, 0],
-        targetYaw: Math.PI,
-        walls: [
-          { id: 'entry-w', roomId: 'entry', roomName: 'Vestibule', direction: 'west', wallX: -3.8, minCoord: -1.5, maxCoord: 1.5, height: 4, centerHeight: 1.8 },
-          { id: 'entry-e', roomId: 'entry', roomName: 'Vestibule', direction: 'east', wallX: 3.8, minCoord: -1.5, maxCoord: 1.5, height: 4, centerHeight: 1.8 },
-        ],
-      },
-      {
-        id: 'lobby',
-        name: 'Lobby',
-        centerPos: [0, 1.65, -7],
-        targetYaw: Math.PI,
-        walls: [
-          { id: 'lobby-w', roomId: 'lobby', roomName: 'Lobby', direction: 'west', wallX: -5.8, minCoord: -11, maxCoord: -3, height: 4, centerHeight: 1.8 },
-          { id: 'lobby-e', roomId: 'lobby', roomName: 'Lobby', direction: 'east', wallX: 5.8, minCoord: -11, maxCoord: -3, height: 4, centerHeight: 1.8 },
-        ],
-      },
-      {
-        id: 'main-hall',
-        name: 'Main Hall',
-        centerPos: [0, 1.65, -20],
-        targetYaw: Math.PI,
-        walls: [
-          { id: 'main-w1', roomId: 'main-hall', roomName: 'Main Hall', direction: 'west', wallX: -7.8, minCoord: -18, maxCoord: -13, height: 4.5, centerHeight: 1.85 },
-          { id: 'main-w2', roomId: 'main-hall', roomName: 'Main Hall', direction: 'west', wallX: -7.8, minCoord: -27, maxCoord: -22, height: 4.5, centerHeight: 1.85 },
-          { id: 'main-e1', roomId: 'main-hall', roomName: 'Main Hall', direction: 'east', wallX: 7.8, minCoord: -18, maxCoord: -13, height: 4.5, centerHeight: 1.85 },
-          { id: 'main-e2', roomId: 'main-hall', roomName: 'Main Hall', direction: 'east', wallX: 7.8, minCoord: -27, maxCoord: -22, height: 4.5, centerHeight: 1.85 },
-        ],
-      },
-      {
-        id: 'west-wing',
-        name: 'Love & Family',
-        centerPos: [-13, 1.65, -21],
-        targetYaw: Math.PI / 2,
-        walls: [
-          { id: 'west-n', roomId: 'west-wing', roomName: 'Love & Family', direction: 'north', wallZ: -16.2, minCoord: -17, maxCoord: -9, height: 4.5, centerHeight: 1.85 },
-          { id: 'west-s', roomId: 'west-wing', roomName: 'Love & Family', direction: 'south', wallZ: -25.8, minCoord: -17, maxCoord: -9, height: 4.5, centerHeight: 1.85 },
-          { id: 'west-w', roomId: 'west-wing', roomName: 'Love & Family', direction: 'west', wallX: -17.8, minCoord: -25, maxCoord: -17, height: 4.5, centerHeight: 1.85 },
-        ],
-      },
-      {
-        id: 'east-wing',
-        name: 'Travel & Moments',
-        centerPos: [13, 1.65, -21],
-        targetYaw: -Math.PI / 2,
-        walls: [
-          { id: 'east-n', roomId: 'east-wing', roomName: 'Travel & Moments', direction: 'north', wallZ: -16.2, minCoord: 9, maxCoord: 17, height: 4.5, centerHeight: 1.85 },
-          { id: 'east-s', roomId: 'east-wing', roomName: 'Travel & Moments', direction: 'south', wallZ: -25.8, minCoord: 9, maxCoord: 17, height: 4.5, centerHeight: 1.85 },
-          { id: 'east-e', roomId: 'east-wing', roomName: 'Travel & Moments', direction: 'east', wallX: 17.8, minCoord: -25, maxCoord: -17, height: 4.5, centerHeight: 1.85 },
-        ],
-      },
-      {
-        id: 'north-hall',
-        name: 'Master Gallery',
-        centerPos: [0, 1.65, -33],
-        targetYaw: Math.PI,
-        walls: [
-          { id: 'north-w', roomId: 'north-hall', roomName: 'Master Gallery', direction: 'west', wallX: -7.8, minCoord: -37, maxCoord: -29, height: 4.5, centerHeight: 1.85 },
-          { id: 'north-e', roomId: 'north-hall', roomName: 'Master Gallery', direction: 'east', wallX: 7.8, minCoord: -37, maxCoord: -29, height: 4.5, centerHeight: 1.85 },
-          { id: 'north-n', roomId: 'north-hall', roomName: 'Master Gallery', direction: 'north', wallZ: -37.8, minCoord: -7, maxCoord: 7, height: 4.5, centerHeight: 1.85 },
-        ],
-      },
+      { id: 'hall-2', name: 'Love Gallery (Center)', centerPos: [0, 1.65, -2.5], targetYaw: Math.PI },
+      { id: 'hall-3', name: 'Love Gallery (End)', centerPos: [0, 1.65, endZ * 0.4], targetYaw: Math.PI },
+      { id: 'travel-gallery', name: 'Travel Gallery', centerPos: [0, 1.65, endZ * 0.65], targetYaw: Math.PI },
+      { id: 'family-gallery', name: 'Family Gallery', centerPos: [0, 1.65, endZ * 0.85], targetYaw: Math.PI },
+      { id: 'master-gallery', name: 'Master Gallery', centerPos: [0, 1.65, endZ], targetYaw: Math.PI },
     ];
   }
 
-  /**
-   * Layout algorithm:
-   * Distributes artwork evenly onto wall definitions with automatic row/column calculation,
-   * margin padding, aspect-ratio awareness, and zero overlap.
-   */
-  static computeLayout(mediaItems: MediaItem[]): PlacedArtwork[] {
-    if (!mediaItems || mediaItems.length === 0) return [];
+  static getCleanWalls(): WallDefinition[] {
+    return [
+      { id: 'grand-w', roomId: 'hall-2', roomName: 'Love Gallery', direction: 'west', wallX: -7.8, startCoord: 3.5, endCoord: -46.0, centerHeight: 1.85 },
+      { id: 'grand-e', roomId: 'hall-2', roomName: 'Love Gallery', direction: 'east', wallX: 7.8, startCoord: 3.5, endCoord: -46.0, centerHeight: 1.85 },
+      { id: 'grand-n', roomId: 'master-gallery', roomName: 'Master Gallery', direction: 'north', wallZ: -49.3, startCoord: -6.5, endCoord: 6.5, centerHeight: 1.85 },
+    ];
+  }
 
-    const rooms = this.getRooms();
-    const allWalls: WallDefinition[] = [];
-    rooms.forEach((r) => allWalls.push(...r.walls));
+  static computeLayout(mediaItems: MediaItem[]): { placements: PlacedArtwork[]; hallDepth: number } {
+    if (!mediaItems || mediaItems.length === 0) return { placements: [], hallDepth: 22 };
+
+    const validItems = mediaItems.filter((item) => Boolean(item.secureUrl || (item as any).url || item.thumbnailUrl || item.optimizedUrl));
+    if (validItems.length === 0) return { placements: [], hallDepth: 22 };
+
+    const hallDepth = this.getHallDepth(validItems.length);
+    const startZ = 2.0;
+    const endZ = -hallDepth + 4.5;
+    const WALL_OFFSET = 0.06;
+
+    const itemsPerSide = Math.max(1, Math.ceil(validItems.length / 2));
+    const targetSpan = Math.min(itemsPerSide * 2.2, 45);
+    const footprint = Math.max(1.3, Math.min(2.4, targetSpan / itemsPerSide));
 
     const placements: PlacedArtwork[] = [];
-    let itemIdx = 0;
 
-    for (const wall of allWalls) {
-      if (itemIdx >= mediaItems.length) break;
+    const leftSlots: { pos: [number, number, number]; rot: [number, number, number] }[] = [];
+    const rightSlots: { pos: [number, number, number]; rot: [number, number, number] }[] = [];
+    const rearSlots: { pos: [number, number, number]; rot: [number, number, number] }[] = [];
 
-      const availableWidth = Math.abs(wall.maxCoord - wall.minCoord) - 0.8; // 0.4m margin on edges
-      if (availableWidth <= 1.0) continue;
-
-      // Estimate max artworks that can fit horizontally (assume average width ~1.5m + 0.4m gap)
-      const targetWidth = 1.8;
-      const countForWall = Math.min(
-        Math.floor(availableWidth / targetWidth),
-        mediaItems.length - itemIdx
-      );
-
-      if (countForWall <= 0) continue;
-
-      const spacing = availableWidth / countForWall;
-      const startCoord = wall.minCoord + 0.4 + spacing / 2;
-
-      for (let i = 0; i < countForWall; i++) {
-        if (itemIdx >= mediaItems.length) break;
-
-        const media = mediaItems[itemIdx];
-        const coord = startCoord + i * spacing;
-
-        let pos: [number, number, number] = [0, wall.centerHeight, 0];
-        let rot: [number, number, number] = [0, 0, 0];
-
-        switch (wall.direction) {
-          case 'north':
-            pos = [coord, wall.centerHeight, wall.wallZ!];
-            rot = [0, 0, 0]; // facing south (+z)
-            break;
-          case 'south':
-            pos = [coord, wall.centerHeight, wall.wallZ!];
-            rot = [0, Math.PI, 0]; // facing north (-z)
-            break;
-          case 'west':
-            pos = [wall.wallX!, wall.centerHeight, coord];
-            rot = [0, Math.PI / 2, 0]; // facing east (+x)
-            break;
-          case 'east':
-            pos = [wall.wallX!, wall.centerHeight, coord];
-            rot = [0, -Math.PI / 2, 0]; // facing west (-x)
-            break;
-        }
-
-        placements.push({
-          media,
-          position: pos,
-          rotation: rot,
-          roomId: wall.roomId,
-          roomName: wall.roomName,
-          wallId: wall.id,
-        });
-
-        itemIdx++;
-      }
+    for (let z = startZ; z >= startZ - targetSpan; z -= footprint) {
+      leftSlots.push({
+        pos: [-7.8 + WALL_OFFSET, 1.85, z],
+        rot: [0, Math.PI / 2, 0],
+      });
+      rightSlots.push({
+        pos: [7.8 - WALL_OFFSET, 1.85, z],
+        rot: [0, -Math.PI / 2, 0],
+      });
     }
 
-    return placements;
+    for (let x = -5.0; x <= 5.0; x += 1.8) {
+      rearSlots.push({
+        pos: [x, 1.85, endZ - 0.5 + WALL_OFFSET],
+        rot: [0, 0, 0],
+      });
+    }
+
+    let leftIdx = 0;
+    let rightIdx = 0;
+    let rearIdx = 0;
+
+    for (let i = 0; i < validItems.length; i++) {
+      const media = validItems[i];
+      let slot: { pos: [number, number, number]; rot: [number, number, number] } | null = null;
+      let roomId = 'hall-2';
+
+      if (i % 2 === 0 && leftIdx < leftSlots.length) {
+        slot = leftSlots[leftIdx++];
+      } else if (rightIdx < rightSlots.length) {
+        slot = rightSlots[rightIdx++];
+      } else if (leftIdx < leftSlots.length) {
+        slot = leftSlots[leftIdx++];
+      } else if (rearIdx < rearSlots.length) {
+        slot = rearSlots[rearIdx++];
+        roomId = 'master-gallery';
+      }
+
+      if (!slot) break;
+
+      if (slot.pos[2] < endZ + 4) {
+        roomId = 'master-gallery';
+      } else if (slot.pos[2] < endZ * 0.6) {
+        roomId = 'family-gallery';
+      } else if (slot.pos[2] < endZ * 0.35) {
+        roomId = 'travel-gallery';
+      } else if (slot.pos[2] < -10) {
+        roomId = 'hall-3';
+      }
+
+      placements.push({
+        media,
+        position: slot.pos,
+        rotation: slot.rot,
+        roomId,
+        roomName: 'Love Gallery',
+        wallId: slot.pos[0] < 0 ? 'grand-w' : slot.pos[0] > 0 ? 'grand-e' : 'grand-n',
+      });
+    }
+
+    return { placements, hallDepth };
   }
 }

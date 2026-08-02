@@ -207,7 +207,7 @@ export const GalleryPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20 select-none max-w-7xl mx-auto">
-      
+
       {/* 1. Header Banner */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -221,7 +221,7 @@ export const GalleryPage: React.FC = () => {
               </Badge>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Shared Gallery
+              3D Gallery
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
               All photos, videos, posts, and stories shared between Afzal & Amrin in real-time.
@@ -291,20 +291,18 @@ export const GalleryPage: React.FC = () => {
                         setActiveTab(tab.id as GallerySectionTab);
                         setIsMobileMenuOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                        isActive
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${isActive
                           ? 'bg-gradient-to-r from-afzal/30 via-amrin/30 to-heart/30 text-white border border-white/20 shadow-lg'
                           : 'text-slate-300 hover:text-white hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <Icon className={`w-4 h-4 ${isActive ? 'text-amrin-glow' : 'text-slate-400'}`} />
                         <span>{tab.label}</span>
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                          isActive ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
-                        }`}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
+                          }`}
                       >
                         {tab.count}
                       </span>
@@ -327,18 +325,16 @@ export const GalleryPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as GallerySectionTab)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                isActive
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${isActive
                   ? 'bg-gradient-to-r from-afzal/20 via-amrin/20 to-heart/20 text-white border border-white/20 shadow-md'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-              }`}
+                }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-amrin-glow' : ''}`} />
               <span>{tab.label}</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-500'
-                }`}
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-500'
+                  }`}
               >
                 {tab.count}
               </span>
@@ -349,7 +345,7 @@ export const GalleryPage: React.FC = () => {
 
       {/* 3. Control Bar: Search & View Options */}
       <div className="glass-panel p-3 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-3 border border-white/10">
-        
+
         {/* Search */}
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -388,36 +384,32 @@ export const GalleryPage: React.FC = () => {
           <div className="flex items-center glass-card p-1 rounded-xl border border-white/10 shrink-0">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === 'grid' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="Grid View"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('masonry')}
-              className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === 'masonry' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'masonry' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="Masonry View"
             >
               <Grid className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === 'list' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-amrin text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="List View"
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('3d')}
-              className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold px-2 ${
-                viewMode === '3d' ? 'bg-gradient-to-r from-afzal to-amrin text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold px-2 ${viewMode === '3d' ? 'bg-gradient-to-r from-afzal to-amrin text-white' : 'text-slate-400 hover:text-white'
+                }`}
               title="3D Memory Museum"
             >
               <Box className="w-4 h-4" />
@@ -431,7 +423,10 @@ export const GalleryPage: React.FC = () => {
 
       {/* 4. Media Display / 3D Museum Display */}
       {viewMode === '3d' ? (
-        <MemoryMuseum3D mediaItems={displayItems} albums={albumsList} />
+        <MemoryMuseum3D
+          mediaItems={displayItems.filter((i) => Boolean(i.secureUrl || (i as any).url || i.thumbnailUrl || i.optimizedUrl))}
+          albums={albumsList}
+        />
       ) : isMediaLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (

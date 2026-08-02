@@ -48,7 +48,7 @@ export const HomePage: React.FC = () => {
     nextBirthday.setFullYear(now.getFullYear() + 1);
   }
   const daysLeft = Math.floor((nextBirthday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   // Show featured banner on Dashboard Home Feed ONLY if partner birthday is in <= 10 days
   const showDashboardBirthdayBanner = daysLeft <= 10;
 
@@ -77,7 +77,7 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="space-y-3.5 pb-16 max-w-7xl mx-auto select-none">
-      
+
       {/* 1. Ultra-Compact Top Instagram Stories Row */}
       <div className="glass-panel p-2 rounded-2xl border border-white/10 shadow-md overflow-hidden bg-obsidian-950/80">
         <StoryCarousel />

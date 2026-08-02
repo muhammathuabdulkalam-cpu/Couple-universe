@@ -1,74 +1,96 @@
 /**
  * MobileJoystick.tsx
  * 
- * Virtual touch joystick for mobile museum navigation.
- * Returns normalized { x, y } vector via onChange callback.
- * Rendered only on touch devices (sm:hidden).
+ * High-Performance Virtual Touch Pointer Joystick for 3D Museum Navigation.
+ * Uses Pointer Events with setPointerCapture and direct DOM/Ref mutations.
  */
-import React, { useState, useRef, useCallback } from 'react';
+
+import React, { useRef, useCallback, useEffect } from 'react';
 import { Move } from 'lucide-react';
 
 interface MobileJoystickProps {
-  onChange: (vector: { x: number; y: number }) => void;
+  vectorRef: React.MutableRefObject<{ x: number; y: number }>;
 }
 
-export const MobileJoystick: React.FC<MobileJoystickProps> = ({ onChange }) => {
-  const [knobOffset, setKnobOffset] = useState({ x: 0, y: 0 });
+const MobileJoystickImpl: React.FC<MobileJoystickProps> = ({ vectorRef }) => {
   const baseRef = useRef<HTMLDivElement>(null);
-  const baseRadius = 44; // half of 88px base diameter
+  const knobRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
 
-  const handleTouch = useCallback(
-    (clientX: number, clientY: number) => {
-      if (!baseRef.current) return;
-      const rect = baseRef.current.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
+  const BASE_RADIUS = 44;
 
-      let dx = clientX - cx;
-      let dy = clientY - cy;
+  const updateKnobAndVector = useCallback((clientX: number, clientY: number) => {
+    if (!baseRef.current) return;
+    const rect = baseRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
 
-      // Clamp to base radius
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > baseRadius) {
-        dx = (dx / dist) * baseRadius;
-        dy = (dy / dist) * baseRadius;
-      }
+    let dx = clientX - cx;
+    let dy = clientY - cy;
 
-      setKnobOffset({ x: dx, y: dy });
-      onChange({
-        x: dx / baseRadius,
-        y: dy / baseRadius,
-      });
-    },
-    [onChange]
-  );
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > BASE_RADIUS) {
+      dx = (dx / dist) * BASE_RADIUS;
+      dy = (dy / dist) * BASE_RADIUS;
+    }
 
-  const handleEnd = useCallback(() => {
-    setKnobOffset({ x: 0, y: 0 });
-    onChange({ x: 0, y: 0 });
-  }, [onChange]);
+    if (knobRef.current) {
+      knobRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0px)`;
+    }
+
+    vectorRef.current.x = dx / BASE_RADIUS;
+    vectorRef.current.y = dy / BASE_RADIUS;
+  }, [vectorRef]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    updateKnobAndVector(e.clientX, e.clientY);
+  }, [updateKnobAndVector]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    updateKnobAndVector(e.clientX, e.clientY);
+  }, [updateKnobAndVector]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+
+    if (knobRef.current) {
+      knobRef.current.style.transform = 'translate3d(0px, 0px, 0px)';
+    }
+
+    vectorRef.current.x = 0;
+    vectorRef.current.y = 0;
+  }, [vectorRef]);
+
+  useEffect(() => {
+    return () => {
+      vectorRef.current.x = 0;
+      vectorRef.current.y = 0;
+    };
+  }, [vectorRef]);
 
   return (
     <div
       ref={baseRef}
-      className="w-[88px] h-[88px] rounded-full bg-obsidian-950/70 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl"
-      onTouchMove={(e) => {
-        const touch = e.touches[0];
-        handleTouch(touch.clientX, touch.clientY);
-      }}
-      onTouchEnd={handleEnd}
-      onTouchCancel={handleEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      className="w-[88px] h-[88px] rounded-full bg-obsidian-950/80 backdrop-blur-xl border border-white/20 flex items-center justify-center touch-none relative shadow-2xl select-none cursor-pointer"
     >
-      {/* Direction indicators */}
-      <Move className="w-5 h-5 text-white/20 absolute" />
-      
-      {/* Draggable knob */}
+      <Move className="w-5 h-5 text-white/20 absolute pointer-events-none" />
       <div
-        className="w-9 h-9 rounded-full bg-gradient-to-br from-amrin to-afzal shadow-lg border border-white/40 absolute transition-none"
-        style={{
-          transform: `translate(${knobOffset.x}px, ${knobOffset.y}px)`,
-        }}
+        ref={knobRef}
+        className="w-10 h-10 rounded-full bg-gradient-to-br from-amrin to-afzal shadow-lg border border-white/40 absolute pointer-events-none will-change-transform"
+        style={{ transform: 'translate3d(0px, 0px, 0px)' }}
       />
     </div>
   );
 };
+
+export const MobileJoystick = React.memo(MobileJoystickImpl);

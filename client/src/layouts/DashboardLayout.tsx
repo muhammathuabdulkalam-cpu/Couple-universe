@@ -23,6 +23,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
   const { initSocketListeners, fetchUnreadCounts } = useNotificationStore();
 
   React.useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      let target = e.target as HTMLElement | null;
+      if (target?.closest('.museum-container')) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  React.useEffect(() => {
     if (accessToken) {
       const cleanup = initSocketListeners(accessToken);
       fetchUnreadCounts();
@@ -56,11 +68,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
         {/* Center Main Content Area */}
         <main
-          className={`flex-1 min-w-0 h-full ${
-            fullViewport
-              ? 'p-0 m-0 border-0 rounded-none overflow-hidden flex flex-col'
-              : 'p-3 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto'
-          }`}
+          className={`flex-1 min-w-0 h-full scroll-smooth ${fullViewport
+            ? 'p-0 m-0 border-0 rounded-none overflow-hidden flex flex-col'
+            : 'p-3 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto'
+            }`}
         >
           {!fullViewport && <Breadcrumb />}
           {children}
