@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpen,
+  Box,
   ChevronDown,
   Film,
   Grid,
@@ -25,6 +26,7 @@ import { Badge } from '../../components/ui/Badge.js';
 import { Button } from '../../components/ui/Button.js';
 import { Card } from '../../components/ui/Card.js';
 import { Skeleton } from '../../components/ui/Skeleton.js';
+import { MemoryMuseum3D } from '../../components/museum/MemoryMuseum3D.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { ActivityItem, ApiResponse, MediaItem, StoryItem } from '../../types/index.js';
 
@@ -73,6 +75,15 @@ export const GalleryPage: React.FC = () => {
     queryKey: ['sharedGalleryStories'],
     queryFn: async () => {
       const res = await axiosClient.get<ApiResponse<StoryItem[]>>('/stories');
+      return res.data.data ?? [];
+    },
+  });
+
+  // 4. Fetch Albums
+  const { data: albumsList = [] } = useQuery<any[]>({
+    queryKey: ['sharedGalleryAlbums'],
+    queryFn: async () => {
+      const res = await axiosClient.get<ApiResponse<any[]>>('/albums');
       return res.data.data ?? [];
     },
   });
@@ -402,14 +413,26 @@ export const GalleryPage: React.FC = () => {
             >
               <List className="w-4 h-4" />
             </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold px-2 ${
+                viewMode === '3d' ? 'bg-gradient-to-r from-afzal to-amrin text-white' : 'text-slate-400 hover:text-white'
+              }`}
+              title="3D Memory Museum"
+            >
+              <Box className="w-4 h-4" />
+              <span>3D Museum</span>
+            </button>
           </div>
 
         </div>
 
       </div>
 
-      {/* 4. Media Grid Display */}
-      {isMediaLoading ? (
+      {/* 4. Media Display / 3D Museum Display */}
+      {viewMode === '3d' ? (
+        <MemoryMuseum3D mediaItems={displayItems} albums={albumsList} />
+      ) : isMediaLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <Skeleton key={n} className="aspect-square rounded-2xl" />

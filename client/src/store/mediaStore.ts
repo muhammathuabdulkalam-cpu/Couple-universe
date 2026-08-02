@@ -5,7 +5,7 @@ interface MediaState {
   mediaList: MediaItem[];
   albumsList: AlbumItem[];
   activeAlbum: AlbumItem | null;
-  viewMode: 'grid' | 'masonry' | 'list';
+  viewMode: 'grid' | 'masonry' | 'list' | '3d';
   selectedMedia: MediaItem | null;
   isViewerOpen: boolean;
   isUploadModalOpen: boolean;
@@ -17,7 +17,7 @@ interface MediaState {
   setMediaList: (list: MediaItem[]) => void;
   setAlbumsList: (albums: AlbumItem[]) => void;
   setActiveAlbum: (album: AlbumItem | null) => void;
-  setViewMode: (mode: 'grid' | 'masonry' | 'list') => void;
+  setViewMode: (mode: 'grid' | 'masonry' | 'list' | '3d') => void;
   openViewer: (media: MediaItem) => void;
   closeViewer: () => void;
   nextMedia: () => void;
