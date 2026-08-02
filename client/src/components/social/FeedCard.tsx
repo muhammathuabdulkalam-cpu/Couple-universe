@@ -100,7 +100,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
   });
 
   const isMyPost = activity.userId._id === user?._id || activity.userId._id === user?.id;
-  const canDelete = isMyPost || user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
+  const canDelete = isMyPost;
 
   const totalLikes = reactionsData?.total || 0;
   const recentReactor = reactionsData?.reactions?.[0]?.userId?.name;
@@ -181,7 +181,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       {activity.imageUrl && (
         <div
           onDoubleClick={handleDoubleTap}
-          className="relative w-full aspect-[4/3] max-h-[480px] bg-black overflow-hidden flex items-center justify-center cursor-pointer"
+          className="relative w-full aspect-[4/3] max-h-[480px] bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer"
         >
           <img src={activity.imageUrl} alt={activity.title || 'Post media'} className="w-full h-full object-cover" />
 

@@ -220,7 +220,7 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({ activeTab, targetUser 
       {/* Instagram Single Post Overlay Modal */}
       <AnimatePresence>
         {selectedPost && (
-          <div className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl select-none overflow-y-auto pt-14 pb-10">
+          <div className="fixed inset-0 z-[300] bg-obsidian-950/95 backdrop-blur-2xl select-none overflow-y-auto pt-14 pb-10">
             {/* Floating Close Button */}
             <button
               onClick={() => setSelectedPost(null)}

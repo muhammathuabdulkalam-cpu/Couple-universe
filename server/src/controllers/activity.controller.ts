@@ -108,10 +108,9 @@ export const deleteActivity = catchAsync(async (req: Request, res: Response) => 
   }
 
   const isAuthor = activity.userId.toString() === user._id.toString();
-  const isOwner = user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER;
 
-  if (!isAuthor && !isOwner) {
-    throw new AppError('Permission denied to delete this post.', HTTP_STATUS.FORBIDDEN);
+  if (!isAuthor) {
+    throw new AppError('Permission denied. Only the author can delete this post.', HTTP_STATUS.FORBIDDEN);
   }
 
   // If activity references a Media asset, clean up media asset as well

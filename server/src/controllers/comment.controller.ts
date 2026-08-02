@@ -114,8 +114,8 @@ export const deleteComment = catchAsync(async (req: Request, res: Response) => {
   if (!comment || comment.isDeleted) throw new AppError('Comment not found.', HTTP_STATUS.NOT_FOUND);
 
   const isOwner = comment.userId.toString() === user._id.toString();
-  const isAdmin = user.role === 'SUPER_OWNER' || user.role === 'CO_OWNER';
-  if (!isOwner && !isAdmin) throw new AppError('Not authorized to delete this comment.', HTTP_STATUS.FORBIDDEN);
+
+  if (!isOwner) throw new AppError('Permission denied. Only the author can delete this comment.', HTTP_STATUS.FORBIDDEN);
 
   comment.isDeleted = true;
   await comment.save();
