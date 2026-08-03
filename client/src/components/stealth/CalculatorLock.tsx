@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createCalculatorEngine } from './CalculatorEngine.js';
 import './CalculatorLock.css';
 
+import calculatorFavicon from '../../assets/calculator_fevicon.png';
+
 interface CalculatorLockProps {
   token: string;
   onUnlock: () => void;
@@ -22,10 +24,31 @@ export const CalculatorLock: React.FC<CalculatorLockProps> = ({ token, onUnlock 
   const [ripples, setRipples] = useState<Map<string, RippleState>>(new Map());
   const rippleIdRef = useRef(0);
 
-  // Set document title to "Calculator"
+  // Set document title to "Calculator" and swap favicon to calculator icon
   useEffect(() => {
     const prevTitle = document.title;
     document.title = 'Calculator';
+
+    // Swap favicon to calculator favicon
+    const iconLinks = Array.from(
+      document.querySelectorAll("link[rel*='icon']")
+    ) as HTMLLinkElement[];
+
+    const previousIconHrefs: { link: HTMLLinkElement; originalHref: string }[] = iconLinks.map(
+      (link) => ({ link, originalHref: link.href })
+    );
+
+    if (iconLinks.length > 0) {
+      iconLinks.forEach((link) => {
+        link.href = calculatorFavicon;
+      });
+    } else {
+      const newFavicon = document.createElement('link');
+      newFavicon.rel = 'icon';
+      newFavicon.href = calculatorFavicon;
+      document.head.appendChild(newFavicon);
+      previousIconHrefs.push({ link: newFavicon, originalHref: '' });
+    }
 
     // Hide any app-specific meta
     const metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -34,6 +57,13 @@ export const CalculatorLock: React.FC<CalculatorLockProps> = ({ token, onUnlock 
 
     return () => {
       document.title = prevTitle;
+      previousIconHrefs.forEach(({ link, originalHref }) => {
+        if (originalHref) {
+          link.href = originalHref;
+        } else {
+          link.remove();
+        }
+      });
       if (prevTheme && metaTheme) {
         metaTheme.setAttribute('content', prevTheme);
       }
