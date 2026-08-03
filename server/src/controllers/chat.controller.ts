@@ -210,8 +210,8 @@ export const sendMessage = catchAsync(async (req: Request, res: Response) => {
  */
 export const getConversationMessages = catchAsync(async (req: Request, res: Response) => {
   const { conversationId } = req.params;
-  const page = parseInt(req.query.page as string, 10) || PLATFORM_CONSTANTS.DEFAULT_PAGE;
-  const limit = parseInt(req.query.limit as string, 10) || 50;
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 200;
   const skip = (page - 1) * limit;
   const currentUser = req.user!;
 
@@ -222,13 +222,16 @@ export const getConversationMessages = catchAsync(async (req: Request, res: Resp
   };
 
   const total = await Message.countDocuments(filter);
-  const messages = await Message.find(filter)
+  let messages = await Message.find(filter)
     .populate('sender', 'name email avatar')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl mimeType width height')
     .populate('replyToMessageId', 'content sender type')
-    .sort({ createdAt: 1 })
+    .sort({ createdAt: -1 }) // Newest messages first
     .skip(skip)
     .limit(limit);
+
+  // Reverse array so client receives messages in chronological order (oldest -> newest)
+  messages = messages.reverse();
 
   return ApiResponse.success(res, 'Messages retrieved', messages, HTTP_STATUS.OK, {
     page,

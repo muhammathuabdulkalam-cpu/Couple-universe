@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -9,6 +9,7 @@ import { ApiResponse, MediaItem, MessageItem } from '../../types/index.js';
 import { VoiceRecorder } from './VoiceRecorder.js';
 
 export const MessageComposer: React.FC = () => {
+  const queryClient = useQueryClient();
   const { activeConversation, addMessage, replyingToMessage, setReplyingToMessage } = useChatStore();
   const { addToast } = useUIStore();
 
@@ -70,6 +71,8 @@ export const MessageComposer: React.FC = () => {
       const res = await axiosClient.post<ApiResponse<MessageItem>>('/chat/messages', payload);
       if (res.data.data) {
         addMessage(activeConversation._id, res.data.data);
+        queryClient.invalidateQueries({ queryKey: ['chatMessages', activeConversation._id] });
+        queryClient.invalidateQueries({ queryKey: ['userConversations'] });
       }
 
       setText('');
