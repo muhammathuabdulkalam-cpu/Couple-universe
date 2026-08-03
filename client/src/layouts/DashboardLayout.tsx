@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { InAppChatNotificationBanner } from '../components/chat/InAppChatNotificationBanner.js';
 import { BottomNav } from '../components/layout/BottomNav.js';
 import { Breadcrumb } from '../components/layout/Breadcrumb.js';
 import { MobileHeader } from '../components/layout/MobileHeader.js';
@@ -88,6 +89,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+
+      {/* Instagram-Style In-App Chat Notification & Quick Reply Banner */}
+      <InAppChatNotificationBanner />
 
       {/* Global Notification Drawer & Panel */}
       <NotificationPanel />
