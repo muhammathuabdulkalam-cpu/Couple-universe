@@ -100,6 +100,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         if (convId) {
           useChatStore.getState().addMessage(convId.toString(), message);
         }
+
+        // Dispatch instant event for top notification banner
+        try {
+          window.dispatchEvent(new CustomEvent('in_app_chat_message', { detail: message }));
+        } catch (e) {}
       }
     };
 

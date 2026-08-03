@@ -24,9 +24,6 @@ export const InAppChatNotificationBanner: React.FC = () => {
   const dismissTimerRef = useRef<any>(null);
 
   useEffect(() => {
-    const socket = socketClient.getSocket();
-    if (!socket) return;
-
     const handleIncomingMessage = (message: MessageItem) => {
       if (!message || !message.sender) return;
 
@@ -50,6 +47,30 @@ export const InAppChatNotificationBanner: React.FC = () => {
 
       if (isInsideActiveChat) return;
 
+      // Play soft notification chime & vibration
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        }
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+      } catch (e) {}
+
       // Trigger Instagram-style Top Notification Banner
       setActiveMessage(message);
       setReplyText('');
@@ -61,10 +82,25 @@ export const InAppChatNotificationBanner: React.FC = () => {
       }, 7000);
     };
 
-    socket.on('receive_message', handleIncomingMessage);
+    const handleCustomEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<MessageItem>;
+      if (customEvent.detail) {
+        handleIncomingMessage(customEvent.detail);
+      }
+    };
+
+    window.addEventListener('in_app_chat_message', handleCustomEvent);
+
+    const socket = socketClient.getSocket();
+    if (socket) {
+      socket.on('receive_message', handleIncomingMessage);
+    }
 
     return () => {
-      socket.off('receive_message', handleIncomingMessage);
+      window.removeEventListener('in_app_chat_message', handleCustomEvent);
+      if (socket) {
+        socket.off('receive_message', handleIncomingMessage);
+      }
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
   }, [user, activeConversation, location.pathname]);
