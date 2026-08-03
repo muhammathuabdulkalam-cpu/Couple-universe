@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Check, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -9,7 +9,6 @@ import { ApiResponse, MediaItem, MessageItem } from '../../types/index.js';
 import { VoiceRecorder } from './VoiceRecorder.js';
 
 export const MessageComposer: React.FC = () => {
-  const queryClient = useQueryClient();
   const { activeConversation, addMessage, replyingToMessage, setReplyingToMessage } = useChatStore();
   const { addToast } = useUIStore();
 
@@ -71,8 +70,6 @@ export const MessageComposer: React.FC = () => {
       const res = await axiosClient.post<ApiResponse<MessageItem>>('/chat/messages', payload);
       if (res.data.data) {
         addMessage(activeConversation._id, res.data.data);
-        queryClient.invalidateQueries({ queryKey: ['chatMessages', activeConversation._id] });
-        queryClient.invalidateQueries({ queryKey: ['userConversations'] });
       }
 
       setText('');
@@ -137,7 +134,7 @@ export const MessageComposer: React.FC = () => {
 
   return (
     <div className="shrink-0 p-3 sm:p-4 glass-panel border-t border-white/10 space-y-2 z-30 bg-obsidian-950/90 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      
+
       {/* Replying Preview Banner */}
       {replyingToMessage && (
         <div className="flex items-center justify-between glass-card px-3 py-1.5 rounded-xl border-amrin/30 text-xs">
@@ -163,7 +160,7 @@ export const MessageComposer: React.FC = () => {
         </div>
       ) : (
         <form onSubmit={handleSendMessage} className="space-y-3 relative">
-          
+
           {/* Emoji Popup Picker */}
           {showEmojiPicker && (
             <div className="absolute bottom-14 left-2 z-40 glass-card p-3 rounded-2xl border-white/10 shadow-2xl flex items-center gap-2">
@@ -189,9 +186,8 @@ export const MessageComposer: React.FC = () => {
                   <div
                     key={m._id}
                     onClick={() => setSelectedMediaId(isSelected ? null : m._id)}
-                    className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${
-                      isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
-                    }`}
+                    className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
+                      }`}
                   >
                     <img src={m.thumbnailUrl} alt={m.title} className="w-full h-full object-cover" />
                     {isSelected && (
@@ -207,7 +203,7 @@ export const MessageComposer: React.FC = () => {
 
           {/* WhatsApp / Instagram Input Row */}
           <div className="flex items-center gap-2">
-            
+
             {/* Emoji Button */}
             <button
               type="button"
@@ -222,9 +218,8 @@ export const MessageComposer: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsMediaPickerOpen(!isMediaPickerOpen)}
-              className={`p-2.5 rounded-full transition-colors shrink-0 ${
-                selectedMediaId ? 'text-amrin bg-amrin/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+              className={`p-2.5 rounded-full transition-colors shrink-0 ${selectedMediaId ? 'text-amrin bg-amrin/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
               title="Attach Media"
             >
               <Paperclip className="w-5 h-5" />
