@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Check, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
+import { Check, Loader2, Mic, Paperclip, Send, Smile, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { socketClient } from '../../api/socketClient.js';
@@ -18,6 +18,7 @@ export const MessageComposer: React.FC = () => {
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const typingTimeoutRef = useRef<any>(null);
 
@@ -56,7 +57,9 @@ export const MessageComposer: React.FC = () => {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!text.trim() && !selectedMediaId) return;
+    if ((!text.trim() && !selectedMediaId) || isSendingMessage) return;
+
+    setIsSendingMessage(true);
 
     const payload = {
       conversationId: activeConversation._id,
@@ -84,6 +87,8 @@ export const MessageComposer: React.FC = () => {
       }
     } catch (err: any) {
       addToast('Error', err.message || 'Failed to send message', 'error');
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -134,7 +139,7 @@ export const MessageComposer: React.FC = () => {
 
   return (
     <div className="shrink-0 p-3 sm:p-4 glass-panel border-t border-white/10 space-y-2 z-30 bg-obsidian-950/90 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-
+      
       {/* Replying Preview Banner */}
       {replyingToMessage && (
         <div className="flex items-center justify-between glass-card px-3 py-1.5 rounded-xl border-amrin/30 text-xs">
@@ -160,7 +165,7 @@ export const MessageComposer: React.FC = () => {
         </div>
       ) : (
         <form onSubmit={handleSendMessage} className="space-y-3 relative">
-
+          
           {/* Emoji Popup Picker */}
           {showEmojiPicker && (
             <div className="absolute bottom-14 left-2 z-40 glass-card p-3 rounded-2xl border-white/10 shadow-2xl flex items-center gap-2">
@@ -186,8 +191,9 @@ export const MessageComposer: React.FC = () => {
                   <div
                     key={m._id}
                     onClick={() => setSelectedMediaId(isSelected ? null : m._id)}
-                    className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
-                      }`}
+                    className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${
+                      isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
+                    }`}
                   >
                     <img src={m.thumbnailUrl} alt={m.title} className="w-full h-full object-cover" />
                     {isSelected && (
@@ -203,7 +209,7 @@ export const MessageComposer: React.FC = () => {
 
           {/* WhatsApp / Instagram Input Row */}
           <div className="flex items-center gap-2">
-
+            
             {/* Emoji Button */}
             <button
               type="button"
@@ -218,8 +224,9 @@ export const MessageComposer: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsMediaPickerOpen(!isMediaPickerOpen)}
-              className={`p-2.5 rounded-full transition-colors shrink-0 ${selectedMediaId ? 'text-amrin bg-amrin/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
+              className={`p-2.5 rounded-full transition-colors shrink-0 ${
+                selectedMediaId ? 'text-amrin bg-amrin/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
               title="Attach Media"
             >
               <Paperclip className="w-5 h-5" />
@@ -231,17 +238,23 @@ export const MessageComposer: React.FC = () => {
               value={text}
               onChange={handleTextChange}
               placeholder="Message..."
-              className="flex-1 bg-obsidian-950/80 border border-slate-700/80 rounded-full py-2.5 px-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin"
+              disabled={isSendingMessage}
+              className="flex-1 bg-obsidian-950/80 border border-slate-700/80 rounded-full py-2.5 px-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin disabled:opacity-60"
             />
 
-            {/* Dynamic Button: Mic (when empty) vs Send (when text typed or media attached) */}
+            {/* Dynamic Button: Mic (when empty) vs Send (when text typed or media attached with spinner loader) */}
             {text.trim() || selectedMediaId ? (
               <button
                 type="submit"
-                className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform shrink-0"
+                disabled={isSendingMessage}
+                className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform shrink-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 title="Send Message"
               >
-                <Send className="w-4 h-4 ml-0.5" />
+                {isSendingMessage ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <Send className="w-4 h-4 ml-0.5" />
+                )}
               </button>
             ) : (
               <button
