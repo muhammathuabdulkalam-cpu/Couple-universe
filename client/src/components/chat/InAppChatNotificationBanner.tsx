@@ -11,7 +11,7 @@ import { ApiResponse, MessageItem } from '../../types/index.js';
 
 export const InAppChatNotificationBanner: React.FC = () => {
   const { user } = useAuthStore();
-  const { activeConversation, setActiveConversation, addMessage } = useChatStore();
+  const { activeConversation, setActiveConversation, addMessage, mobileView } = useChatStore();
   const { addToast } = useUIStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,15 +39,17 @@ export const InAppChatNotificationBanner: React.FC = () => {
         ? (message.conversationId as any)?._id || (message.conversationId as any)?.id || message.conversationId
         : message.conversationId;
 
-      // Do NOT show banner if user is ALREADY inside the open chat thread with this sender on /chat route
-      const isInsideActiveChat =
+      // Do NOT show banner ONLY if user is currently actively viewing this specific chat thread on screen
+      const isMobile = window.innerWidth < 1024;
+      const isViewingActiveChatRoom =
         location.pathname.startsWith('/chat') &&
         activeConversation &&
-        (activeConversation._id === convId || activeConversation._id.toString() === convId?.toString());
+        activeConversation._id?.toString() === convId?.toString() &&
+        (!isMobile || mobileView === 'chat');
 
-      if (isInsideActiveChat) return;
+      if (isViewingActiveChatRoom) return;
 
-      // Play soft notification chime & vibration
+      // Play soft Web Audio notification chime & vibration
       try {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
         if (AudioCtx) {
@@ -59,7 +61,7 @@ export const InAppChatNotificationBanner: React.FC = () => {
           osc.frequency.setValueAtTime(587.33, ctx.currentTime);
           osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
 
-          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
 
           osc.connect(gain);
@@ -68,10 +70,25 @@ export const InAppChatNotificationBanner: React.FC = () => {
           osc.start();
           osc.stop(ctx.currentTime + 0.25);
         }
-        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       } catch (e) {}
 
-      // Trigger Instagram-style Top Notification Banner
+      // OS System Notification Fallback (Works even if tab is minimized or backgrounded)
+      try {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const senderObj = typeof message.sender === 'object' ? message.sender : null;
+          const sName = senderObj?.name || 'Afrin Universe';
+          const sAvatar = senderObj?.avatar;
+
+          new Notification(sName, {
+            body: message.content || 'Sent a new message',
+            icon: sAvatar || '/calculator_fevicon.png',
+            tag: message._id,
+          });
+        }
+      } catch (e) {}
+
+      // Trigger Instagram-style Top In-App Notification Banner
       setActiveMessage(message);
       setReplyText('');
       setIsReplied(false);
@@ -103,7 +120,7 @@ export const InAppChatNotificationBanner: React.FC = () => {
       }
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [user, activeConversation, location.pathname]);
+  }, [user, activeConversation, location.pathname, mobileView]);
 
   const handleDismiss = () => {
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
