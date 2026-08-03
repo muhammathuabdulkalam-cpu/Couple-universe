@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import React, { useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { socketClient } from '../../api/socketClient.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -138,26 +138,31 @@ export const MessageContainer: React.FC = () => {
     };
   }, [conversationId]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
-  };
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+    }
+  }, []);
 
-  // Pre-paint layout effect to guarantee 0-delay bottom positioning on new messages
+  // Pre-paint layout effect to guarantee 100% bottom positioning when entering chat or receiving messages
   useLayoutEffect(() => {
     if (!conversationId || currentMessages.length === 0) return;
 
     scrollToBottom();
 
-    const t1 = setTimeout(scrollToBottom, 30);
-    const t2 = setTimeout(scrollToBottom, 150);
+    const t1 = setTimeout(scrollToBottom, 40);
+    const t2 = setTimeout(scrollToBottom, 180);
+    const t3 = setTimeout(scrollToBottom, 500);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
     };
-  }, [currentMessages.length, conversationId]);
+  }, [conversationId, currentMessages.length, mobileView, scrollToBottom]);
 
   const formatDateLabel = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -200,12 +205,10 @@ export const MessageContainer: React.FC = () => {
 
   return (
     <div
-      ref={(el) => {
-        containerRef.current = el;
-      }}
+      ref={containerRef}
       className={`flex-1 min-h-0 overflow-y-auto overscroll-none p-3 sm:p-4 transition-all duration-300 ${getWallpaperClass(wallpaper)}`}
     >
-      <div className="flex flex-col justify-end min-h-full space-y-4">
+      <div className="flex flex-col space-y-4 min-h-full">
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-3">
             <div className="w-8 h-8 rounded-full border-2 border-amrin border-t-transparent animate-spin" />
@@ -240,7 +243,7 @@ export const MessageContainer: React.FC = () => {
             </p>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-px w-full shrink-0" />
       </div>
     </div>
   );
