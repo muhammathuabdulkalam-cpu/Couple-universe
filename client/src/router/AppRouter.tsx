@@ -41,6 +41,9 @@ const StoriesPage = lazy(() => import('../pages/social/StoriesPage.js').then((m)
 const UnauthorizedPage = lazy(() => import('../pages/error/UnauthorizedPage.js').then((m) => ({ default: m.UnauthorizedPage })));
 const NotFoundPage = lazy(() => import('../pages/error/NotFoundPage.js').then((m) => ({ default: m.NotFoundPage })));
 
+// Module X: Stealth Calculator Gateway (Lazy Loaded)
+const StealthEntryPage = lazy(() => import('../pages/stealth/StealthEntryPage.js').then((m) => ({ default: m.StealthEntryPage })));
+
 const SuspenseFallback = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
     <Spinner size="lg" />
@@ -261,6 +264,9 @@ export const AppRouter: React.FC = () => {
             }
           />
         ))}
+
+        {/* Module X: Stealth Calculator Gateway Route */}
+        <Route path="/s/:token" element={<StealthEntryPage />} />
 
         {/* Error Fallback Routes */}
         <Route

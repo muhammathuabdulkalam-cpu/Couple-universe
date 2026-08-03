@@ -8,6 +8,7 @@ import {
   LogOut,
   Plus,
   RefreshCw,
+  Shield,
   Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -19,11 +20,12 @@ import { Skeleton } from '../../components/ui/Skeleton.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse, InviteItem, SessionItem, User, UserRole } from '../../types/index.js';
+import { StealthSettings } from '../../components/stealth/StealthSettings.js';
 
 export const SessionManagerPage: React.FC = () => {
   const { user, logout } = useAuthStore();
   const { addToast } = useUIStore();
-  const [activeTab, setActiveTab] = useState<'sessions' | 'security' | 'invites' | 'users'>('sessions');
+  const [activeTab, setActiveTab] = useState<'sessions' | 'security' | 'invites' | 'users' | 'stealth'>('sessions');
 
   // Change Password Form State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -214,6 +216,14 @@ export const SessionManagerPage: React.FC = () => {
               leftIcon={<Users className="w-4 h-4" />}
             >
               User Administration
+            </Button>
+            <Button
+              variant={activeTab === 'stealth' ? 'cyan' : 'glass'}
+              size="sm"
+              onClick={() => setActiveTab('stealth')}
+              leftIcon={<Shield className="w-4 h-4" />}
+            >
+              Stealth Mode
             </Button>
           </>
         )}
@@ -429,6 +439,11 @@ export const SessionManagerPage: React.FC = () => {
             <p className="text-xs text-slate-400">No users found.</p>
           )}
         </Card>
+      )}
+
+      {/* Tab 5: Stealth Mode (Super Owner) */}
+      {activeTab === 'stealth' && user?.role === 'SUPER_OWNER' && (
+        <StealthSettings />
       )}
 
     </div>

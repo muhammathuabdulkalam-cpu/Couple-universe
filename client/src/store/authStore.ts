@@ -51,6 +51,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Module X: Reset stealth state on logout and return to calculator link if available
+      let stealthTokenToReturn: string | null = null;
+      try {
+        const { useStealthStore } = await import('./stealthStore.js');
+        const stealthState = useStealthStore.getState();
+        stealthTokenToReturn = stealthState.stealthToken;
+        stealthState.resetStealth();
+      } catch {
+        // Stealth module may not be loaded — safe to ignore
+      }
       setMemoryAccessToken(null);
       set({
         user: null,
@@ -58,6 +68,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false,
         isLoading: false,
       });
+
+      if (stealthTokenToReturn && typeof window !== 'undefined') {
+        window.location.href = `/s/${stealthTokenToReturn}`;
+      }
     }
   },
 

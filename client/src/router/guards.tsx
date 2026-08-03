@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Spinner } from '../components/ui/Spinner.js';
 import { useAuthStore } from '../store/authStore.js';
+import { useStealthStore } from '../store/stealthStore.js';
 import { UserRole } from '../types/index.js';
 
 interface GuardProps {
@@ -21,11 +22,18 @@ export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
   }
 
   if (!isAuthenticated) {
+    // Module X: On mobile with active stealth, redirect to calculator instead of welcome
+    const stealthState = useStealthStore.getState();
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile && stealthState.stealthToken && stealthState.isTokenValid) {
+      return <Navigate to={`/s/${stealthState.stealthToken}`} state={{ from: location }} replace />;
+    }
     return <Navigate to="/welcome" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
 };
+
 
 export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuthStore();

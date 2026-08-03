@@ -29,6 +29,9 @@ import reportRoute from './routes/report.route';
 import socialRoute from './routes/social.route';
 import storyRoute from './routes/story.route';
 
+// Module X: Stealth Calculator Gateway
+import stealthRoute from './routes/stealth.route';
+
 const app: Application = express();
 
 // Security Middlewares
@@ -66,6 +69,9 @@ app.use(`${API}/comments`, commentRoute);
 app.use(`${API}/feed`, activityRoute);
 app.use(`${API}/notifications`, notificationRoute);
 app.use(`${API}/reports`, reportRoute);
+
+// Mount Module X: Stealth Calculator Gateway API Routes
+app.use(`${API}/stealth`, stealthRoute);
 
 // Welcome Root Route
 app.get('/', (_req, res) => {
