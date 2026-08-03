@@ -60,10 +60,40 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
   React.useEffect(() => {
     if (convData) {
-      setConversations(convData);
+      const existingInStore = useChatStore.getState().conversations || [];
+      const convMap = new Map<string, ConversationItem>();
+
+      convData.forEach((c) => {
+        if (c._id) convMap.set(c._id.toString(), c);
+      });
+
+      // Preserve any real-time updated conversation cards in store
+      existingInStore.forEach((c) => {
+        if (c._id) {
+          const fetched = convMap.get(c._id.toString());
+          if (!fetched) {
+            convMap.set(c._id.toString(), c);
+          } else {
+            const fetchedTime = new Date(fetched.lastMessageId?.createdAt || fetched.updatedAt || fetched.createdAt).getTime();
+            const storeTime = new Date(c.lastMessageId?.createdAt || c.updatedAt || c.createdAt).getTime();
+            if (storeTime > fetchedTime) {
+              convMap.set(c._id.toString(), c);
+            }
+          }
+        }
+      });
+
+      const mergedConvs = Array.from(convMap.values()).sort((a, b) => {
+        const dateA = new Date(a.lastMessageId?.createdAt || a.updatedAt || a.createdAt).getTime();
+        const dateB = new Date(b.lastMessageId?.createdAt || b.updatedAt || b.createdAt).getTime();
+        return dateB - dateA;
+      });
+
+      setConversations(mergedConvs);
+
       // Auto-select first conversation ONLY on desktop screens (>= 1024px)
-      if (!activeConversation && convData.length > 0 && window.innerWidth >= 1024) {
-        setActiveConversation(convData[0]);
+      if (!activeConversation && mergedConvs.length > 0 && window.innerWidth >= 1024) {
+        setActiveConversation(mergedConvs[0]);
       }
     }
   }, [convData, setConversations, activeConversation, setActiveConversation]);
@@ -134,7 +164,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
             const isActive = activeConversation?._id === c._id;
             const currentUserId = user?._id || user?.id;
             const otherParticipant = c.participants?.find((p) => (p._id || p.id) !== currentUserId);
-            const isOnline = otherParticipant ? onlineUsers[otherParticipant._id || otherParticipant.id || ''] : false;
+            const partnerId = otherParticipant ? (otherParticipant._id || otherParticipant.id) : null;
+            const isOnline = partnerId ? onlineUsers.has(partnerId.toString()) : false;
 
             const partnerName = otherParticipant?.name || (user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal');
             const partnerRole = otherParticipant?.role || (user?.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER');
@@ -153,9 +184,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
               })
             );
             const isUnread = Boolean(lastMsg && !isSender && !hasRead);
+            const unreadBadgeCount = c.unreadCount && c.unreadCount > 0 ? c.unreadCount : (isUnread ? 1 : 0);
 
             const handleCardClick = () => {
-              setActiveConversation(c);
+              setActiveConversation({ ...c, unreadCount: 0 });
 
               // Mark as read immediately
               if (isUnread && lastMsg?._id) {
@@ -163,7 +195,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                 const updatedReadBy = [...(lastMsg.readBy || []), { userId: currentUserId || '', readAt: new Date().toISOString() }];
                 const updatedLastMsg = { ...lastMsg, readBy: updatedReadBy };
                 const updatedConvs = (conversations || []).map((item) =>
-                  item._id === c._id ? { ...item, lastMessageId: updatedLastMsg } : item
+                  item._id === c._id ? { ...item, lastMessageId: updatedLastMsg, unreadCount: 0 } : item
                 );
                 setConversations(updatedConvs);
               }
@@ -220,8 +252,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                         {getRecentMessagePreview(lastMsg, isSender)}
                       </p>
 
-                      {isUnread && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-amrin to-heart shadow-md shadow-heart shrink-0 animate-pulse" />
+                      {unreadBadgeCount > 0 && (
+                        <span className="px-1.5 py-0.5 min-w-[20px] h-[20px] text-[10px] font-black text-white bg-gradient-to-r from-afzal via-amrin to-heart rounded-full flex items-center justify-center shadow-lg shadow-heart/50 shrink-0 animate-pulse">
+                          {unreadBadgeCount > 99 ? '99+' : unreadBadgeCount}
+                        </span>
                       )}
                     </div>
                   </div>

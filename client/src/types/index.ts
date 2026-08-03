@@ -301,6 +301,7 @@ export interface ConversationItem {
   groupInfo?: { name?: string; avatarMediaId?: MediaItem; description?: string };
   lastMessageId?: MessageItem;
   relationshipId?: string;
+  unreadCount?: number;
   createdAt: string;
   updatedAt: string;
 }

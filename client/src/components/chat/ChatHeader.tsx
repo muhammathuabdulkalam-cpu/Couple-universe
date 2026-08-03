@@ -28,7 +28,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
   const otherParticipant = activeConversation.participants?.find(
     (p) => p._id !== user?.id && p.id !== user?.id && p._id !== user?._id
   );
-  const isOnline = otherParticipant ? onlineUsers[otherParticipant._id] : false;
+  const targetId = otherParticipant ? (otherParticipant._id || otherParticipant.id) : null;
+  const isOnline = targetId ? onlineUsers.has(targetId.toString()) : false;
 
   const partnerName = otherParticipant?.name || (user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal');
   const partnerRole = otherParticipant?.role || (user?.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER');

@@ -1,57 +1,67 @@
 import { create } from 'zustand';
-import { ConversationItem, MessageItem, MessageReaction } from '../types/index.js';
+import { ConversationItem, MessageItem } from '../types/index.js';
 
 interface ChatState {
   conversations: ConversationItem[];
   activeConversation: ConversationItem | null;
-  messages: Record<string, MessageItem[]>;
-  onlineUsers: Record<string, boolean>;
-  typingUsers: Record<string, string[]>;
-  replyingToMessage: MessageItem | null;
-  mobileView: 'list' | 'chat';
-  wallpaper: string;
+  messages: Record<string, MessageItem[]>; // conversationId -> messages array
+  onlineUsers: Set<string>; // Set of userIds who are currently online
+  typingUsers: Record<string, string[]>; // conversationId -> array of typing user names
+  unreadCounts: Record<string, number>; // conversationId -> unread count
+  wallpaper: string; // Active chat wallpaper theme
+  mobileView: 'list' | 'chat'; // Mobile responsive active view panel
+  replyingToMessage: MessageItem | null; // Message being replied to
 
   setConversations: (conversations: ConversationItem[]) => void;
   setActiveConversation: (conversation: ConversationItem | null) => void;
   setMessages: (conversationId: string, messages: MessageItem[]) => void;
   addMessage: (conversationId: string, message: MessageItem) => void;
-  updateMessageStatus: (conversationId: string, messageId: string, status: 'SENT' | 'DELIVERED' | 'READ') => void;
-  updateMessageReaction: (conversationId: string, messageId: string, reactions: MessageReaction[]) => void;
-  setReplyingToMessage: (message: MessageItem | null) => void;
+  updateMessageStatus: (conversationId: string, messageId: string, status: MessageItem['status']) => void;
+  updateMessageReaction: (conversationId: string, messageId: string, reactions: MessageItem['reactions']) => void;
   setUserOnline: (userId: string, isOnline: boolean) => void;
   setTypingUser: (conversationId: string, userName: string, isTyping: boolean) => void;
-  setMobileView: (mobileView: 'list' | 'chat') => void;
   setWallpaper: (wallpaper: string) => void;
+  setMobileView: (view: 'list' | 'chat') => void;
+  setReplyingToMessage: (message: MessageItem | null) => void;
+  clearActiveConversation: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
   conversations: [],
   activeConversation: null,
   messages: {},
-  onlineUsers: {},
+  onlineUsers: new Set(),
   typingUsers: {},
-  replyingToMessage: null,
+  unreadCounts: {},
+  wallpaper: 'midnight',
   mobileView: 'list',
-  wallpaper: typeof window !== 'undefined' ? localStorage.getItem('afrin_chat_wallpaper') || 'midnight' : 'midnight',
+  replyingToMessage: null,
 
   setConversations: (conversations) => set({ conversations }),
-  setActiveConversation: (activeConversation) => set({ activeConversation }),
-  setMessages: (conversationId, messageList) =>
+
+  setActiveConversation: (activeConversation) =>
+    set({
+      activeConversation,
+      mobileView: activeConversation ? 'chat' : 'list',
+    }),
+
+  setMessages: (conversationId, messagesList) =>
     set((state) => ({
-      messages: { ...state.messages, [conversationId]: messageList },
+      messages: { ...state.messages, [conversationId.toString()]: messagesList },
     })),
 
   addMessage: (conversationId, message) =>
     set((state) => {
-      const existing = state.messages[conversationId] || [];
-      const exists = existing.some((m) => m._id === message._id);
+      const targetIdStr = conversationId.toString();
+      const existing = state.messages[targetIdStr] || [];
+      const exists = existing.some((m) => m._id?.toString() === message._id?.toString());
       const updatedMessages = exists
-        ? existing.map((m) => (m._id === message._id ? message : m))
+        ? existing.map((m) => (m._id?.toString() === message._id?.toString() ? message : m))
         : [...existing, message];
 
-      // Update target conversation and re-sort to top of conversation list
-      const targetConv = state.conversations.find((c) => c._id === conversationId);
-      const otherConvs = state.conversations.filter((c) => c._id !== conversationId);
+      // Update target conversation in conversations list and bump to top (index 0)
+      const targetConv = state.conversations.find((c) => c._id?.toString() === targetIdStr);
+      const otherConvs = state.conversations.filter((c) => c._id?.toString() !== targetIdStr);
 
       const updatedTarget = targetConv
         ? {
@@ -59,62 +69,80 @@ export const useChatStore = create<ChatState>((set) => ({
             lastMessageId: message,
             updatedAt: message.createdAt || new Date().toISOString(),
           }
-        : null;
+        : {
+            _id: targetIdStr,
+            type: 'PRIVATE',
+            participants: message.sender ? [message.sender] : [],
+            lastMessageId: message,
+            updatedAt: message.createdAt || new Date().toISOString(),
+            createdAt: message.createdAt || new Date().toISOString(),
+          };
 
-      const updatedConvs = updatedTarget
-        ? [updatedTarget, ...otherConvs]
-        : state.conversations;
+      const updatedConvs = [updatedTarget as any, ...otherConvs];
 
       return {
-        messages: { ...state.messages, [conversationId]: updatedMessages },
+        messages: { ...state.messages, [targetIdStr]: updatedMessages },
         conversations: updatedConvs,
       };
     }),
 
   updateMessageStatus: (conversationId, messageId, status) =>
     set((state) => {
-      const existing = state.messages[conversationId] || [];
-      const updated = existing.map((m) => (m._id === messageId ? { ...m, status } : m));
+      const targetIdStr = conversationId.toString();
+      const existing = state.messages[targetIdStr] || [];
+      const updated = existing.map((m) =>
+        m._id?.toString() === messageId.toString() ? { ...m, status } : m
+      );
       return {
-        messages: { ...state.messages, [conversationId]: updated },
+        messages: { ...state.messages, [targetIdStr]: updated },
       };
     }),
 
   updateMessageReaction: (conversationId, messageId, reactions) =>
     set((state) => {
-      const existing = state.messages[conversationId] || [];
-      const updated = existing.map((m) => (m._id === messageId ? { ...m, reactions } : m));
+      const targetIdStr = conversationId.toString();
+      const existing = state.messages[targetIdStr] || [];
+      const updated = existing.map((m) =>
+        m._id?.toString() === messageId.toString() ? { ...m, reactions } : m
+      );
       return {
-        messages: { ...state.messages, [conversationId]: updated },
+        messages: { ...state.messages, [targetIdStr]: updated },
       };
     }),
 
-  setReplyingToMessage: (replyingToMessage) => set({ replyingToMessage }),
-
   setUserOnline: (userId, isOnline) =>
-    set((state) => ({
-      onlineUsers: { ...state.onlineUsers, [userId]: isOnline },
-    })),
+    set((state) => {
+      const newOnline = new Set(state.onlineUsers);
+      if (isOnline) {
+        newOnline.add(userId.toString());
+      } else {
+        newOnline.delete(userId.toString());
+      }
+      return { onlineUsers: newOnline };
+    }),
 
   setTypingUser: (conversationId, userName, isTyping) =>
     set((state) => {
-      const currentList = state.typingUsers[conversationId] || [];
-      let updated: string[];
+      const targetIdStr = conversationId.toString();
+      const currentTyping = state.typingUsers[targetIdStr] || [];
+      let updatedTyping: string[];
+
       if (isTyping) {
-        updated = currentList.includes(userName) ? currentList : [...currentList, userName];
+        updatedTyping = Array.from(new Set([...currentTyping, userName]));
       } else {
-        updated = currentList.filter((u) => u !== userName);
+        updatedTyping = currentTyping.filter((name) => name !== userName);
       }
+
       return {
-        typingUsers: { ...state.typingUsers, [conversationId]: updated },
+        typingUsers: { ...state.typingUsers, [targetIdStr]: updatedTyping },
       };
     }),
 
+  setWallpaper: (wallpaper) => set({ wallpaper }),
+
   setMobileView: (mobileView) => set({ mobileView }),
-  setWallpaper: (wallpaper) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('afrin_chat_wallpaper', wallpaper);
-    }
-    set({ wallpaper });
-  },
+
+  setReplyingToMessage: (replyingToMessage) => set({ replyingToMessage }),
+
+  clearActiveConversation: () => set({ activeConversation: null, mobileView: 'list' }),
 }));

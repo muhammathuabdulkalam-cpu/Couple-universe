@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { axiosClient } from '../api/axiosClient.js';
 import { socketClient } from '../api/socketClient.js';
 import { ApiResponse } from '../types/index.js';
+import { useChatStore } from './chatStore.js';
 
 interface NotificationState {
   unreadNotifCount: number;
@@ -82,9 +83,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     };
 
     // Listen for incoming chat messages
-    const handleReceiveMessage = () => {
+    const handleReceiveMessage = (message: any) => {
       set((state) => ({ unreadChatCount: state.unreadChatCount + 1 }));
       get().fetchUnreadCounts();
+
+      if (message && message.conversationId) {
+        const convId = typeof message.conversationId === 'object'
+          ? (message.conversationId?._id || message.conversationId?.id || message.conversationId?.toString())
+          : message.conversationId;
+
+        if (convId) {
+          useChatStore.getState().addMessage(convId.toString(), message);
+        }
+      }
     };
 
     // Listen for chat message read receipts

@@ -57,7 +57,8 @@ export const ChatWindow: React.FC = () => {
   }
 
   const otherParticipant = activeConversation.participants?.find((p) => p._id !== user?.id && p.id !== user?.id);
-  const isOnline = otherParticipant ? onlineUsers[otherParticipant._id] : false;
+  const targetId = otherParticipant ? (otherParticipant._id || otherParticipant.id) : null;
+  const isOnline = targetId ? onlineUsers.has(targetId.toString()) : false;
   const currentMessages = conversationId ? messages[conversationId] || [] : [];
   const currentTyping = conversationId ? typingUsers[conversationId] || [] : [];
 

@@ -126,9 +126,22 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
       path: 'lastMessageId',
       populate: { path: 'sender', select: 'name email avatar' },
     })
-    .sort({ updatedAt: -1 });
+    .sort({ updatedAt: -1 })
+    .lean();
 
-  return ApiResponse.success(res, 'User conversations retrieved', conversations);
+  const conversationsWithUnread = await Promise.all(
+    conversations.map(async (conv) => {
+      const unreadCount = await Message.countDocuments({
+        conversationId: conv._id,
+        sender: { $ne: currentUser._id },
+        'readBy.userId': { $ne: currentUser._id },
+        isDeleted: false,
+      });
+      return { ...conv, unreadCount };
+    })
+  );
+
+  return ApiResponse.success(res, 'User conversations retrieved', conversationsWithUnread);
 });
 
 /**
