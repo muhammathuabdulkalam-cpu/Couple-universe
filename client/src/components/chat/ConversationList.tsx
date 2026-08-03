@@ -5,13 +5,34 @@ import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useUIStore } from '../../store/uiStore.js';
-import { ApiResponse, ConversationItem } from '../../types/index.js';
+import { ApiResponse, ConversationItem, MessageItem } from '../../types/index.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
 interface ConversationListProps {
   onSelectConversation?: () => void;
 }
+
+const getRecentMessagePreview = (lastMsg: MessageItem | null | undefined, isSender: boolean): string => {
+  if (!lastMsg) return 'No messages yet';
+
+  let previewText = '';
+  if (typeof lastMsg === 'string') {
+    previewText = 'Message';
+  } else if (lastMsg.type === 'IMAGE') {
+    previewText = '📷 Photo';
+  } else if (lastMsg.type === 'VOICE') {
+    previewText = '🎙️ Voice note';
+  } else if (lastMsg.type === 'VIDEO') {
+    previewText = '📹 Video';
+  } else if (lastMsg.type === 'FILE') {
+    previewText = '📁 File attachment';
+  } else {
+    previewText = lastMsg.content || 'Message';
+  }
+
+  return isSender ? `You: ${previewText}` : previewText;
+};
 
 export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
   const { user } = useAuthStore();
@@ -61,11 +82,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
     }
   };
 
-  const filteredConversations = (conversations || []).filter((c) => {
-    if (c.type === 'RELATIONSHIP') return true;
-    const otherParticipant = c.participants?.find((p) => p._id !== user?.id && p.id !== user?.id);
-    return otherParticipant?.name.toLowerCase().includes(search.toLowerCase());
-  });
+  const filteredConversations = (conversations || [])
+    .filter((c) => {
+      if (c.type === 'RELATIONSHIP') return true;
+      const otherParticipant = c.participants?.find((p) => p._id !== user?.id && p.id !== user?.id);
+      return otherParticipant?.name.toLowerCase().includes(search.toLowerCase());
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.lastMessageId?.createdAt || a.updatedAt || a.createdAt).getTime();
+      const dateB = new Date(b.lastMessageId?.createdAt || b.updatedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
 
   return (
     <Card variant="glass" className="p-4 h-full flex flex-col space-y-4 border-none select-none rounded-none">
@@ -131,7 +158,6 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
               // Mark as read immediately
               if (isUnread && lastMsg?._id) {
                 axiosClient.patch(`/chat/messages/${lastMsg._id}/read`).catch(() => {});
-                // Update local conversation lastMessageId readBy
                 const updatedReadBy = [...(lastMsg.readBy || []), { userId: currentUserId || '', readAt: new Date().toISOString() }];
                 const updatedLastMsg = { ...lastMsg, readBy: updatedReadBy };
                 const updatedConvs = (conversations || []).map((item) =>
@@ -189,7 +215,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
                     <div className="flex items-center justify-between gap-2 mt-0.5">
                       <p className={`text-[11px] truncate ${isUnread ? 'text-slate-100 font-extrabold' : 'text-slate-400 font-normal'}`}>
-                        {lastMsg ? (isSender ? `You: ${lastMsg.content || 'Attachment'}` : lastMsg.content || 'Attachment') : 'No messages yet'}
+                        {getRecentMessagePreview(lastMsg, isSender)}
                       </p>
 
                       {isUnread && (

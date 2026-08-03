@@ -44,16 +44,29 @@ export const useChatStore = create<ChatState>((set) => ({
   addMessage: (conversationId, message) =>
     set((state) => {
       const existing = state.messages[conversationId] || [];
-      // Prevent duplicates
-      if (existing.some((m) => m._id === message._id)) return state;
+      const exists = existing.some((m) => m._id === message._id);
+      const updatedMessages = exists
+        ? existing.map((m) => (m._id === message._id ? message : m))
+        : [...existing, message];
 
-      // Update conversation lastMessageId
-      const updatedConvs = state.conversations.map((c) =>
-        c._id === conversationId ? { ...c, lastMessageId: message, updatedAt: new Date().toISOString() } : c
-      );
+      // Update target conversation and re-sort to top of conversation list
+      const targetConv = state.conversations.find((c) => c._id === conversationId);
+      const otherConvs = state.conversations.filter((c) => c._id !== conversationId);
+
+      const updatedTarget = targetConv
+        ? {
+            ...targetConv,
+            lastMessageId: message,
+            updatedAt: message.createdAt || new Date().toISOString(),
+          }
+        : null;
+
+      const updatedConvs = updatedTarget
+        ? [updatedTarget, ...otherConvs]
+        : state.conversations;
 
       return {
-        messages: { ...state.messages, [conversationId]: [...existing, message] },
+        messages: { ...state.messages, [conversationId]: updatedMessages },
         conversations: updatedConvs,
       };
     }),
