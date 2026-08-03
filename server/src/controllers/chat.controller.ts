@@ -197,9 +197,16 @@ export const sendMessage = catchAsync(async (req: Request, res: Response) => {
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl mimeType width height')
     .populate('replyToMessageId', 'content sender type');
 
-  // Emit real-time socket event to conversation room
+  // Emit real-time socket event to conversation room AND all participant user rooms
   try {
-    socketService.getIO().to(conversationId).emit('receive_message', populatedMessage);
+    const io = socketService.getIO();
+    io.to(conversationId).emit('receive_message', populatedMessage);
+    if (conversation.participants) {
+      conversation.participants.forEach((pId) => {
+        io.to(pId.toString()).emit('receive_message', populatedMessage);
+        io.to(`user:${pId.toString()}`).emit('receive_message', populatedMessage);
+      });
+    }
   } catch (e) {}
 
   return ApiResponse.created(res, 'Message sent successfully', populatedMessage);

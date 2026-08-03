@@ -108,18 +108,30 @@ export const MessageContainer: React.FC = () => {
     }
   }, [conversationId, currentMessages, currentUserId, setMessages, mobileView]);
 
-  // Join Socket Room
+  // Join Socket Room & listen for reconnect events
   useEffect(() => {
     if (!conversationId) return;
 
+    const joinRoom = () => {
+      const socket = socketClient.getSocket();
+      if (socket && socket.connected) {
+        socket.emit('join_conversation', conversationId);
+      }
+    };
+
+    joinRoom();
+
     const socket = socketClient.getSocket();
-    if (socket && socket.connected) {
-      socket.emit('join_conversation', conversationId);
+    if (socket) {
+      socket.on('connect', joinRoom);
     }
 
     return () => {
-      if (socket && socket.connected) {
-        socket.emit('leave_conversation', conversationId);
+      if (socket) {
+        socket.off('connect', joinRoom);
+        if (socket.connected) {
+          socket.emit('leave_conversation', conversationId);
+        }
       }
     };
   }, [conversationId]);

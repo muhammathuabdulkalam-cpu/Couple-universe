@@ -139,8 +139,15 @@ class SocketService {
             .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl mimeType')
             .populate('replyToMessageId', 'content sender type');
 
-          // Emit to conversation room
+          // Emit to conversation room AND all participant user rooms for guaranteed instant delivery
           this.io?.to(conversationId).emit('receive_message', populatedMessage);
+          const convDoc = await Conversation.findById(conversationId).select('participants');
+          if (convDoc && convDoc.participants) {
+            convDoc.participants.forEach((pId) => {
+              this.io?.to(pId.toString()).emit('receive_message', populatedMessage);
+              this.io?.to(`user:${pId.toString()}`).emit('receive_message', populatedMessage);
+            });
+          }
 
           // Update status to DELIVERED
           message.status = 'DELIVERED';
