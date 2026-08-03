@@ -17,7 +17,7 @@ export const MessageContainer: React.FC = () => {
   const conversationId = activeConversation?._id;
   const currentUserId = user?._id || user?.id;
 
-  // Fetch Conversation Messages via React Query
+  // Fetch Conversation Messages via React Query with 3s background auto-sync
   const { data: fetchedMessages, isLoading } = useQuery<MessageItem[]>({
     queryKey: ['chatMessages', conversationId],
     queryFn: async () => {
@@ -26,6 +26,8 @@ export const MessageContainer: React.FC = () => {
       return res.data.data!;
     },
     enabled: !!conversationId,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 
   // Safely merge fetched messages into Zustand store without wiping out real-time messages

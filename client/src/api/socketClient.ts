@@ -8,14 +8,26 @@ class SocketClient {
       return this.socket;
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    const envApiUrl = (import.meta as any).env?.VITE_API_URL;
+    const envSocketUrl = (import.meta as any).env?.VITE_SOCKET_URL;
+
+    let socketUrl = 'http://localhost:5000';
+
+    if (envSocketUrl) {
+      socketUrl = envSocketUrl;
+    } else if (envApiUrl && typeof envApiUrl === 'string') {
+      socketUrl = envApiUrl.replace(/\/api\/v1\/?$/, '');
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      socketUrl = window.location.origin;
+    }
 
     this.socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: 15,
       reconnectionDelay: 1000,
+      secure: typeof window !== 'undefined' ? window.location.protocol === 'https:' : false,
     });
 
     this.socket.on('connect', () => {
