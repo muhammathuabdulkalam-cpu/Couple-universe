@@ -28,11 +28,31 @@ export const MessageContainer: React.FC = () => {
     enabled: !!conversationId,
   });
 
-  // Populate Zustand store
+  // Safely merge fetched messages into Zustand store without wiping out real-time messages
   useEffect(() => {
-    if (conversationId && fetchedMessages) {
-      setMessages(conversationId, fetchedMessages);
-    }
+    if (!conversationId || !fetchedMessages) return;
+
+    const existingInStore = useChatStore.getState().messages[conversationId] || [];
+    const messageMap = new Map<string, MessageItem>();
+
+    // 1. Add API-fetched messages
+    fetchedMessages.forEach((m) => {
+      if (m._id) messageMap.set(m._id.toString(), m);
+    });
+
+    // 2. Preserve real-time messages added via socket/composer that aren't in fetchedMessages yet
+    existingInStore.forEach((m) => {
+      if (m._id && !messageMap.has(m._id.toString())) {
+        messageMap.set(m._id.toString(), m);
+      }
+    });
+
+    // 3. Sort chronologically by creation timestamp
+    const mergedMessages = Array.from(messageMap.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    setMessages(conversationId, mergedMessages);
   }, [conversationId, fetchedMessages, setMessages]);
 
   const currentMessages = conversationId ? messages[conversationId] || [] : [];
@@ -42,7 +62,6 @@ export const MessageContainer: React.FC = () => {
   useEffect(() => {
     if (!conversationId || !currentUserId || currentMessages.length === 0) return;
 
-    // On mobile viewports (< 1024px), ONLY mark messages read if user is INSIDE the open chat thread (mobileView === 'chat')
     const isMobile = window.innerWidth < 1024;
     if (isMobile && mobileView !== 'chat') return;
 
@@ -73,7 +92,6 @@ export const MessageContainer: React.FC = () => {
         axiosClient.patch(`/chat/messages/${id}/read`).catch(() => {});
       });
 
-      // Update local Zustand store so unreadMessages evaluates to empty array immediately
       const updatedMessages = currentMessages.map((m) => {
         if (unreadIds.includes(m._id)) {
           const existingReadBy = m.readBy || [];
@@ -88,7 +106,7 @@ export const MessageContainer: React.FC = () => {
       setMessages(conversationId, updatedMessages);
       useNotificationStore.getState().fetchUnreadCounts();
     }
-  }, [conversationId, currentMessages, currentUserId, setMessages]);
+  }, [conversationId, currentMessages, currentUserId, setMessages, mobileView]);
 
   // Join Socket Room
   useEffect(() => {
@@ -112,15 +130,14 @@ export const MessageContainer: React.FC = () => {
     }
   };
 
-  // Pre-paint layout effect to guarantee 0-delay bottom positioning
+  // Pre-paint layout effect to guarantee 0-delay bottom positioning on new messages
   useLayoutEffect(() => {
     if (!conversationId || currentMessages.length === 0) return;
 
     scrollToBottom();
 
-    // Secondary checks for dynamic images rendering
-    const t1 = setTimeout(scrollToBottom, 20);
-    const t2 = setTimeout(scrollToBottom, 100);
+    const t1 = setTimeout(scrollToBottom, 30);
+    const t2 = setTimeout(scrollToBottom, 150);
 
     return () => {
       clearTimeout(t1);
@@ -171,7 +188,6 @@ export const MessageContainer: React.FC = () => {
     <div
       ref={(el) => {
         containerRef.current = el;
-        if (el) el.scrollTop = el.scrollHeight;
       }}
       className={`flex-1 min-h-0 overflow-y-auto overscroll-none p-3 sm:p-4 transition-all duration-300 ${getWallpaperClass(wallpaper)}`}
     >

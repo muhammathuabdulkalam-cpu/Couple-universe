@@ -22,8 +22,11 @@ export const ChatPage: React.FC = () => {
 
     // Socket Event Listeners
     socket.on('receive_message', (message) => {
-      if (message.conversationId) {
-        addMessage(message.conversationId, message);
+      if (message && message.conversationId) {
+        const convId = typeof message.conversationId === 'object'
+          ? (message.conversationId._id || message.conversationId.id || message.conversationId.toString())
+          : message.conversationId;
+        addMessage(convId.toString(), message);
       }
     });
 
