@@ -5,9 +5,9 @@ import {
   Home,
   Image,
   Menu,
+  MessageSquare,
   Plus,
   Sparkles,
-  User,
   X,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -39,8 +39,8 @@ export const BottomNav: React.FC = () => {
     { label: 'Home', path: '/dashboard', icon: Home, isAction: false },
     { label: 'Gallery', path: '/gallery', icon: Image, isAction: false },
     { label: 'Create', path: '#create', icon: Plus, isAction: true },
+    { label: 'Chat', path: '/chat', icon: MessageSquare, isAction: false },
     { label: 'Menu', path: '#menu', icon: Menu, isAction: false, isMenuToggle: true },
-    { label: 'Profile', path: '/profile', icon: User, isAction: false },
   ];
 
   return (
@@ -90,19 +90,17 @@ export const BottomNav: React.FC = () => {
                 <motion.div
                   animate={{ scale: isActive ? 1.15 : 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  className="relative"
                 >
-                  {item.label === 'Profile' && user?.avatar ? (
-                    <div className={`w-7 h-7 rounded-full overflow-hidden border-2 transition-colors ${
-                      isActive ? 'border-amrin-glow shadow-md shadow-amrin/40' : 'border-transparent opacity-70 hover:opacity-100'
-                    }`}>
-                      <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <Icon
-                      className={`w-6 h-6 transition-colors ${
-                        isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
-                      }`}
-                    />
+                  <Icon
+                    className={`w-6 h-6 transition-colors ${
+                      isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
+                    }`}
+                  />
+                  {item.path === '/chat' && unreadChatCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 px-1 py-0.2 min-w-[17px] h-[17px] text-[9px] font-black text-white bg-gradient-to-r from-afzal via-amrin to-heart rounded-full flex items-center justify-center shadow-lg shadow-heart/50 shrink-0 animate-pulse border border-obsidian-950">
+                      {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                    </span>
                   )}
                 </motion.div>
 
@@ -172,7 +170,7 @@ export const BottomNav: React.FC = () => {
                         <div className="flex items-center gap-2">
                           {isChatNav && unreadChatCount > 0 && (
                             <span className="bg-gradient-to-r from-amrin to-heart text-white text-[10px] font-extrabold rounded-full px-2 py-0.5 shadow-md">
-                              {unreadChatCount}
+                              {unreadChatCount > 99 ? '99+' : unreadChatCount}
                             </span>
                           )}
                           <ChevronRight className="w-4 h-4 text-slate-500" />

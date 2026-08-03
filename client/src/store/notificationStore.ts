@@ -61,10 +61,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (get().isInitialized && socket?.connected) return () => {};
     set({ isInitialized: true });
 
-    // Initial fetch once
+    // Initial fetch
     get().fetchUnreadCounts();
 
-    if (!socket) return () => {};
+    // Continuous 4s background auto-sync poll
+    const pollInterval = setInterval(() => {
+      get().fetchUnreadCounts();
+    }, 4000);
+
+    if (!socket) return () => clearInterval(pollInterval);
 
     // Listen for new notifications
     const handleNewNotif = () => {
@@ -109,6 +114,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     socket.on('message_read', handleMessageRead);
 
     return () => {
+      clearInterval(pollInterval);
       socket.off('notification_created', handleNewNotif);
       socket.off('unread_count_updated', handleUnreadUpdate);
       socket.off('receive_message', handleReceiveMessage);
