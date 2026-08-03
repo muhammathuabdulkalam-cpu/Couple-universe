@@ -47,13 +47,15 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
   const [search, setSearch] = useState('');
 
-  // Fetch Conversations via React Query
+  // Fetch Conversations via React Query with 3s background auto-sync
   const { data: convData, refetch } = useQuery<ConversationItem[]>({
     queryKey: ['userConversations'],
     queryFn: async () => {
       const res = await axiosClient.get<ApiResponse<ConversationItem[]>>('/chat/conversations');
       return res.data.data!;
     },
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 
   React.useEffect(() => {

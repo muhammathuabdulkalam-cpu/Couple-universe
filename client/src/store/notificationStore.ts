@@ -34,16 +34,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   fetchUnreadCounts: async () => {
     try {
-      const notifRes = await axiosClient
-        .get<ApiResponse<{ count: number; unreadNotifications?: number; unreadChat?: number }>>('/notifications/unread-count')
-        .catch(() => null);
+      const [notifRes, chatRes] = await Promise.all([
+        axiosClient.get<ApiResponse<{ count: number; unreadNotifications?: number }>>('/notifications/unread-count').catch(() => null),
+        axiosClient.get<ApiResponse<{ count: number }>>('/chat/unread-count').catch(() => null),
+      ]);
 
       if (notifRes?.data?.data) {
         const data = notifRes.data.data;
         set({ unreadNotifCount: data.count ?? data.unreadNotifications ?? 0 });
-        if (typeof data.unreadChat === 'number') {
-          set({ unreadChatCount: data.unreadChat });
-        }
+      }
+
+      if (chatRes?.data?.data) {
+        set({ unreadChatCount: chatRes.data.data.count ?? 0 });
       }
     } catch (_err) {}
   },
