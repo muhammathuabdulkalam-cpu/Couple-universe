@@ -7,6 +7,7 @@ import { Skeleton } from '../ui/Skeleton.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse } from '../../types/index.js';
 import {
+  Check,
   Copy,
   ExternalLink,
   Eye,
@@ -37,6 +38,7 @@ export const StealthSettings: React.FC = () => {
   const [isUpdatingSecret, setIsUpdatingSecret] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -79,6 +81,7 @@ export const StealthSettings: React.FC = () => {
       const fullLink = `${cleanDomain}/s/${token}`;
 
       setGeneratedLink(fullLink);
+      setIsCopied(false);
       addToast(
         regenerate ? 'Link Regenerated' : 'Link Generated',
         'Private link created. Copy it now — it won\'t be shown again.',
@@ -126,9 +129,44 @@ export const StealthSettings: React.FC = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    addToast('Copied', 'Private link copied to clipboard', 'info');
+  const copyToClipboard = async (text: string) => {
+    let success = false;
+
+    // Modern Clipboard API
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      } catch {
+        // Fallback below
+      }
+    }
+
+    // Fallback using temporary textarea element
+    if (!success) {
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        success = document.execCommand('copy');
+        textArea.remove();
+      } catch {
+        success = false;
+      }
+    }
+
+    if (success) {
+      setIsCopied(true);
+      addToast('Copied!', 'Private link copied to clipboard', 'info');
+      setTimeout(() => setIsCopied(false), 2500);
+    } else {
+      addToast('Copy Warning', 'Please select and copy the link manually.', 'warning');
+    }
   };
 
   if (isLoading) {
@@ -215,16 +253,16 @@ export const StealthSettings: React.FC = () => {
           <div className="glass-card p-3 rounded-xl space-y-2">
             <div className="text-[11px] text-amber-400 font-semibold">⚠ Copy this link now — it won't be shown again</div>
             <div className="flex items-center gap-2">
-              <code className="text-xs text-white bg-obsidian-950/80 px-3 py-2 rounded-lg flex-1 overflow-x-auto whitespace-nowrap font-mono">
+              <code className="text-xs text-white bg-obsidian-950/80 px-3 py-2 rounded-lg flex-1 overflow-x-auto whitespace-nowrap font-mono select-all">
                 {generatedLink}
               </code>
               <Button
-                variant="glass"
+                variant={isCopied ? 'cyan' : 'glass'}
                 size="sm"
                 onClick={() => copyToClipboard(generatedLink)}
-                leftIcon={<Copy className="w-3.5 h-3.5" />}
+                leftIcon={isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               >
-                Copy
+                {isCopied ? 'Copied!' : 'Copy'}
               </Button>
               <Button
                 variant="cyan"
