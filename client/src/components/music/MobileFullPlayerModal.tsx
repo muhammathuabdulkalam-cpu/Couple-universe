@@ -122,8 +122,8 @@ export const MobileFullPlayerModal: React.FC = () => {
           {/* Listen Together Mobile Pill Indicator */}
           <div className="flex justify-center my-2">
             {isSessionActive ? (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold shadow-lg">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
                 {partnerAvatar && (
                   <img src={partnerAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
                 )}
@@ -156,7 +156,7 @@ export const MobileFullPlayerModal: React.FC = () => {
             </motion.div>
           </div>
 
-          {/* Song Metadata (Title Left, Green Heart Right - Reference UI) */}
+          {/* Song Metadata (Title Left, Rose Heart Right) */}
           <div className="flex items-center justify-between mb-4 px-1">
             <div className="min-w-0 flex-1 pr-4">
               <h2 className="text-2xl font-bold text-white truncate tracking-tight">{currentTrack.title}</h2>
@@ -165,9 +165,9 @@ export const MobileFullPlayerModal: React.FC = () => {
 
             <button
               onClick={handleToggleFav}
-              className="p-2 rounded-full text-slate-400 hover:text-emerald-400 transition shrink-0"
+              className="p-2 rounded-full text-slate-400 hover:text-rose-400 transition shrink-0"
             >
-              <Heart className={`w-7 h-7 ${isFavorite ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+              <Heart className={`w-7 h-7 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
             </button>
           </div>
 
@@ -180,7 +180,7 @@ export const MobileFullPlayerModal: React.FC = () => {
               step={0.1}
               value={currentTime}
               onChange={(e) => seekTo(parseFloat(e.target.value))}
-              className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+              className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
             />
             <div className="flex items-center justify-between text-xs font-mono text-slate-400">
               <span>{formatTime(currentTime)}</span>
@@ -188,11 +188,11 @@ export const MobileFullPlayerModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Controls Bar (Spotify White Center Circle - Reference UI) */}
+          {/* Controls Bar */}
           <div className="flex items-center justify-between px-2 mb-8">
             <button
               onClick={() => toggleShuffle()}
-              className={`p-2 rounded-full transition ${isShuffle ? 'text-emerald-400' : 'text-slate-400'}`}
+              className={`p-2 rounded-full transition ${isShuffle ? 'text-rose-400' : 'text-slate-400'}`}
             >
               <Shuffle className="w-5 h-5" />
             </button>
@@ -218,7 +218,7 @@ export const MobileFullPlayerModal: React.FC = () => {
 
             <button
               onClick={() => cycleRepeatMode()}
-              className={`p-2 rounded-full transition ${repeatMode !== 'none' ? 'text-emerald-400' : 'text-slate-400'}`}
+              className={`p-2 rounded-full transition ${repeatMode !== 'none' ? 'text-rose-400' : 'text-slate-400'}`}
             >
               {repeatMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
             </button>

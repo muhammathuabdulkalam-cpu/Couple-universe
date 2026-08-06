@@ -60,10 +60,6 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
       setErrorMsg('Please select an audio file (MP3, M4A, AAC, WAV, FLAC)');
       return;
     }
-    if (!title.trim() || !artist.trim()) {
-      setErrorMsg('Song title and artist name are required');
-      return;
-    }
 
     setIsUploading(true);
     setErrorMsg('');
@@ -113,6 +109,11 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
           </button>
         </div>
 
+        {/* Auto Metadata Extraction Hint */}
+        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-medium">
+          ✨ Song title, artist, album, cover artwork & duration are automatically extracted from your audio file's ID3 tags!
+        </div>
+
         {errorMsg && (
           <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
             {errorMsg}
@@ -135,7 +136,7 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
               <Music className="w-8 h-8 text-rose-400 mx-auto mb-2" />
               {audioFile ? (
                 <div className="text-xs font-bold text-rose-300 flex items-center justify-center gap-1">
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle className="w-4 h-4 text-rose-400" />
                   <span className="truncate max-w-xs">{audioFile.name}</span>
                 </div>
               ) : (
@@ -149,7 +150,7 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
           {/* Cover Art Dropzone */}
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-1.5">
-              Cover Artwork (Optional)
+              Cover Artwork (Optional - Embedded Artwork Auto-Extracted)
             </label>
             <div className="relative border border-white/10 hover:border-rose-500/40 rounded-xl p-3 text-center cursor-pointer transition bg-white/5 flex items-center gap-3">
               <input
@@ -160,7 +161,7 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
               />
               <ImageIcon className="w-5 h-5 text-slate-400 shrink-0" />
               <span className="text-xs text-slate-400 truncate">
-                {coverFile ? coverFile.name : 'Select custom album cover image'}
+                {coverFile ? coverFile.name : 'Select custom album cover (or use embedded ID3 cover)'}
               </span>
             </div>
           </div>
@@ -168,25 +169,23 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
           {/* Metadata Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Song Title *</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Song Title (Optional)</label>
               <input
                 type="text"
-                required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Perfect"
+                placeholder="Auto-extracted from file if empty"
                 className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Artist Name *</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1">Artist Name (Optional)</label>
               <input
                 type="text"
-                required
                 value={artist}
                 onChange={(e) => setArtist(e.target.value)}
-                placeholder="e.g. Ed Sheeran"
+                placeholder="Auto-extracted from file if empty"
                 className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-1 focus:ring-rose-500"
               />
             </div>

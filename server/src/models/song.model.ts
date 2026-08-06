@@ -44,6 +44,8 @@ const songSchema = new Schema<ISong>(
 );
 
 songSchema.index({ provider: 1, providerSongId: 1 }, { unique: true });
+songSchema.index({ provider: 1, isDeleted: 1, _id: -1 });
+songSchema.index({ provider: 1, isDeleted: 1, createdAt: -1 });
 songSchema.index(
   { title: 'text', artist: 'text', album: 'text' },
   { default_language: 'none', language_override: 'text_language' }

@@ -1,3 +1,4 @@
+import { parseBuffer } from 'music-metadata';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { logger } from '../config/logger.config';
@@ -90,16 +91,55 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
   }
 
   const audioFile = files['audio'][0];
-  const { title, artist, album } = req.body;
-
-  if (!title || !artist) {
-    throw new AppError('Song title and artist name are required', HTTP_STATUS.BAD_REQUEST);
-  }
+  const reqTitle = (req.body.title || '').trim();
+  const reqArtist = (req.body.artist || '').trim();
+  const reqAlbum = (req.body.album || '').trim();
 
   logger.info(`✓ Processing audio file: ${audioFile.originalname} (${audioFile.size} bytes, ${audioFile.mimetype})`);
 
+  // 1. Parse ID3 Metadata & Embedded Cover Artwork from Audio Buffer
+  let id3Title = '';
+  let id3Artist = '';
+  let id3Album = '';
+  let id3Duration = 0;
+  let embeddedCoverUrl = '';
+
+  try {
+    const metadata = await parseBuffer(audioFile.buffer, audioFile.mimetype);
+    if (metadata.common) {
+      if (metadata.common.title) id3Title = metadata.common.title.trim();
+      if (metadata.common.artist) id3Artist = metadata.common.artist.trim();
+      else if (metadata.common.albumartist) id3Artist = metadata.common.albumartist.trim();
+      if (metadata.common.album) id3Album = metadata.common.album.trim();
+
+      // Extract embedded picture artwork if present and custom cover was not uploaded
+      if (metadata.common.picture && metadata.common.picture.length > 0 && (!files['cover'] || files['cover'].length === 0)) {
+        const pic = metadata.common.picture[0];
+        try {
+          const ext = pic.format && pic.format.includes('png') ? 'png' : 'jpg';
+          const coverUpload = await CloudinaryService.uploadBuffer(
+            Buffer.from(pic.data),
+            'afrin-universe/music/covers',
+            `embedded_${Date.now()}.${ext}`
+          );
+          embeddedCoverUrl = coverUpload.optimizedUrl || coverUpload.secureUrl;
+          logger.info('✓ Embedded ID3 cover artwork uploaded to Cloudinary:', embeddedCoverUrl);
+        } catch (picErr: any) {
+          logger.warn('⚠️ Could not upload embedded cover artwork:', picErr.message);
+        }
+      }
+    }
+    if (metadata.format && metadata.format.duration) {
+      id3Duration = Math.round(metadata.format.duration);
+    }
+    logger.info('✓ ID3 tags extracted successfully:', { id3Title, id3Artist, id3Album, id3Duration });
+  } catch (id3Err: any) {
+    logger.warn('⚠️ ID3 Metadata parse warning:', id3Err.message);
+  }
+
+  // 2. Upload Audio File to Cloudinary
   let audioUploadUrl = '';
-  let duration = 180;
+  let cloudinaryDuration = 0;
 
   try {
     const audioUpload = await CloudinaryService.uploadBuffer(
@@ -109,7 +149,7 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
       'raw'
     );
     audioUploadUrl = audioUpload.secureUrl;
-    duration = Math.round(audioUpload.duration || 180);
+    cloudinaryDuration = Math.round(audioUpload.duration || 0);
     logger.info('✓ Cloudinary Upload success:', audioUploadUrl);
   } catch (err: any) {
     logger.error('❌ Cloudinary upload warning (using base64 audio fallback):', err.message);
@@ -117,6 +157,7 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
     audioUploadUrl = `data:${audioFile.mimetype || 'audio/mpeg'};base64,${base64Audio}`;
   }
 
+  // 3. Resolve Cover Artwork (Custom Upload > ID3 Embedded > Default Artwork)
   let coverUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
   if (files['cover'] && files['cover'].length > 0) {
     try {
@@ -128,26 +169,33 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
       );
       coverUrl = coverUpload.optimizedUrl || coverUpload.secureUrl;
     } catch (_cErr) {}
+  } else if (embeddedCoverUrl) {
+    coverUrl = embeddedCoverUrl;
   }
 
-  logger.info('✓ Metadata extracted:', { title, artist, album, duration });
+  // 4. Resolve Final Metadata (ID3 > Manual Form Input > Filename Fallback)
+  const filenameWithoutExt = audioFile.originalname.replace(/\.[^/.]+$/, '');
+  const finalTitle = id3Title || reqTitle || filenameWithoutExt;
+  const finalArtist = id3Artist || reqArtist || 'Unknown Artist';
+  const finalAlbum = id3Album || reqAlbum || '';
+  const finalDuration = id3Duration || cloudinaryDuration || 180;
 
   const songId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   const song = await Song.create({
     provider: 'local',
     providerSongId: songId,
-    title: title.trim(),
-    artist: artist.trim(),
-    album: (album || '').trim(),
+    title: finalTitle,
+    artist: finalArtist,
+    album: finalAlbum,
     coverUrl,
     previewUrl: audioUploadUrl,
-    duration,
+    duration: finalDuration,
     externalUrl: audioUploadUrl.startsWith('http') ? audioUploadUrl : '',
     addedBy: user._id,
   });
 
-  logger.info('✓ MongoDB saved song:', song._id);
+  logger.info('✓ MongoDB saved song with ID3 metadata:', song._id);
 
   const normalized: NormalizedSong = {
     provider: 'local',
@@ -190,7 +238,7 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
       }
     : { provider: 'local', isDeleted: { $ne: true } };
 
-  const localSongs = await Song.find(localQuery).populate('addedBy', 'name avatar').sort({ createdAt: -1 }).limit(20);
+  const localSongs = await Song.find(localQuery).populate('addedBy', 'name avatar').sort({ _id: -1 }).limit(20);
 
   const localNormalized: NormalizedSong[] = localSongs.map((s: any) => ({
     provider: 'local',
@@ -222,7 +270,7 @@ export const getUploadedSongs = catchAsync(async (req: Request, res: Response) =
 
   const songs = await Song.find({ provider: 'local', isDeleted: { $ne: true } })
     .populate('addedBy', 'name avatar role')
-    .sort({ createdAt: -1 })
+    .sort({ _id: -1 })
     .skip(skip)
     .limit(limit);
 

@@ -16,9 +16,9 @@ export const ListenTogetherBadge: React.FC = () => {
     return (
       <button
         onClick={sendInvite}
-        className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-rose-950/30 transition hover:scale-105 active:scale-95"
+        className="h-9 px-3.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-950/30 transition hover:scale-105 active:scale-95 shrink-0"
       >
-        <Radio className="w-4 h-4 animate-pulse" />
+        <Radio className="w-3.5 h-3.5 animate-pulse" />
         <span>Listen Together</span>
       </button>
     );

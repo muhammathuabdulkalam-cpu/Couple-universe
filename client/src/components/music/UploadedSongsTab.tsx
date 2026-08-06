@@ -104,13 +104,13 @@ export const UploadedSongsTab: React.FC = () => {
       {/* Top Action Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-xl">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-lg">
             <UploadCloud className="w-7 h-7" />
           </div>
           <div>
             <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
               <span>Personal Uploaded Library</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold border border-emerald-500/30">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold border border-rose-500/30">
                 {total} Songs
               </span>
             </h2>
@@ -122,7 +122,7 @@ export const UploadedSongsTab: React.FC = () => {
 
         <button
           onClick={() => setIsUploadModalOpen(true)}
-          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-extrabold flex items-center justify-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition"
+          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold flex items-center justify-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition"
         >
           <Plus className="w-5 h-5 stroke-[3]" />
           <span>Upload Song</span>
@@ -142,7 +142,7 @@ export const UploadedSongsTab: React.FC = () => {
       ) : songs.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center text-center p-12 rounded-3xl bg-slate-900/40 border border-white/10 text-white space-y-4">
-          <div className="w-20 h-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+          <div className="w-20 h-20 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
             <Music className="w-10 h-10" />
           </div>
           <h3 className="text-xl font-bold">🎵 No Uploaded Songs Yet</h3>
@@ -151,7 +151,7 @@ export const UploadedSongsTab: React.FC = () => {
           </p>
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="px-6 py-3 rounded-2xl bg-emerald-500 text-black font-extrabold flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition mt-2"
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition mt-2"
           >
             <UploadCloud className="w-5 h-5" />
             <span>Upload Song</span>
@@ -170,7 +170,7 @@ export const UploadedSongsTab: React.FC = () => {
                 key={song.providerSongId}
                 className={`group relative flex items-center justify-between p-3 sm:p-4 rounded-2xl transition border ${
                   isCurrent
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-white shadow-lg'
+                    ? 'bg-rose-500/10 border-rose-500/30 text-white shadow-lg'
                     : 'bg-slate-900/40 border-white/5 hover:bg-white/5 text-slate-200'
                 }`}
               >
@@ -194,14 +194,14 @@ export const UploadedSongsTab: React.FC = () => {
                         isCurrent ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'
                       }`}
                     >
-                      <Radio className="w-6 h-6 text-emerald-400 animate-pulse" />
+                      <Radio className="w-6 h-6 text-rose-400 animate-pulse" />
                     </div>
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <h4
                       onClick={() => (isCurrent ? togglePlay() : playTrack(song, songs))}
-                      className="font-bold text-sm sm:text-base text-white truncate cursor-pointer hover:text-emerald-400 transition"
+                      className="font-bold text-sm sm:text-base text-white truncate cursor-pointer hover:text-rose-400 transition"
                     >
                       {song.title}
                     </h4>
@@ -214,7 +214,7 @@ export const UploadedSongsTab: React.FC = () => {
                 {/* Middle: Uploaded By Badge */}
                 {song.uploadedBy && (
                   <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-slate-300">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <UserCheck className="w-3.5 h-3.5 text-rose-400" />
                     <span>{song.uploadedBy.name}</span>
                   </div>
                 )}
@@ -228,9 +228,9 @@ export const UploadedSongsTab: React.FC = () => {
 
                   <button
                     onClick={() => handleToggleFavorite(song)}
-                    className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-emerald-400 transition"
+                    className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-rose-400 transition"
                   >
-                    <Heart className={`w-5 h-5 ${isFav ? 'fill-emerald-500 text-emerald-500' : ''}`} />
+                    <Heart className={`w-5 h-5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
                   </button>
 
                   {/* Add to Playlist & Delete Dropdown Menu */}

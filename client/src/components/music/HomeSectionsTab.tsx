@@ -18,9 +18,10 @@ import { MusicWaveform } from './MusicWaveform';
 
 interface HomeSectionsTabProps {
   onOpenDedicateModal?: (song: NormalizedSong) => void;
+  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'uploaded' | 'dedications' | 'favorites') => void;
 }
 
-export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal }) => {
+export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal, onSelectTab }) => {
   const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
   const { addToast } = useUIStore();
 
@@ -129,10 +130,28 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}
         </h2>
 
-        <div className="flex items-center gap-2">
-          <span className="px-4 py-1.5 rounded-full bg-emerald-500 text-black text-xs font-extrabold shadow-md">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <span className="px-3.5 py-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold shadow-md shadow-rose-500/30 shrink-0">
             Music
           </span>
+          <button
+            onClick={() => onSelectTab && onSelectTab('uploaded')}
+            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
+          >
+            Uploaded
+          </button>
+          <button
+            onClick={() => onSelectTab && onSelectTab('favorites')}
+            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
+          >
+            Favorites
+          </button>
+          <button
+            onClick={() => onSelectTab && onSelectTab('playlists')}
+            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
+          >
+            Playlists
+          </button>
         </div>
 
         {/* Favorite Artists Circular Row (Reference UI) */}
