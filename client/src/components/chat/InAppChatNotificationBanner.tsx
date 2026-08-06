@@ -77,7 +77,7 @@ export const InAppChatNotificationBanner: React.FC = () => {
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
           const senderObj = typeof message.sender === 'object' ? message.sender : null;
-          const sName = senderObj?.name || 'Afrin Universe';
+          const sName = senderObj?.name || 'Couple Universe';
           const sAvatar = senderObj?.avatar;
 
           new Notification(sName, {

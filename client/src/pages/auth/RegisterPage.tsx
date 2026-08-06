@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Key, Lock, Mail, Shield, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Key, Lock, Mail, ShieldCheck, User as UserIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -73,13 +73,11 @@ export const RegisterPage: React.FC = () => {
         <Card variant="glass" className="p-8 border-white/10 shadow-2xl">
           
           <div className="text-center space-y-2 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amrin to-heart p-0.5 mx-auto">
-              <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-amrin">
-                <Shield className="w-6 h-6" />
-              </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amrin to-heart p-0.5 mx-auto overflow-hidden shadow-xl">
+              <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             <h2 className="text-2xl font-extrabold text-white tracking-tight">Create Account</h2>
-            <p className="text-xs text-slate-400">Join the private Afrin Universe digital ecosystem</p>
+            <p className="text-xs text-slate-400">Join the private Couple Universe digital ecosystem</p>
           </div>
 
           {/* System Mode Banner */}

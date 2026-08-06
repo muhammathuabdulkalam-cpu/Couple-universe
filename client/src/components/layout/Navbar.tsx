@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
-  Heart,
   LogIn,
   LogOut,
   MessageCircle,
@@ -41,15 +40,13 @@ export const Navbar: React.FC = () => {
         
         {/* Left: Brand Logo & Tagline */}
         <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3 group shrink-0">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-lg shadow-amrin/20 transition-transform group-hover:scale-105">
-            <div className="w-full h-full bg-obsidian-950 rounded-[10px] flex items-center justify-center">
-              <Heart className="w-5 h-5 text-heart fill-heart animate-pulse" />
-            </div>
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-lg shadow-amrin/20 transition-transform group-hover:scale-105 overflow-hidden">
+            <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[10px]" />
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
               <span className="font-display font-bold text-lg text-white tracking-tight">
-                Afrin Universe
+                Couple Universe
               </span>
               <span className="text-heart text-sm">❤️</span>
             </div>

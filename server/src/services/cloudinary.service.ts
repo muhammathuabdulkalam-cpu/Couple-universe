@@ -23,13 +23,14 @@ export class CloudinaryService {
   public static async uploadBuffer(
     buffer: Buffer,
     folder: string = 'afrin-universe/gallery',
-    filename?: string
+    filename?: string,
+    resourceType: 'auto' | 'image' | 'video' | 'raw' = 'auto'
   ): Promise<CloudinaryUploadResult> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder,
-          resource_type: 'auto',
+          resource_type: resourceType,
           filename_override: filename,
           use_filename: true,
           unique_filename: true,
@@ -40,21 +41,26 @@ export class CloudinaryService {
             return reject(new AppError('Failed to upload file to Cloudinary storage.', 500));
           }
 
-          const optimizedUrl = cloudinary.url(result.public_id, {
-            fetch_format: 'auto',
-            quality: 'auto',
-            secure: true,
-          });
+          let optimizedUrl = result.secure_url;
+          let thumbnailUrl = result.secure_url;
 
-          const thumbnailUrl = cloudinary.url(result.public_id, {
-            width: 400,
-            height: 400,
-            crop: 'fill',
-            gravity: 'auto',
-            fetch_format: 'auto',
-            quality: 'auto',
-            secure: true,
-          });
+          if (result.resource_type === 'image') {
+            optimizedUrl = cloudinary.url(result.public_id, {
+              fetch_format: 'auto',
+              quality: 'auto',
+              secure: true,
+            });
+
+            thumbnailUrl = cloudinary.url(result.public_id, {
+              width: 400,
+              height: 400,
+              crop: 'fill',
+              gravity: 'auto',
+              fetch_format: 'auto',
+              quality: 'auto',
+              secure: true,
+            });
+          }
 
           resolve({
             publicId: result.public_id,
@@ -63,9 +69,9 @@ export class CloudinaryService {
             thumbnailUrl,
             width: result.width || 800,
             height: result.height || 600,
-            format: result.format || 'jpg',
+            format: result.format || 'mp3',
             bytes: result.bytes || buffer.length,
-            resourceType: result.resource_type || 'image',
+            resourceType: result.resource_type || resourceType,
             duration: result.duration,
           });
         }

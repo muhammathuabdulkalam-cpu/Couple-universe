@@ -132,7 +132,7 @@ export const BottomNav: React.FC = () => {
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-white">
                     <Sparkles className="w-4 h-4 text-amrin-glow" />
-                    <span>Afrin Universe Menu</span>
+                    <span>Couple Universe Menu</span>
                   </div>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}

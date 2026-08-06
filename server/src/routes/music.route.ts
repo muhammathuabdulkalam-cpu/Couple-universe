@@ -1,0 +1,76 @@
+import { Router } from 'express';
+import {
+  addSongToPlaylist,
+  createDedication,
+  createListenInvite,
+  createPlaylist,
+  deletePlaylist,
+  endListenSession,
+  getDashboardSummary,
+  getDedications,
+  getFavorites,
+  getListenSessionStatus,
+  getLyrics,
+  getPlaylistSongs,
+  getPlaylists,
+  getRecentlyPlayed,
+  recordRecentlyPlayed,
+  reorderPlaylistSongs,
+  removeSongFromPlaylist,
+  respondListenInvite,
+  searchMusic,
+  toggleFavorite,
+  updatePlaylist,
+  uploadSong,
+} from '../controllers/music.controller';
+import { authenticate } from '../middlewares/auth.middleware';
+import { uploadMiddleware } from '../middlewares/upload.middleware';
+
+const router = Router();
+
+router.use(authenticate);
+
+// Audio Upload
+router.post(
+  '/upload',
+  uploadMiddleware.fields([
+    { name: 'audio', maxCount: 1 },
+    { name: 'cover', maxCount: 1 },
+  ]),
+  uploadSong
+);
+
+// Listen Together
+router.get('/listen-together/status', getListenSessionStatus);
+router.post('/listen-together/invite', createListenInvite);
+router.post('/listen-together/respond', respondListenInvite);
+router.post('/listen-together/end', endListenSession);
+
+// Search, Summary & Lyrics
+router.get('/search', searchMusic);
+router.get('/summary', getDashboardSummary);
+router.get('/lyrics', getLyrics);
+
+// Playlists
+router.get('/playlists', getPlaylists);
+router.post('/playlists', createPlaylist);
+router.put('/playlists/:id', updatePlaylist);
+router.delete('/playlists/:id', deletePlaylist);
+router.get('/playlists/:id/songs', getPlaylistSongs);
+router.post('/playlists/:id/songs', addSongToPlaylist);
+router.delete('/playlists/:id/songs/:songId', removeSongFromPlaylist);
+router.put('/playlists/:id/reorder', reorderPlaylistSongs);
+
+// Favorites
+router.get('/favorites', getFavorites);
+router.post('/favorites/toggle', toggleFavorite);
+
+// Dedications
+router.get('/dedications', getDedications);
+router.post('/dedications', createDedication);
+
+// Recently Played
+router.get('/recently-played', getRecentlyPlayed);
+router.post('/recently-played', recordRecentlyPlayed);
+
+export default router;

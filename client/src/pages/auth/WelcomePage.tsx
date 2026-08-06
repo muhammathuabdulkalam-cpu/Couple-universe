@@ -25,12 +25,18 @@ export const WelcomePage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center space-y-4"
       >
+        <div className="flex justify-center mb-2">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-2xl shadow-amrin/30 overflow-hidden">
+            <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[14px]" />
+          </div>
+        </div>
+
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card border border-amrin/30 text-xs font-semibold text-amrin-glow">
           <Sparkles className="w-3.5 h-3.5" /> Private Digital Life Vault
         </div>
 
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight">
-          Welcome to <span className="gradient-text-couple">Afrin Universe ❤️</span>
+          Welcome to <span className="gradient-text-couple">Couple Universe ❤️</span>
         </h1>
 
         <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">

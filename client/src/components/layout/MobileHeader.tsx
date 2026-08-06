@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle } from 'lucide-react';
+import { Bell, MessageCircle } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -28,14 +28,12 @@ export const MobileHeader: React.FC = () => {
       
       {/* Left: Brand Logo & Title (Instagram Style) */}
       <Link to="/dashboard" className="flex items-center gap-2 group">
-        <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-md shadow-amrin/20">
-          <div className="w-full h-full bg-obsidian-950 rounded-[10px] flex items-center justify-center">
-            <Heart className="w-4 h-4 text-heart fill-heart animate-pulse" />
-          </div>
+        <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-md shadow-amrin/20 overflow-hidden">
+          <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[10px]" />
         </div>
         <div className="flex items-center gap-1.5">
           <span className="font-display font-extrabold text-base text-white tracking-tight">
-            Afrin Universe
+            Couple Universe
           </span>
           <span className="text-xs text-heart">❤️</span>
         </div>

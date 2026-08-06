@@ -6,6 +6,7 @@ import { axiosClient } from '../api/axiosClient.js';
 import { BirthdayCountdown } from '../components/dashboard/BirthdayCountdown.js';
 import { HeaderBanner } from '../components/dashboard/HeaderBanner.js';
 import { RecentMemoriesGrid } from '../components/dashboard/RecentMemoriesGrid.js';
+import { DashboardMusicWidget } from '../components/music/DashboardMusicWidget.js';
 import { FeedCard } from '../components/social/FeedCard.js';
 import { StoryCarousel } from '../components/social/StoryCarousel.js';
 import { Skeleton } from '../components/ui/Skeleton.js';
@@ -137,6 +138,15 @@ export const HomePage: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Shared Music Quick Widget */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <DashboardMusicWidget />
+        </motion.div>
 
         {/* Recent Memories Grid */}
         <motion.div

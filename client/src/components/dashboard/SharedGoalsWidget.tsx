@@ -4,7 +4,7 @@ import { Card } from '../ui/Card.js';
 
 export const SharedGoalsWidget: React.FC = () => {
   const goals = [
-    { title: 'Launch Afrin Universe Platform', completed: true },
+    { title: 'Launch Couple Universe Platform', completed: true },
     { title: 'First International Trip Together', completed: false },
     { title: 'Shared Lifetime Memory Vault', completed: true },
     { title: 'Marriage & Family Chapter', completed: false },

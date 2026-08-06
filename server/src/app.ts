@@ -29,6 +29,9 @@ import reportRoute from './routes/report.route';
 import socialRoute from './routes/social.route';
 import storyRoute from './routes/story.route';
 
+// Module Shared Music
+import musicRoute from './routes/music.route';
+
 // Module X: Stealth Calculator Gateway
 import stealthRoute from './routes/stealth.route';
 
@@ -69,6 +72,9 @@ app.use(`${API}/comments`, commentRoute);
 app.use(`${API}/feed`, activityRoute);
 app.use(`${API}/notifications`, notificationRoute);
 app.use(`${API}/reports`, reportRoute);
+
+// Mount Shared Music API Routes
+app.use(`${API}/music`, musicRoute);
 
 // Mount Module X: Stealth Calculator Gateway API Routes
 app.use(`${API}/stealth`, stealthRoute);

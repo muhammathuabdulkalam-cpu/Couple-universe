@@ -7,6 +7,7 @@ import { Navbar } from '../components/layout/Navbar.js';
 import { RightContextPanel } from '../components/layout/RightContextPanel.js';
 import { Sidebar } from '../components/layout/Sidebar.js';
 import { ToastContainer } from '../components/layout/ToastContainer.js';
+import { MusicPlayerFloating } from '../components/music/MusicPlayerFloating.js';
 import { NotificationPanel } from '../components/social/NotificationPanel.js';
 import { useAuthStore } from '../store/authStore.js';
 import { useNotificationStore } from '../store/notificationStore.js';
@@ -95,6 +96,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
       {/* Global Notification Drawer & Panel */}
       <NotificationPanel />
+
+      {/* Global Floating Mini / Desktop Audio Player */}
+      <MusicPlayerFloating />
 
       {/* Dynamic Toast Notifications */}
       <ToastContainer />

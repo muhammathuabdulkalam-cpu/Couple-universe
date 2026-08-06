@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -58,10 +58,8 @@ export const LoginPage: React.FC = () => {
 
         <Card variant="glass" className="p-8 border-white/10 shadow-2xl">
           <div className="text-center space-y-2 mb-8">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-afzal to-amrin p-0.5 mx-auto">
-              <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-afzal">
-                <LogIn className="w-6 h-6" />
-              </div>
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-afzal to-amrin p-0.5 mx-auto overflow-hidden shadow-xl">
+              <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[14px]" />
             </div>
             <h2 className="text-2xl font-extrabold text-white tracking-tight">Sign In to Universe</h2>
             <p className="text-xs text-slate-400">Enter your credentials to access your private vault</p>

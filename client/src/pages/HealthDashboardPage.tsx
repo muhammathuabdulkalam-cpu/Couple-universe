@@ -89,7 +89,7 @@ export const HealthDashboardPage: React.FC = () => {
               </Badge>
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              Afrin Universe <span className="gradient-text-couple">❤️ Private Platform</span>
+              Couple Universe <span className="gradient-text-couple">❤️ Private Platform</span>
             </h1>
             <p className="text-slate-400 mt-2 text-sm sm:text-base max-w-2xl leading-relaxed">
               Enterprise digital life repository engineered for <strong className="text-slate-200">Afzal & Amrin</strong>. 

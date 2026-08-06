@@ -17,7 +17,7 @@ export const NotFoundPage: React.FC = () => {
           <div className="space-y-2">
             <h1 className="text-2xl font-extrabold text-white">404 Page Not Found</h1>
             <p className="text-xs text-slate-400 leading-relaxed">
-              The path you requested does not exist in Afrin Universe.
+              The path you requested does not exist in Couple Universe.
             </p>
           </div>
 

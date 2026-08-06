@@ -37,6 +37,9 @@ const ProfilePage = lazy(() => import('../pages/profile/ProfilePage.js').then((m
 const SocialFeedPage = lazy(() => import('../pages/social/SocialFeedPage.js').then((m) => ({ default: m.SocialFeedPage })));
 const StoriesPage = lazy(() => import('../pages/social/StoriesPage.js').then((m) => ({ default: m.StoriesPage })));
 
+// Shared Music Page
+const SharedMusicPage = lazy(() => import('../pages/SharedMusicPage.js').then((m) => ({ default: m.SharedMusicPage })));
+
 // Lazy Loaded Error Pages
 const UnauthorizedPage = lazy(() => import('../pages/error/UnauthorizedPage.js').then((m) => ({ default: m.UnauthorizedPage })));
 const NotFoundPage = lazy(() => import('../pages/error/NotFoundPage.js').then((m) => ({ default: m.NotFoundPage })));
@@ -197,6 +200,18 @@ export const AppRouter: React.FC = () => {
             <AuthGuard>
               <DashboardLayout>
                 <StoriesPage />
+              </DashboardLayout>
+            </AuthGuard>
+          }
+        />
+
+        {/* Shared Music Route */}
+        <Route
+          path="/shared-music"
+          element={
+            <AuthGuard>
+              <DashboardLayout>
+                <SharedMusicPage />
               </DashboardLayout>
             </AuthGuard>
           }

@@ -133,7 +133,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: Music,
     section: 'life',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
-    isImplemented: false,
+    isImplemented: true,
   },
 
   // -------------------------------------------------------
