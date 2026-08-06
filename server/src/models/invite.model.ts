@@ -1,16 +1,27 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 import { ROLES, UserRole } from '../constants';
 
+export type InviteStatus = 'UNUSED' | 'USED' | 'EXPIRED' | 'REVOKED';
+
 export interface IInvite extends Document {
   _id: mongoose.Types.ObjectId;
   code: string;
   email?: string;
+  relationship?: mongoose.Types.ObjectId;
+  relationshipType?: string;
   targetRole: UserRole;
+  expiresAt: Date;
+  maxUses: number;
+  currentUses: number;
   createdBy: mongoose.Types.ObjectId;
+  revokedBy?: mongoose.Types.ObjectId;
+  revokedAt?: Date;
+  status: InviteStatus;
+  isRevoked: boolean;
   isUsed: boolean;
   usedBy?: mongoose.Types.ObjectId;
   usedAt?: Date;
-  expiresAt: Date;
+  metadata?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,15 +41,54 @@ const inviteSchema = new Schema<IInvite>(
       lowercase: true,
       trim: true,
     },
+    relationship: {
+      type: Schema.Types.ObjectId,
+      ref: 'Relationship',
+      index: true,
+    },
+    relationshipType: {
+      type: String,
+      default: 'Couple',
+    },
     targetRole: {
       type: String,
       enum: Object.values(ROLES),
       default: ROLES.CO_OWNER,
     },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
+    maxUses: {
+      type: Number,
+      default: 1,
+    },
+    currentUses: {
+      type: Number,
+      default: 0,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    revokedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    revokedAt: {
+      type: Date,
+    },
+    status: {
+      type: String,
+      enum: ['UNUSED', 'USED', 'EXPIRED', 'REVOKED'],
+      default: 'UNUSED',
+      index: true,
+    },
+    isRevoked: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     isUsed: {
       type: Boolean,
@@ -52,10 +102,9 @@ const inviteSchema = new Schema<IInvite>(
     usedAt: {
       type: Date,
     },
-    expiresAt: {
-      type: Date,
-      required: true,
-      index: { expires: 0 },
+    metadata: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
   },
   {

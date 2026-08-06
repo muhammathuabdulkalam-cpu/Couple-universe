@@ -47,6 +47,12 @@ const NotFoundPage = lazy(() => import('../pages/error/NotFoundPage.js').then((m
 // Module X: Stealth Calculator Gateway (Lazy Loaded)
 const StealthEntryPage = lazy(() => import('../pages/stealth/StealthEntryPage.js').then((m) => ({ default: m.StealthEntryPage })));
 
+// Enterprise Admin Portal Pages (Lazy Loaded)
+const AdminLoginPage = lazy(() => import('../pages/admin/AdminLoginPage.js').then((m) => ({ default: m.AdminLoginPage })));
+const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage.js').then((m) => ({ default: m.AdminDashboardPage })));
+const AdminRouteGuard = lazy(() => import('./AdminRouteGuard.js').then((m) => ({ default: m.AdminRouteGuard })));
+const InviteRegistrationResolver = lazy(() => import('../pages/InviteRegistrationResolver.js'));
+
 const SuspenseFallback = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
     <Spinner size="lg" />
@@ -239,17 +245,20 @@ export const AppRouter: React.FC = () => {
           }
         />
 
-        {/* Role Protected Admin Routes (SUPER_OWNER Only) */}
+        {/* Enterprise Admin Portal Routes */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route
-          path="/admin"
+          path="/admin/dashboard"
           element={
-            <RoleGuard allowedRoles={['SUPER_OWNER']}>
-              <DashboardLayout>
-                <SessionManagerPage />
-              </DashboardLayout>
-            </RoleGuard>
+            <AdminRouteGuard>
+              <AdminDashboardPage />
+            </AdminRouteGuard>
           }
         />
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+
+        {/* Public Invite Resolution Route */}
+        <Route path="/invite/:token" element={<InviteRegistrationResolver />} />
 
         <Route
           path="/developer-dashboard"

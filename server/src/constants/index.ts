@@ -6,6 +6,7 @@ export const ROLES = {
   SUPER_OWNER: 'SUPER_OWNER',
   CO_OWNER: 'CO_OWNER',
   INVITED_USER: 'INVITED_USER',
+  ADMIN: 'ADMIN',
 } as const;
 
 export type UserRole = (typeof ROLES)[keyof typeof ROLES];
@@ -14,6 +15,9 @@ export const USER_STATUS = {
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
   PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  INVITED: 'INVITED',
+  PENDING: 'PENDING',
+  DELETED: 'DELETED',
 } as const;
 
 export type UserStatus = (typeof USER_STATUS)[keyof typeof USER_STATUS];

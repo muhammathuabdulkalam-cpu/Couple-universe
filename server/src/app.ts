@@ -35,6 +35,12 @@ import musicRoute from './routes/music.route';
 // Module X: Stealth Calculator Gateway
 import stealthRoute from './routes/stealth.route';
 
+// Module Enterprise Admin Portal
+import adminRoute from './routes/admin.route';
+
+// Public Invite Route
+import publicInviteRoute from './routes/publicInvite.route';
+
 const app: Application = express();
 
 // Security Middlewares
@@ -78,6 +84,12 @@ app.use(`${API}/music`, musicRoute);
 
 // Mount Module X: Stealth Calculator Gateway API Routes
 app.use(`${API}/stealth`, stealthRoute);
+
+// Mount Enterprise Admin Portal API Routes
+app.use(`${API}/admin`, adminRoute);
+
+// Mount Public Invite Validation Routes
+app.use(`${API}/invites`, publicInviteRoute);
 
 // Welcome Root Route
 app.get('/', (_req, res) => {

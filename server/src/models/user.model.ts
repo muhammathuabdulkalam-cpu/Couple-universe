@@ -20,6 +20,12 @@ export interface IUser extends Document {
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  username?: string;
+  phone?: string;
+  gender?: string;
+  isDeleted?: boolean;
+  deletedAt?: Date;
+  deletedBy?: mongoose.Types.ObjectId;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -92,6 +98,32 @@ const userSchema = new Schema<IUser>(
     },
     lastLoginAt: {
       type: Date,
+    },
+    username: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    gender: {
+      type: String,
+      default: '',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deletedAt: {
+      type: Date,
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   {

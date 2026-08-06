@@ -22,6 +22,10 @@ export const connectDatabase = async (): Promise<void> => {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
+
+    // Seed initial Admin Account if missing
+    const { seedAdminAccount } = await import('../utils/seedAdmin');
+    await seedAdminAccount();
   } catch (error) {
     logger.error(`❌ Initial MongoDB connection failed: ${(error as Error).message}`);
     if (env.NODE_ENV === 'production') {
