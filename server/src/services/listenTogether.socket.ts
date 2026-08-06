@@ -151,6 +151,7 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   // 9. End Session Event
   socket.on('listen:end', async (data: { sessionId: string }) => {
     try {
+      if (!data?.sessionId) return;
       await ListeningSession.findOneAndUpdate(
         { sessionId: data.sessionId },
         { status: 'ENDED' }

@@ -77,6 +77,21 @@ async function seedDefaultPlaylists() {
   }
 }
 
+export function cleanMetadataString(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.(com|dev|in|co|net|org|info|mobi|vip|site|cc|cz|fm|is|ws)/gi, '')
+    .replace(/(MassTamilan|Starmusiq|PagalWorld|Sensongs|Isaimini|TamilMp3|Mp3Paw|Pendujatt|DjPunjab|NaaSongs|SongsLover|Kuttyweb|5starmusiq|VipTamilan)/gi, '')
+    .replace(/\[\s*\d+\s*kbps\s*\]|\(\s*\d+\s*kbps\s*\)|\b\d+\s*kbps\b/gi, '')
+    .replace(/\[\s*320\s*\]|\(\s*320\s*\)|\[\s*128\s*\]|\(\s*128\s*\)/gi, '')
+    .replace(/\[\s*\]|\(\s*\)/g, '')
+    .replace(/_/g, ' ')
+    .replace(/\s*-\s*/g, ' - ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s\-._]+|[\s\-._]+$/g, '')
+    .trim();
+}
+
 /**
  * Upload Custom Personal Song File (MP3, M4A, AAC, WAV, FLAC) to Cloudinary
  */
@@ -173,12 +188,24 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
     coverUrl = embeddedCoverUrl;
   }
 
-  // 4. Resolve Final Metadata (ID3 > Manual Form Input > Filename Fallback)
+  // 4. Resolve Final Metadata (Sanitized Form Input > ID3 > Filename Fallback)
   const filenameWithoutExt = audioFile.originalname.replace(/\.[^/.]+$/, '');
-  const finalTitle = id3Title || reqTitle || filenameWithoutExt;
-  const finalArtist = id3Artist || reqArtist || 'Unknown Artist';
-  const finalAlbum = id3Album || reqAlbum || '';
+  const cleanedFilename = cleanMetadataString(filenameWithoutExt);
+  
+  let finalTitle = cleanMetadataString(reqTitle) || cleanMetadataString(id3Title) || cleanedFilename;
+  let finalArtist = cleanMetadataString(reqArtist) || cleanMetadataString(id3Artist);
+  let finalAlbum = cleanMetadataString(reqAlbum) || cleanMetadataString(id3Album) || '';
   const finalDuration = id3Duration || cloudinaryDuration || 180;
+
+  if (!finalArtist) {
+    const parts = finalTitle.split(' - ');
+    if (parts.length > 1) {
+      finalArtist = parts[0].trim();
+      finalTitle = parts.slice(1).join(' - ').trim();
+    } else {
+      finalArtist = 'Unknown Artist';
+    }
+  }
 
   const songId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 

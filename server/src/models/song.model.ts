@@ -48,7 +48,7 @@ songSchema.index({ provider: 1, isDeleted: 1, _id: -1 });
 songSchema.index({ provider: 1, isDeleted: 1, createdAt: -1 });
 songSchema.index(
   { title: 'text', artist: 'text', album: 'text' },
-  { default_language: 'none', language_override: 'text_language' }
+  { default_language: 'english' }
 );
 
 export const Song: Model<ISong> = mongoose.model<ISong>('Song', songSchema);
