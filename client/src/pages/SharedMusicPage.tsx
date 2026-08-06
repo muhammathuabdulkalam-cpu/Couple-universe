@@ -7,6 +7,7 @@ import {
   ListMusic,
   Search,
   Upload,
+  UploadCloud,
 } from 'lucide-react';
 import { socketClient } from '../api/socketClient';
 import { DedicationsTab } from '../components/music/DedicationsTab';
@@ -16,12 +17,13 @@ import { ListenTogetherBadge } from '../components/music/ListenTogetherBadge';
 import { ListenTogetherInviteBanner } from '../components/music/ListenTogetherInviteBanner';
 import { MusicSearchTab } from '../components/music/MusicSearchTab';
 import { PlaylistsTab } from '../components/music/PlaylistsTab';
+import { UploadedSongsTab } from '../components/music/UploadedSongsTab';
 import { UploadSongModal } from '../components/music/UploadSongModal';
 import { useAuthStore } from '../store/authStore';
 import { useListenTogetherStore } from '../store/listenTogetherStore';
 import { NormalizedSong } from '../types/music.types';
 
-type TabType = 'home' | 'search' | 'playlists' | 'dedications' | 'favorites';
+type TabType = 'home' | 'search' | 'playlists' | 'uploaded' | 'dedications' | 'favorites';
 
 export const SharedMusicPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -95,6 +97,18 @@ export const SharedMusicPage: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('uploaded')}
+              className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 transition shrink-0 ${
+                activeTab === 'uploaded'
+                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+              }`}
+            >
+              <UploadCloud className="w-4 h-4 text-emerald-400" />
+              <span>Uploaded Songs</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('dedications')}
               className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 transition shrink-0 ${
                 activeTab === 'dedications'
@@ -147,6 +161,7 @@ export const SharedMusicPage: React.FC = () => {
           {activeTab === 'home' && <HomeSectionsTab onOpenDedicateModal={handleOpenDedicateModal} />}
           {activeTab === 'search' && <MusicSearchTab onOpenDedicateModal={handleOpenDedicateModal} />}
           {activeTab === 'playlists' && <PlaylistsTab />}
+          {activeTab === 'uploaded' && <UploadedSongsTab />}
           {activeTab === 'dedications' && (
             <DedicationsTab
               initialDedicatedSong={songToDedicate}

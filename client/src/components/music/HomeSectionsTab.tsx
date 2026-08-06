@@ -33,16 +33,19 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   });
 
   const [favoritesMap, setFavoritesMap] = useState<Record<string, boolean>>({});
+  const [uploadedSongs, setUploadedSongs] = useState<NormalizedSong[]>([]);
 
   useEffect(() => {
     // Fetch initial datasets
     Promise.all([
       musicApi.getRecentlyPlayed().catch(() => []),
       musicApi.getFavorites().catch(() => []),
+      musicApi.getUploadedSongs().catch(() => []),
       musicApi.getPlaylists().catch(() => []),
-    ]).then(([recents, favs]) => {
+    ]).then(([recents, favs, uploaded]) => {
       const recentSongs = recents.map((r) => r.songId).filter(Boolean);
       setRecentlyPlayed(recentSongs);
+      setUploadedSongs(Array.isArray(uploaded) ? uploaded : uploaded?.songs || []);
 
       const favMap: Record<string, boolean> = {};
       favs.forEach((f) => (favMap[f.providerSongId] = true));
@@ -105,6 +108,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   };
 
   const sectionsConfig = [
+    { title: '📁 Personal Uploaded Library', tracks: uploadedSongs },
     { title: '❤️ Continue Listening', tracks: recentlyPlayed.slice(0, 10) },
     { title: '❤️ Recently Played', tracks: recentlyPlayed },
     { title: '❤️ Made For Afzal & Amrin', tracks: sectionData['made_for_us'] || [] },

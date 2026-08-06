@@ -35,6 +35,7 @@ interface MusicSearchTabProps {
 export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateModal }) => {
   const [query, setQuery] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterProvider, setFilterProvider] = useState<'all' | 'deezer' | 'uploaded'>('all');
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedSongForPlaylist, setSelectedSongForPlaylist] = useState<NormalizedSong | null>(null);
   const [favoritesMap, setFavoritesMap] = useState<Record<string, boolean>>({});
@@ -77,8 +78,13 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
     retry: 2,
   });
 
-  const results = searchData?.songs || [];
-  const total = searchData?.total || 0;
+  const rawResults = searchData?.songs || [];
+  const results = rawResults.filter((s) => {
+    if (filterProvider === 'uploaded') return s.provider === 'local';
+    if (filterProvider === 'deezer') return s.provider !== 'local';
+    return true;
+  });
+  const total = results.length;
 
   const handleToggleFavorite = async (song: NormalizedSong) => {
     try {
@@ -129,8 +135,26 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
           )}
         </div>
 
+        {/* Provider Filter Tabs: All, Deezer, Uploaded */}
+        <div className="mt-3 flex items-center gap-2">
+          {(['all', 'deezer', 'uploaded'] as const).map((prov) => (
+            <button
+              key={prov}
+              type="button"
+              onClick={() => setFilterProvider(prov)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
+                filterProvider === prov
+                  ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
+              }`}
+            >
+              {prov === 'all' ? 'All Tracks' : prov === 'deezer' ? 'Deezer Only' : '🎵 Uploaded Only'}
+            </button>
+          ))}
+        </div>
+
         {/* Suggestion Chips */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="text-xs text-slate-400 font-semibold flex items-center gap-1 mr-1">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Quick Search:
           </span>

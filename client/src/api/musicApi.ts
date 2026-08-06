@@ -17,6 +17,16 @@ export const musicApi = {
     return res.data.data as NormalizedSong;
   },
 
+  getUploadedSongs: async (page: number = 1, limit: number = 50) => {
+    const res = await axiosClient.get('/music/uploaded', { params: { page, limit } });
+    return res.data.data as { songs: NormalizedSong[]; total: number; page: number; limit: number };
+  },
+
+  deleteUploadedSong: async (providerSongId: string) => {
+    const res = await axiosClient.delete(`/music/uploaded/${providerSongId}`);
+    return res.data;
+  },
+
   getListenSessionStatus: async () => {
     const res = await axiosClient.get('/music/listen-together/status');
     return res.data.data as ListeningSession | null;

@@ -5,6 +5,7 @@ import {
   createListenInvite,
   createPlaylist,
   deletePlaylist,
+  deleteUploadedSong,
   endListenSession,
   getDashboardSummary,
   getDedications,
@@ -14,6 +15,7 @@ import {
   getPlaylistSongs,
   getPlaylists,
   getRecentlyPlayed,
+  getUploadedSongs,
   recordRecentlyPlayed,
   reorderPlaylistSongs,
   removeSongFromPlaylist,
@@ -46,8 +48,10 @@ router.post('/listen-together/invite', createListenInvite);
 router.post('/listen-together/respond', respondListenInvite);
 router.post('/listen-together/end', endListenSession);
 
-// Search, Summary & Lyrics
+// Search, Summary, Uploaded & Lyrics
 router.get('/search', searchMusic);
+router.get('/uploaded', getUploadedSongs);
+router.delete('/uploaded/:providerSongId', deleteUploadedSong);
 router.get('/summary', getDashboardSummary);
 router.get('/lyrics', getLyrics);
 

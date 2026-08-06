@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Upload, Music, X, Image as ImageIcon, CheckCircle } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
+import { useUIStore } from '../../store/uiStore';
 import { NormalizedSong } from '../../types/music.types';
 
 interface UploadSongModalProps {
@@ -14,6 +16,8 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
   onClose,
   onUploaded,
 }) => {
+  const queryClient = useQueryClient();
+  const { addToast } = useUIStore();
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -75,6 +79,9 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
       formData.append('album', album.trim());
 
       const song = await musicApi.uploadSong(formData);
+
+      queryClient.invalidateQueries({ queryKey: ['uploadedSongs'] });
+      addToast('Song Uploaded! 🎵', `"${song.title}" added to your personal library`, 'success');
 
       if (onUploaded) onUploaded(song);
       onClose();

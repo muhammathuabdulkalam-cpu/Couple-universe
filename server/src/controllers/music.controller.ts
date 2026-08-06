@@ -177,31 +177,99 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
   const provider = MusicProviderFactory.getProvider(providerName);
   const result = await provider.search({ query, index, limit });
 
-  // Merge Local uploaded songs from MongoDB
-  if (query.trim()) {
-    const regex = new RegExp(query.trim(), 'i');
-    const localSongs = await Song.find({
-      provider: 'local',
-      $or: [{ title: regex }, { artist: regex }, { album: regex }],
-    }).limit(10);
+  // Merge Local uploaded songs from MongoDB (all uploaded songs if query is empty or matching)
+  const localQuery = query.trim()
+    ? {
+        provider: 'local',
+        isDeleted: { $ne: true },
+        $or: [
+          { title: new RegExp(query.trim(), 'i') },
+          { artist: new RegExp(query.trim(), 'i') },
+          { album: new RegExp(query.trim(), 'i') },
+        ],
+      }
+    : { provider: 'local', isDeleted: { $ne: true } };
 
-    const localNormalized: NormalizedSong[] = localSongs.map((s) => ({
-      provider: 'local',
-      providerSongId: s.providerSongId,
-      title: s.title,
-      artist: s.artist,
-      album: s.album || '',
-      coverUrl: s.coverUrl || '',
-      previewUrl: s.previewUrl || '',
-      duration: s.duration || 180,
-      externalUrl: s.externalUrl || '',
-    }));
+  const localSongs = await Song.find(localQuery).populate('addedBy', 'name avatar').sort({ createdAt: -1 }).limit(20);
 
-    result.songs = [...localNormalized, ...result.songs];
-    result.total += localNormalized.length;
-  }
+  const localNormalized: NormalizedSong[] = localSongs.map((s: any) => ({
+    provider: 'local',
+    providerSongId: s.providerSongId,
+    title: s.title,
+    artist: s.artist,
+    album: s.album || '',
+    coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+    previewUrl: s.previewUrl || '',
+    duration: s.duration || 180,
+    externalUrl: s.externalUrl || '',
+    uploadedBy: s.addedBy ? { name: s.addedBy.name, avatar: s.addedBy.avatar } : undefined,
+    uploadedAt: s.createdAt,
+  }));
+
+  result.songs = [...localNormalized, ...result.songs];
+  result.total += localNormalized.length;
 
   return ApiResponse.success(res, 'Music search results retrieved successfully', result);
+});
+
+/**
+ * Get All Custom Uploaded Songs from MongoDB
+ */
+export const getUploadedSongs = catchAsync(async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const limit = parseInt(req.query.limit as string, 10) || 50;
+  const skip = (page - 1) * limit;
+
+  const songs = await Song.find({ provider: 'local', isDeleted: { $ne: true } })
+    .populate('addedBy', 'name avatar role')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Song.countDocuments({ provider: 'local', isDeleted: { $ne: true } });
+
+  const normalized = songs.map((s: any) => ({
+    provider: 'local',
+    providerSongId: s.providerSongId,
+    title: s.title,
+    artist: s.artist,
+    album: s.album || '',
+    coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+    previewUrl: s.previewUrl || '',
+    duration: s.duration || 180,
+    externalUrl: s.externalUrl || '',
+    uploadedBy: s.addedBy ? { name: s.addedBy.name, avatar: s.addedBy.avatar, id: s.addedBy._id } : undefined,
+    uploadedAt: s.createdAt,
+  }));
+
+  return ApiResponse.success(res, 'Uploaded songs retrieved successfully', {
+    songs: normalized,
+    total,
+    page,
+    limit,
+  });
+});
+
+/**
+ * Soft Delete Uploaded Song (Only Uploader or SUPER_OWNER)
+ */
+export const deleteUploadedSong = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const { providerSongId } = req.params;
+
+  const song = await Song.findOne({ providerSongId, provider: 'local', isDeleted: { $ne: true } });
+  if (!song) {
+    throw new AppError('Song not found', HTTP_STATUS.NOT_FOUND);
+  }
+
+  if (user.role !== 'SUPER_OWNER' && song.addedBy?.toString() !== user._id.toString()) {
+    throw new AppError('Permission denied. You can only delete songs you uploaded.', HTTP_STATUS.FORBIDDEN);
+  }
+
+  song.isDeleted = true;
+  await song.save();
+
+  return ApiResponse.success(res, 'Song deleted successfully', { providerSongId });
 });
 
 /**

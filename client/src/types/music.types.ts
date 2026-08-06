@@ -12,6 +12,8 @@ export interface NormalizedSong {
   language?: string;
   genre?: string;
   addedBy?: string;
+  uploadedBy?: { name: string; avatar?: string; id?: string };
+  uploadedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
