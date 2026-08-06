@@ -49,7 +49,7 @@ async function ensureSongExists(songData: NormalizedSong | any, userId?: string)
       previewUrl: songData.previewUrl,
       duration: songData.duration || 30,
       externalUrl: songData.externalUrl || '',
-      language: songData.language || '',
+      language: songData.language || 'english',
       genre: songData.genre || '',
       addedBy: userId ? new mongoose.Types.ObjectId(userId) : null,
     });

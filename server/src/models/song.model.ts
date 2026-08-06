@@ -31,7 +31,7 @@ const songSchema = new Schema<ISong>(
     previewUrl: { type: String, required: true },
     duration: { type: Number, default: 30 },
     externalUrl: { type: String, default: '' },
-    language: { type: String, default: '' },
+    language: { type: String, default: 'english' },
     genre: { type: String, default: '' },
     addedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   },
@@ -42,6 +42,9 @@ const songSchema = new Schema<ISong>(
 );
 
 songSchema.index({ provider: 1, providerSongId: 1 }, { unique: true });
-songSchema.index({ title: 'text', artist: 'text', album: 'text' });
+songSchema.index(
+  { title: 'text', artist: 'text', album: 'text' },
+  { default_language: 'none', language_override: 'text_language' }
+);
 
 export const Song: Model<ISong> = mongoose.model<ISong>('Song', songSchema);
