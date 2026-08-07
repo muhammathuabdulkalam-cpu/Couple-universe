@@ -1,8 +1,14 @@
 import mongoose from 'mongoose';
 import { HTTP_STATUS } from '../constants';
+import { Album } from '../models/album.model';
+import { Media } from '../models/media.model';
 import { Relationship, IRelationship } from '../models/relationship.model';
+import { Song } from '../models/song.model';
+import { Story } from '../models/story.model';
+import { TimelineEvent } from '../models/timelineEvent.model';
 import { User } from '../models/user.model';
 import { AppError } from '../utils/AppError';
+import { AuditLogService } from './auditLog.service';
 
 export interface CreateRelationshipInput {
   name: string;
@@ -54,10 +60,19 @@ export class RelationshipService {
       createdBy: input.createdBy && mongoose.Types.ObjectId.isValid(input.createdBy) ? new mongoose.Types.ObjectId(input.createdBy) : undefined,
     });
 
+    if (input.createdBy && mongoose.Types.ObjectId.isValid(input.createdBy)) {
+      await AuditLogService.logAction({
+        action: 'RELATIONSHIP_CREATED',
+        adminUser: input.createdBy,
+        targetRelationship: newRel._id.toString(),
+        metadata: { name: newRel.name, type: newRel.type },
+      });
+    }
+
     return newRel;
   }
 
-  static async updateRelationship(id: string, input: UpdateRelationshipInput): Promise<IRelationship> {
+  static async updateRelationship(id: string, input: UpdateRelationshipInput, adminId?: string): Promise<IRelationship> {
     const rel = await Relationship.findOne({ _id: id, isDeleted: { $ne: true } });
     if (!rel) {
       throw new AppError('Relationship record not found.', HTTP_STATUS.NOT_FOUND);
@@ -71,6 +86,16 @@ export class RelationshipService {
     if (input.status !== undefined) rel.status = input.status;
 
     await rel.save();
+
+    if (adminId) {
+      await AuditLogService.logAction({
+        action: 'RELATIONSHIP_UPDATED',
+        adminUser: adminId,
+        targetRelationship: rel._id.toString(),
+        metadata: input,
+      });
+    }
+
     return rel;
   }
 
@@ -111,13 +136,41 @@ export class RelationshipService {
     return this.addMember(relationshipId, newUserId);
   }
 
-  static async archiveRelationship(id: string): Promise<IRelationship> {
+  static async archiveRelationship(id: string, adminId?: string): Promise<IRelationship> {
     const rel = await Relationship.findOne({ _id: id, isDeleted: { $ne: true } });
     if (!rel) {
       throw new AppError('Relationship record not found.', HTTP_STATUS.NOT_FOUND);
     }
-    rel.status = rel.status === 'ACTIVE' ? 'ARCHIVED' : 'ACTIVE';
+    rel.status = 'ARCHIVED';
     await rel.save();
+
+    if (adminId) {
+      await AuditLogService.logAction({
+        action: 'RELATIONSHIP_ARCHIVED',
+        adminUser: adminId,
+        targetRelationship: rel._id.toString(),
+      });
+    }
+
+    return rel;
+  }
+
+  static async restoreRelationship(id: string, adminId?: string): Promise<IRelationship> {
+    const rel = await Relationship.findOne({ _id: id, isDeleted: { $ne: true } });
+    if (!rel) {
+      throw new AppError('Relationship record not found.', HTTP_STATUS.NOT_FOUND);
+    }
+    rel.status = 'ACTIVE';
+    await rel.save();
+
+    if (adminId) {
+      await AuditLogService.logAction({
+        action: 'RELATIONSHIP_RESTORED',
+        adminUser: adminId,
+        targetRelationship: rel._id.toString(),
+      });
+    }
+
     return rel;
   }
 
@@ -133,6 +186,16 @@ export class RelationshipService {
     const relationships = await Relationship.find(queryFilter)
       .sort({ createdAt: -1 })
       .populate('members.user', 'name email avatar role');
+
+    // Aggregate DB Counts
+    const [totalMemories, totalAlbums, totalStories, totalSharedSongs, photosCount, videosCount] = await Promise.all([
+      TimelineEvent.countDocuments(),
+      Album.countDocuments(),
+      Story.countDocuments(),
+      Song.countDocuments(),
+      Media.countDocuments({ mimeType: /^image\//i, isDeleted: { $ne: true } }),
+      Media.countDocuments({ mimeType: /^video\//i, isDeleted: { $ne: true } }),
+    ]);
 
     return relationships.map((rel) => {
       const start = rel.startDate ? new Date(rel.startDate) : new Date();
@@ -156,10 +219,14 @@ export class RelationshipService {
           avatar: m.user?.avatar || '',
         })),
         stats: {
-          totalMemories: 0,
-          totalAlbums: 0,
-          totalStories: 0,
-          totalSharedSongs: 0,
+          members: rel.members.length,
+          totalMemories,
+          totalAlbums,
+          totalStories,
+          totalSharedSongs,
+          photos: photosCount,
+          videos: videosCount,
+          storageUsed: 'Unavailable',
         },
         createdDate: rel.createdAt.toISOString().split('T')[0],
       };

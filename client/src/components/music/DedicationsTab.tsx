@@ -29,7 +29,10 @@ export const DedicationsTab: React.FC<DedicationsTabProps> = ({
   const [message, setMessage] = useState('');
   const [reaction, setReaction] = useState('❤️');
 
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
   useEffect(() => {
     if (initialDedicatedSong) {

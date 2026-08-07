@@ -48,7 +48,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       if (chatRes?.data?.data) {
         set({ unreadChatCount: chatRes.data.data.count ?? 0 });
       }
-    } catch (_err) {}
+    } catch (_err) { }
   },
 
   initSocketListeners: (token?: string) => {
@@ -58,18 +58,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       socket = socketClient.connect(token);
     }
 
-    if (get().isInitialized && socket?.connected) return () => {};
+    if (get().isInitialized && socket?.connected) return () => { };
     set({ isInitialized: true });
 
     // Initial fetch
     get().fetchUnreadCounts();
 
-    // Continuous 4s background auto-sync poll
-    const pollInterval = setInterval(() => {
-      get().fetchUnreadCounts();
-    }, 4000);
-
-    if (!socket) return () => clearInterval(pollInterval);
+    if (!socket) return () => {};
 
     // Listen for new notifications
     const handleNewNotif = () => {
@@ -104,7 +99,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         // Dispatch instant event for top notification banner
         try {
           window.dispatchEvent(new CustomEvent('in_app_chat_message', { detail: message }));
-        } catch (e) {}
+        } catch (e) { }
       }
     };
 
@@ -119,7 +114,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     socket.on('message_read', handleMessageRead);
 
     return () => {
-      clearInterval(pollInterval);
       socket.off('notification_created', handleNewNotif);
       socket.off('unread_count_updated', handleUnreadUpdate);
       socket.off('receive_message', handleReceiveMessage);

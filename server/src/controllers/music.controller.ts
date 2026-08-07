@@ -161,11 +161,19 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
       audioFile.buffer,
       'afrin-universe/music/audio',
       audioFile.originalname,
-      'raw'
+      'video'
     );
-    audioUploadUrl = audioUpload.secureUrl;
+    let rawUrl = audioUpload.secureUrl;
+    // Format Cloudinary audio URL to deliver universal MP3 transcoding
+    if (rawUrl && rawUrl.includes('cloudinary.com')) {
+      rawUrl = rawUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
+      if (!rawUrl.includes('/f_mp3') && rawUrl.includes('/upload/')) {
+        rawUrl = rawUrl.replace('/upload/', '/upload/f_mp3,ac_mp3/');
+      }
+    }
+    audioUploadUrl = rawUrl;
     cloudinaryDuration = Math.round(audioUpload.duration || 0);
-    logger.info('✓ Cloudinary Upload success:', audioUploadUrl);
+    logger.info('✓ Cloudinary Upload success (MP3 transcoded):', audioUploadUrl);
   } catch (err: any) {
     logger.error('❌ Cloudinary upload warning (using base64 audio fallback):', err.message);
     const base64Audio = audioFile.buffer.toString('base64');
@@ -183,7 +191,7 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
         coverFile.originalname
       );
       coverUrl = coverUpload.optimizedUrl || coverUpload.secureUrl;
-    } catch (_cErr) {}
+    } catch (_cErr) { }
   } else if (embeddedCoverUrl) {
     coverUrl = embeddedCoverUrl;
   }
@@ -191,7 +199,7 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
   // 4. Resolve Final Metadata (Sanitized Form Input > ID3 > Filename Fallback)
   const filenameWithoutExt = audioFile.originalname.replace(/\.[^/.]+$/, '');
   const cleanedFilename = cleanMetadataString(filenameWithoutExt);
-  
+
   let finalTitle = cleanMetadataString(reqTitle) || cleanMetadataString(id3Title) || cleanedFilename;
   let finalArtist = cleanMetadataString(reqArtist) || cleanMetadataString(id3Artist);
   let finalAlbum = cleanMetadataString(reqAlbum) || cleanMetadataString(id3Album) || '';
@@ -208,6 +216,8 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
   }
 
   const songId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const isBase64 = audioUploadUrl.startsWith('data:');
+  const playUrl = `/api/v1/music/songs/${songId}/play`;
 
   const song = await Song.create({
     provider: 'local',
@@ -216,9 +226,10 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
     artist: finalArtist,
     album: finalAlbum,
     coverUrl,
-    previewUrl: audioUploadUrl,
+    previewUrl: isBase64 ? playUrl : audioUploadUrl,
     duration: finalDuration,
-    externalUrl: audioUploadUrl.startsWith('http') ? audioUploadUrl : '',
+    externalUrl: isBase64 ? playUrl : (audioUploadUrl.startsWith('http') ? audioUploadUrl : ''),
+    audioData: isBase64 ? audioUploadUrl : '',
     addedBy: user._id,
   });
 
@@ -255,14 +266,14 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
   // Merge Local uploaded songs from MongoDB (all uploaded songs if query is empty or matching)
   const localQuery = query.trim()
     ? {
-        provider: 'local',
-        isDeleted: { $ne: true },
-        $or: [
-          { title: new RegExp(query.trim(), 'i') },
-          { artist: new RegExp(query.trim(), 'i') },
-          { album: new RegExp(query.trim(), 'i') },
-        ],
-      }
+      provider: 'local',
+      isDeleted: { $ne: true },
+      $or: [
+        { title: new RegExp(query.trim(), 'i') },
+        { artist: new RegExp(query.trim(), 'i') },
+        { album: new RegExp(query.trim(), 'i') },
+      ],
+    }
     : { provider: 'local', isDeleted: { $ne: true } };
 
   const localSongs = await Song.find(localQuery).populate('addedBy', 'name avatar').sort({ _id: -1 }).limit(20);
@@ -292,16 +303,18 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
  */
 export const getUploadedSongs = catchAsync(async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 50;
+  const limit = parseInt(req.query.limit as string, 10) || 100;
   const skip = (page - 1) * limit;
 
-  const songs = await Song.find({ provider: 'local', isDeleted: { $ne: true } })
-    .populate('addedBy', 'name avatar role')
-    .sort({ _id: -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Song.countDocuments({ provider: 'local', isDeleted: { $ne: true } });
+  const [songs, total] = await Promise.all([
+    Song.find({ provider: 'local', isDeleted: { $ne: true } })
+      .populate('addedBy', 'name avatar role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    Song.countDocuments({ provider: 'local', isDeleted: { $ne: true } }),
+  ]);
 
   const normalized = songs.map((s: any) => ({
     provider: 'local',
@@ -845,4 +858,104 @@ export const getLyrics = catchAsync(async (req: Request, res: Response) => {
     lyrics: null,
     message: 'Lyrics are currently unavailable.',
   });
+});
+
+function detectAudioMimeType(rawMime: string, buffer?: Buffer): string {
+  if (buffer && buffer.length > 4) {
+    // ID3 (MP3)
+    if (buffer[0] === 0x49 && buffer[1] === 0x44 && buffer[2] === 0x33) return 'audio/mpeg';
+    // MP3 Sync Word
+    if (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) return 'audio/mpeg';
+    // RIFF (WAV)
+    if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) return 'audio/wav';
+    // fLaC (FLAC)
+    if (buffer[0] === 0x66 && buffer[1] === 0x4c && buffer[2] === 0x61 && buffer[3] === 0x43) return 'audio/flac';
+    // OggS (OGG)
+    if (buffer[0] === 0x4f && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) return 'audio/ogg';
+    // ftyp (M4A / MP4)
+    if (buffer.length > 12 && buffer.subarray(4, 8).toString() === 'ftyp') return 'audio/mp4';
+  }
+
+  const clean = (rawMime || '').toLowerCase();
+  if (clean.includes('mp3') || clean.includes('mpeg')) return 'audio/mpeg';
+  if (clean.includes('wav')) return 'audio/wav';
+  if (clean.includes('m4a') || clean.includes('mp4') || clean.includes('aac')) return 'audio/mp4';
+  if (clean.includes('flac')) return 'audio/flac';
+  if (clean.includes('ogg') || clean.includes('opus')) return 'audio/ogg';
+
+  return 'audio/mpeg';
+}
+
+/**
+ * Play/stream custom uploaded song binary audio with HTTP 206 Byte Range support
+ */
+export const playSongAudio = catchAsync(async (req: Request, res: Response) => {
+  const { providerSongId } = req.params;
+
+  const song = await Song.findOne({ providerSongId }).select('+audioData');
+  if (!song) {
+    throw new AppError('Song not found', HTTP_STATUS.NOT_FOUND);
+  }
+
+  const rawAudio = song.audioData || (song.previewUrl && song.previewUrl.startsWith('data:') ? song.previewUrl : '');
+
+  // Handle Base64 Data URI streaming
+  if (rawAudio && rawAudio.startsWith('data:')) {
+    const matches = rawAudio.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      throw new AppError('Invalid audio data format', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const rawMime = matches[1] || 'audio/mpeg';
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    const contentType = detectAudioMimeType(rawMime, buffer);
+    const totalSize = buffer.length;
+
+    const range = req.headers.range;
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+
+      if (start >= totalSize || end >= totalSize) {
+        res.status(416).setHeader('Content-Range', `bytes */${totalSize}`);
+        return res.end();
+      }
+
+      const chunkSize = end - start + 1;
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': contentType,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      return res.end(buffer.subarray(start, end + 1));
+    } else {
+      res.writeHead(200, {
+        'Content-Length': totalSize,
+        'Content-Type': contentType,
+        'Accept-Ranges': 'bytes',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      return res.end(buffer);
+    }
+  }
+
+  // If it's a normal Cloudinary HTTP/S URL, redirect the browser to it (converting to MP3 transcode format)
+  if (song.previewUrl && song.previewUrl.startsWith('http')) {
+    let redirectUrl = song.previewUrl;
+    if (redirectUrl.includes('cloudinary.com')) {
+      redirectUrl = redirectUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
+      if (!redirectUrl.includes('/f_mp3') && redirectUrl.includes('/upload/')) {
+        redirectUrl = redirectUrl.replace('/upload/', '/upload/f_mp3,ac_mp3/');
+      }
+    }
+    return res.redirect(redirectUrl);
+  }
+
+  throw new AppError('Audio preview unavailable', HTTP_STATUS.BAD_REQUEST);
 });

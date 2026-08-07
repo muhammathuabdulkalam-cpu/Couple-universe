@@ -3,8 +3,10 @@ import { FileText, Music, Sparkles, X } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 
-export const LyricsModal: React.FC = () => {
-  const { currentTrack, isLyricsModalOpen, toggleLyricsModal } = useMusicPlayerStore();
+export const LyricsModal: React.FC = React.memo(() => {
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isLyricsModalOpen = useMusicPlayerStore((s) => s.isLyricsModalOpen);
+  const toggleLyricsModal = useMusicPlayerStore((s) => s.toggleLyricsModal);
   const [lyrics, setLyrics] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,4 +92,4 @@ export const LyricsModal: React.FC = () => {
       </div>
     </div>
   );
-};
+});

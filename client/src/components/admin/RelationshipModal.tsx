@@ -27,7 +27,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
 
   const [form, setForm] = useState({
     name: '',
-    type: 'ROMANTIC_COUPLE',
+    type: 'Couple',
     coverImage: '',
     startDate: '',
     description: '',
@@ -39,14 +39,14 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
       if (editingRelationship) {
         setForm({
           name: editingRelationship.name || '',
-          type: editingRelationship.type || 'ROMANTIC_COUPLE',
+          type: editingRelationship.type || 'Couple',
           coverImage: editingRelationship.coverImage || '',
           startDate: editingRelationship.startDate ? editingRelationship.startDate.split('T')[0] : '',
           description: editingRelationship.description || '',
           status: editingRelationship.status || 'ACTIVE',
         });
       } else {
-        setForm({ name: '', type: 'ROMANTIC_COUPLE', coverImage: '', startDate: '', description: '', status: 'ACTIVE' });
+        setForm({ name: '', type: 'Couple', coverImage: '', startDate: '', description: '', status: 'ACTIVE' });
       }
       setError('');
     }
@@ -104,7 +104,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
           </div>
           <div>
             <h2 className="admin-modal-title">{isEditing ? 'Edit Relationship' : 'Create Relationship'}</h2>
-            <p className="admin-modal-subtitle">{isEditing ? `Editing "${editingRelationship?.name}"` : 'Create a new couple/relationship'}</p>
+            <p className="admin-modal-subtitle">{isEditing ? `Editing "${editingRelationship?.name}"` : 'Create a new relationship'}</p>
           </div>
           <button className="admin-modal-close" onClick={onClose}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16 }}>
@@ -126,7 +126,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
               <label className="admin-form-label">Type *</label>
               <select className="admin-form-input" name="type" value={form.type} onChange={handleChange} required>
                 {Object.values(RELATIONSHIP_TYPES).map((t: string) => (
-                  <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </div>

@@ -4,11 +4,13 @@ import { env } from '../config/env.config';
 import { logger } from '../config/logger.config';
 import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES, USER_STATUS } from '../constants';
 import { Album } from '../models/album.model';
+import { Invite } from '../models/invite.model';
+import { Relationship } from '../models/relationship.model';
 import { Session } from '../models/session.model';
 import { Song } from '../models/song.model';
 import { Story } from '../models/story.model';
 import { TimelineEvent } from '../models/timelineEvent.model';
-import { IUser, User } from '../models/user.model';
+import { User } from '../models/user.model';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
@@ -122,7 +124,7 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
 
 /**
  * 2. Unified Admin Dashboard Payload
- * Single summary endpoint combining Stats, Primary Couple, Recent Users, Relationships & System Health
+ * Displays 6 Summary Cards: Total Users, Active Users, Suspended Users, Deleted Users, Relationships, Active Invites
  */
 export const getAdminDashboard = catchAsync(async (_req: Request, res: Response) => {
   // Fetch Primary Couple (SUPER_OWNER & CO_OWNER)
@@ -136,28 +138,36 @@ export const getAdminDashboard = catchAsync(async (_req: Request, res: Response)
     coOwner ? getUserOnlineStatus(coOwner._id) : Promise.resolve({ isOnline: false, lastSeen: undefined }),
   ]);
 
-  // Aggregate Counts from MongoDB
+  // Aggregate 6 Summary Cards from MongoDB
   const [
     totalUsers,
     activeUsers,
+    suspendedUsers,
+    deletedUsers,
+    totalRelationships,
+    activeInvites,
     totalMemories,
     totalAlbums,
     totalStories,
     totalSharedSongs,
     recentUsers,
   ] = await Promise.all([
-    User.countDocuments(),
-    User.countDocuments({ status: USER_STATUS.ACTIVE }),
+    User.countDocuments({ isDeleted: { $ne: true } }),
+    User.countDocuments({ status: USER_STATUS.ACTIVE, isDeleted: { $ne: true } }),
+    User.countDocuments({ status: USER_STATUS.SUSPENDED, isDeleted: { $ne: true } }),
+    User.countDocuments({ isDeleted: true }),
+    Relationship.countDocuments({ isDeleted: { $ne: true } }),
+    Invite.countDocuments({ status: 'UNUSED', isRevoked: false, expiresAt: { $gt: new Date() } }),
     TimelineEvent.countDocuments(),
     Album.countDocuments(),
     Story.countDocuments(),
-    Song.countDocuments({ provider: 'local' }),
-    User.find().sort({ createdAt: -1 }).limit(5).select('-password'),
+    Song.countDocuments(),
+    User.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).limit(5).select('-password'),
   ]);
 
   const daysTogether = calculateDaysTogether();
 
-  // Construct Primary Couple Object
+  // Primary Couple Overview
   const primaryCouple = {
     coupleName: 'Afzal & Amrin ❤️',
     relationshipType: 'Couple / Platform Owners',
@@ -193,7 +203,7 @@ export const getAdminDashboard = catchAsync(async (_req: Request, res: Response)
     },
   };
 
-  // Measure Real Node Process Health
+  // Node Health Data
   const dbState = mongoose.connection.readyState;
   const dbStatusStr = dbState === 1 ? 'Connected' : dbState === 2 ? 'Connecting' : 'Disconnected';
   const memUsage = process.memoryUsage();
@@ -213,11 +223,10 @@ export const getAdminDashboard = catchAsync(async (_req: Request, res: Response)
   const platformStats = {
     totalUsers,
     activeUsers,
-    totalRelationships: 1,
-    totalMemories,
-    totalAlbums,
-    totalStories,
-    totalSharedSongs,
+    suspendedUsers,
+    deletedUsers,
+    totalRelationships,
+    activeInvites,
   };
 
   return ApiResponse.success(res, 'Admin dashboard summary retrieved', {
@@ -229,202 +238,7 @@ export const getAdminDashboard = catchAsync(async (_req: Request, res: Response)
 });
 
 /**
- * 3. Paginated Users List
- * Supports search (Name, Email, Role) and filters (Role, Status)
- */
-export const getAdminUsers = catchAsync(async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 10;
-  const search = (req.query.search as string || '').trim();
-  const roleFilter = (req.query.role as string || '').trim();
-  const statusFilter = (req.query.status as string || '').trim();
-
-  const queryFilter: any = {};
-
-  if (search) {
-    queryFilter.$or = [
-      { name: new RegExp(search, 'i') },
-      { email: new RegExp(search, 'i') },
-      { role: new RegExp(search, 'i') },
-    ];
-  }
-
-  if (roleFilter) {
-    queryFilter.role = roleFilter;
-  }
-
-  if (statusFilter) {
-    queryFilter.status = statusFilter;
-  }
-
-  const skip = (page - 1) * limit;
-  const [users, total] = await Promise.all([
-    User.find(queryFilter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .select('-password'),
-    User.countDocuments(queryFilter),
-  ]);
-
-  // Enrich users with online status and partner info
-  const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER });
-  const coOwner = await User.findOne({ role: ROLES.CO_OWNER });
-
-  const enrichedUsers = await Promise.all(
-    users.map(async (usr) => {
-      const onlineStatus = await getUserOnlineStatus(usr._id);
-      let partnerName = 'N/A';
-      let relationshipName = 'Platform Admin / Member';
-
-      if (usr.role === ROLES.SUPER_OWNER) {
-        partnerName = coOwner?.name || 'Amrin';
-        relationshipName = 'Afzal & Amrin ❤️';
-      } else if (usr.role === ROLES.CO_OWNER) {
-        partnerName = superOwner?.name || 'Afzal';
-        relationshipName = 'Afzal & Amrin ❤️';
-      }
-
-      return {
-        id: usr._id,
-        name: usr.name,
-        email: usr.email,
-        role: usr.role,
-        status: usr.status,
-        avatar: usr.avatar || '',
-        bio: usr.bio || '',
-        birthday: usr.birthday || null,
-        relationshipName,
-        relationshipType: usr.role === ROLES.SUPER_OWNER || usr.role === ROLES.CO_OWNER ? 'Couple' : 'Member',
-        partnerName,
-        isOnline: onlineStatus.isOnline,
-        lastSeen: onlineStatus.lastSeen || usr.lastLoginAt,
-        lastLoginAt: usr.lastLoginAt || usr.createdAt,
-        createdAt: usr.createdAt,
-        storageNotice: 'Storage analytics will be available in a future phase.',
-      };
-    })
-  );
-
-  return ApiResponse.success(res, 'Admin users retrieved', {
-    users: enrichedUsers,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
-});
-
-/**
- * 4. User Details Side Drawer Payload
- */
-export const getAdminUserDetails = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const user = await User.findById(id).select('-password');
-
-  if (!user) {
-    throw new AppError('User record not found.', HTTP_STATUS.NOT_FOUND);
-  }
-
-  const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER });
-  const coOwner = await User.findOne({ role: ROLES.CO_OWNER });
-  const onlineStatus = await getUserOnlineStatus(user._id);
-
-  let partnerName = 'None';
-  let relationshipName = 'Independent Account';
-  let relationshipType = 'Standard User';
-  let startDate = 'N/A';
-
-  if (user.role === ROLES.SUPER_OWNER) {
-    partnerName = coOwner?.name || 'Amrin';
-    relationshipName = 'Afzal & Amrin ❤️';
-    relationshipType = 'Couple / Platform Owners';
-    startDate = PLATFORM_CONSTANTS.RELATIONSHIP_START_DATE;
-  } else if (user.role === ROLES.CO_OWNER) {
-    partnerName = superOwner?.name || 'Afzal';
-    relationshipName = 'Afzal & Amrin ❤️';
-    relationshipType = 'Couple / Platform Owners';
-    startDate = PLATFORM_CONSTANTS.RELATIONSHIP_START_DATE;
-  }
-
-  return ApiResponse.success(res, 'User details retrieved', {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    phone: 'Not Specified',
-    role: user.role,
-    status: user.status,
-    avatar: user.avatar || '',
-    bio: user.bio || '',
-    birthday: user.birthday || null,
-    relationshipName,
-    relationshipType,
-    partnerName,
-    startDate,
-    storageUsed: 'Storage analytics will be available in a future phase.',
-    isOnline: onlineStatus.isOnline,
-    lastActiveAt: onlineStatus.lastSeen || user.lastLoginAt || user.createdAt,
-    lastLoginAt: user.lastLoginAt || user.createdAt,
-    accountStatus: user.status,
-    loginMethod: 'Email & Password',
-    createdBy: 'System / Self Registration',
-    enabledFeatures: [
-      { name: 'Private Vault', enabled: true },
-      { name: 'Timeline & Memories', enabled: true },
-      { name: 'Media Gallery', enabled: true },
-      { name: 'Shared Music Player', enabled: true },
-      { name: 'Listen Together Engine', enabled: true },
-      { name: 'Interactive Calendar', enabled: true },
-      { name: 'Couple Chat Engine', enabled: true },
-      { name: 'Stealth Calculator Mode', enabled: user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER },
-    ],
-  });
-});
-
-/**
- * 5. Existing Relationships Payload
- */
-export const getAdminRelationships = catchAsync(async (_req: Request, res: Response) => {
-  const [superOwner, coOwner] = await Promise.all([
-    User.findOne({ role: ROLES.SUPER_OWNER }).select('-password'),
-    User.findOne({ role: ROLES.CO_OWNER }).select('-password'),
-  ]);
-
-  const [totalMemories, totalAlbums, totalStories, totalSharedSongs] = await Promise.all([
-    TimelineEvent.countDocuments(),
-    Album.countDocuments(),
-    Story.countDocuments(),
-    Song.countDocuments({ provider: 'local' }),
-  ]);
-
-  const primaryRelationship = {
-    id: 'rel_primary_01',
-    name: 'Afzal & Amrin ❤️',
-    type: 'Couple / Platform Owners',
-    coverImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800',
-    startDate: PLATFORM_CONSTANTS.RELATIONSHIP_START_DATE,
-    daysTogether: calculateDaysTogether(),
-    status: 'ACTIVE',
-    members: [
-      { id: superOwner?._id, name: superOwner?.name || 'Afzal', role: superOwner?.role || 'SUPER_OWNER', avatar: superOwner?.avatar },
-      { id: coOwner?._id, name: coOwner?.name || 'Amrin', role: coOwner?.role || 'CO_OWNER', avatar: coOwner?.avatar },
-    ],
-    stats: {
-      totalMemories,
-      totalAlbums,
-      totalStories,
-      totalSharedSongs,
-    },
-    createdDate: PLATFORM_CONSTANTS.RELATIONSHIP_START_DATE,
-  };
-
-  return ApiResponse.success(res, 'Relationships retrieved', [primaryRelationship]);
-});
-
-/**
- * 6. Admin Logout
+ * 3. Admin Logout
  */
 export const adminLogout = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.cookies[PLATFORM_CONSTANTS.COOKIE_REFRESH_TOKEN_KEY] || req.body.refreshToken;

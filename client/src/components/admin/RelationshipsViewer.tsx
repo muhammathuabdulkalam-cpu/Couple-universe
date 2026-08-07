@@ -1,14 +1,31 @@
 import React from 'react';
-import { Heart, Calendar, Clock, Layers, Image as ImageIcon, BookOpen, Music, Users, Plus, Pencil, Archive } from 'lucide-react';
+import {
+  Heart,
+  Calendar,
+  Clock,
+  Layers,
+  Image as ImageIcon,
+  BookOpen,
+  Music,
+  Users,
+  Plus,
+  Pencil,
+  Archive,
+  RotateCcw,
+  Video,
+  HardDrive,
+  Key,
+} from 'lucide-react';
 import { AdminRelationshipItem } from '../../types/admin.types';
 
 interface RelationshipsViewerProps {
   relationships: AdminRelationshipItem[];
-  // Phase 2 action props
   onCreateRelationship?: () => void;
   onEditRelationship?: (rel: AdminRelationshipItem) => void;
   onArchiveRelationship?: (id: string) => void;
+  onRestoreRelationship?: (id: string) => void;
   onManageMembers?: (rel: AdminRelationshipItem) => void;
+  onManageInvites?: (rel: AdminRelationshipItem) => void;
 }
 
 export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
@@ -16,7 +33,9 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
   onCreateRelationship,
   onEditRelationship,
   onArchiveRelationship,
+  onRestoreRelationship,
   onManageMembers,
+  onManageInvites,
 }) => {
   return (
     <div className="space-y-4">
@@ -46,7 +65,7 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
               key={rel.id}
               className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-5 shadow-2xl hover:border-rose-500/30 transition group"
             >
-              {/* Card Top Banner & Info */}
+              {/* Top Card Banner & Info */}
               <div className="flex items-start gap-4">
                 <img
                   src={rel.coverImage}
@@ -56,11 +75,13 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <h4 className="font-black text-lg text-white truncate">{rel.name}</h4>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                      rel.status === 'ACTIVE'
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                        : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
-                    }`}>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                        rel.status === 'ACTIVE'
+                          ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                          : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                      }`}
+                    >
                       {rel.status}
                     </span>
                   </div>
@@ -76,6 +97,13 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                 </div>
               </div>
 
+              {/* Description */}
+              {rel.description && (
+                <p className="text-xs text-slate-300 line-clamp-2 bg-slate-800/50 p-2.5 rounded-xl border border-white/5">
+                  {rel.description}
+                </p>
+              )}
+
               {/* Members Section */}
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                 <div className="flex items-center justify-between">
@@ -87,13 +115,16 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                       onClick={() => onManageMembers(rel)}
                       className="text-[10px] text-purple-400 hover:text-purple-300 font-bold transition"
                     >
-                      Manage →
+                      Manage Members →
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                   {rel.members.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-white/5">
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-white/5"
+                    >
                       <img
                         src={m.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
                         alt={m.name}
@@ -108,40 +139,68 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                 </div>
               </div>
 
-              {/* Dynamic Activity Stats */}
-              <div className="grid grid-cols-4 gap-2 text-center pt-2">
-                <div className="p-2.5 rounded-xl bg-slate-800/80 border border-white/5">
-                  <p className="text-sm font-black text-white">{rel.stats.totalMemories}</p>
+              {/* All 8 Relationship Statistics */}
+              <div className="grid grid-cols-4 gap-2 text-center pt-1">
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.members ?? rel.members.length}</p>
                   <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
-                    <Layers className="w-3 h-3 text-rose-400" /> Memories
+                    <Users className="w-2.5 h-2.5 text-purple-400" /> Members
                   </p>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-800/80 border border-white/5">
-                  <p className="text-sm font-black text-white">{rel.stats.totalAlbums}</p>
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.totalMemories}</p>
                   <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
-                    <ImageIcon className="w-3 h-3 text-purple-400" /> Albums
+                    <Layers className="w-2.5 h-2.5 text-rose-400" /> Memories
                   </p>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-800/80 border border-white/5">
-                  <p className="text-sm font-black text-white">{rel.stats.totalStories}</p>
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.totalAlbums}</p>
                   <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
-                    <BookOpen className="w-3 h-3 text-amber-400" /> Stories
+                    <ImageIcon className="w-2.5 h-2.5 text-purple-400" /> Albums
                   </p>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-slate-800/80 border border-white/5">
-                  <p className="text-sm font-black text-white">{rel.stats.totalSharedSongs}</p>
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.totalStories}</p>
                   <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
-                    <Music className="w-3 h-3 text-emerald-400" /> Songs
+                    <BookOpen className="w-2.5 h-2.5 text-amber-400" /> Stories
+                  </p>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.totalSharedSongs}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
+                    <Music className="w-2.5 h-2.5 text-emerald-400" /> Songs
+                  </p>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.photos ?? 0}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
+                    <ImageIcon className="w-2.5 h-2.5 text-blue-400" /> Photos
+                  </p>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-xs font-black text-white">{rel.stats.videos ?? 0}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
+                    <Video className="w-2.5 h-2.5 text-rose-400" /> Videos
+                  </p>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-800/80 border border-white/5">
+                  <p className="text-[10px] font-extrabold text-amber-400">{rel.stats.storageUsed || 'Unavailable'}</p>
+                  <p className="text-[9px] text-slate-400 font-semibold flex items-center justify-center gap-1 mt-0.5">
+                    <HardDrive className="w-2.5 h-2.5 text-amber-400" /> Storage
                   </p>
                 </div>
               </div>
 
-              {/* Phase 2 Action Buttons */}
-              {(onEditRelationship || onArchiveRelationship) && (
-                <div className="flex items-center gap-2 pt-2 border-t border-white/5 opacity-0 group-hover:opacity-100 transition">
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-2 border-t border-white/5 opacity-0 group-hover:opacity-100 transition">
+                <div className="flex items-center gap-3">
                   {onEditRelationship && (
                     <button
                       onClick={() => onEditRelationship(rel)}
@@ -150,17 +209,36 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                       <Pencil className="w-3.5 h-3.5" /> Edit
                     </button>
                   )}
-                  {onArchiveRelationship && (
+                  {onManageInvites && (
                     <button
-                      onClick={() => onArchiveRelationship(rel.id)}
-                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-semibold transition ml-auto"
+                      onClick={() => onManageInvites(rel)}
+                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-semibold transition"
                     >
-                      <Archive className="w-3.5 h-3.5" />
-                      {rel.status === 'ARCHIVED' ? 'Unarchive' : 'Archive'}
+                      <Key className="w-3.5 h-3.5" /> Invites
                     </button>
                   )}
                 </div>
-              )}
+
+                {rel.status === 'ARCHIVED' ? (
+                  onRestoreRelationship && (
+                    <button
+                      onClick={() => onRestoreRelationship(rel.id)}
+                      className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Restore
+                    </button>
+                  )
+                ) : (
+                  onArchiveRelationship && (
+                    <button
+                      onClick={() => onArchiveRelationship(rel.id)}
+                      className="flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 font-semibold transition"
+                    >
+                      <Archive className="w-3.5 h-3.5" /> Archive
+                    </button>
+                  )
+                )}
+              </div>
             </div>
           ))}
         </div>

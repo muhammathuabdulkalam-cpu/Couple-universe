@@ -22,45 +22,53 @@ import { NormalizedSong } from '../../types/music.types';
 import { LyricsModal } from './LyricsModal';
 import { MobileFullPlayerModal } from './MobileFullPlayerModal';
 
-export const MusicPlayerFloating: React.FC = () => {
-  const {
-    currentTrack,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    isMuted,
-    isShuffle,
-    repeatMode,
-    queue,
-    isQueueDrawerOpen,
-    togglePlay,
-    nextTrack,
-    prevTrack,
-    seekTo,
-    setVolume,
-    toggleMute,
-    toggleShuffle,
-    cycleRepeatMode,
-    toggleQueueDrawer,
-    toggleLyricsModal,
-    toggleMobileFullPlayer,
-    playTrack,
-  } = useMusicPlayerStore();
+let favsCachePromise: Promise<Set<string>> | null = null;
+let favsCacheSet: Set<string> | null = null;
+
+export const MusicPlayerFloating: React.FC = React.memo(() => {
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const currentTime = useMusicPlayerStore((s) => s.currentTime);
+  const duration = useMusicPlayerStore((s) => s.duration);
+  const volume = useMusicPlayerStore((s) => s.volume);
+  const isMuted = useMusicPlayerStore((s) => s.isMuted);
+  const isShuffle = useMusicPlayerStore((s) => s.isShuffle);
+  const repeatMode = useMusicPlayerStore((s) => s.repeatMode);
+  const queue = useMusicPlayerStore((s) => s.queue);
+  const isQueueDrawerOpen = useMusicPlayerStore((s) => s.isQueueDrawerOpen);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
+  const nextTrack = useMusicPlayerStore((s) => s.nextTrack);
+  const prevTrack = useMusicPlayerStore((s) => s.prevTrack);
+  const seekTo = useMusicPlayerStore((s) => s.seekTo);
+  const setVolume = useMusicPlayerStore((s) => s.setVolume);
+  const toggleMute = useMusicPlayerStore((s) => s.toggleMute);
+  const toggleShuffle = useMusicPlayerStore((s) => s.toggleShuffle);
+  const cycleRepeatMode = useMusicPlayerStore((s) => s.cycleRepeatMode);
+  const toggleQueueDrawer = useMusicPlayerStore((s) => s.toggleQueueDrawer);
+  const toggleLyricsModal = useMusicPlayerStore((s) => s.toggleLyricsModal);
+  const toggleMobileFullPlayer = useMusicPlayerStore((s) => s.toggleMobileFullPlayer);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
 
   const { addToast } = useUIStore();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    if (currentTrack) {
-      musicApi
-        .getFavorites()
-        .then((favs) => {
-          setIsFavorite(favs.some((f) => f.providerSongId === currentTrack.providerSongId));
-        })
-        .catch(() => {});
+    if (!currentTrack) return;
+    
+    // Deduplicate getFavorites API calls using in-memory cached promise
+    if (!favsCachePromise) {
+      favsCachePromise = musicApi.getFavorites().then((favs) => {
+        favsCacheSet = new Set(favs.map((f) => f.providerSongId));
+        return favsCacheSet;
+      });
     }
+
+    favsCachePromise
+      .then((set) => {
+        setIsFavorite(set.has(currentTrack.providerSongId));
+      })
+      .catch(() => {});
   }, [currentTrack]);
 
   if (!currentTrack) return null;
@@ -75,6 +83,13 @@ export const MusicPlayerFloating: React.FC = () => {
     try {
       const res = await musicApi.toggleFavorite(currentTrack);
       setIsFavorite(res.isFavorite);
+      if (favsCacheSet) {
+        if (res.isFavorite) {
+          favsCacheSet.add(currentTrack.providerSongId);
+        } else {
+          favsCacheSet.delete(currentTrack.providerSongId);
+        }
+      }
       addToast(
         res.isFavorite ? 'Added to Favorites ❤️' : 'Removed from Favorites',
         `"${currentTrack.title}"`,
@@ -331,4 +346,4 @@ export const MusicPlayerFloating: React.FC = () => {
       </div>
     </>
   );
-};
+});

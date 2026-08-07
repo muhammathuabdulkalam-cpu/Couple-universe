@@ -20,25 +20,23 @@ import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { useUIStore } from '../../store/uiStore';
 import { extractDominantColor } from '../../utils/colorExtractor';
 
-export const MobileFullPlayerModal: React.FC = () => {
-  const {
-    currentTrack,
-    isPlaying,
-    currentTime,
-    duration,
-    isShuffle,
-    repeatMode,
-    isMobileFullPlayerOpen,
-    togglePlay,
-    nextTrack,
-    prevTrack,
-    seekTo,
-    toggleShuffle,
-    cycleRepeatMode,
-    toggleQueueDrawer,
-    toggleLyricsModal,
-    toggleMobileFullPlayer,
-  } = useMusicPlayerStore();
+export const MobileFullPlayerModal: React.FC = React.memo(() => {
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const currentTime = useMusicPlayerStore((s) => s.currentTime);
+  const duration = useMusicPlayerStore((s) => s.duration);
+  const isShuffle = useMusicPlayerStore((s) => s.isShuffle);
+  const repeatMode = useMusicPlayerStore((s) => s.repeatMode);
+  const isMobileFullPlayerOpen = useMusicPlayerStore((s) => s.isMobileFullPlayerOpen);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
+  const nextTrack = useMusicPlayerStore((s) => s.nextTrack);
+  const prevTrack = useMusicPlayerStore((s) => s.prevTrack);
+  const seekTo = useMusicPlayerStore((s) => s.seekTo);
+  const toggleShuffle = useMusicPlayerStore((s) => s.toggleShuffle);
+  const cycleRepeatMode = useMusicPlayerStore((s) => s.cycleRepeatMode);
+  const toggleQueueDrawer = useMusicPlayerStore((s) => s.toggleQueueDrawer);
+  const toggleLyricsModal = useMusicPlayerStore((s) => s.toggleLyricsModal);
+  const toggleMobileFullPlayer = useMusicPlayerStore((s) => s.toggleMobileFullPlayer);
 
   const {
     isSessionActive,
@@ -241,4 +239,4 @@ export const MobileFullPlayerModal: React.FC = () => {
       )}
     </AnimatePresence>
   );
-};
+});

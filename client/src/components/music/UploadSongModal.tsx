@@ -30,7 +30,7 @@ interface UploadSongModalProps {
   onUploaded?: (song: NormalizedSong) => void;
 }
 
-export const UploadSongModal: React.FC<UploadSongModalProps> = ({
+export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
   isOpen,
   onClose,
   onUploaded,
@@ -369,4 +369,4 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = ({
       </div>
     </div>
   );
-};
+});

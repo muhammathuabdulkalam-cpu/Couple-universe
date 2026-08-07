@@ -18,13 +18,17 @@ import { MusicWaveform } from './MusicWaveform';
 
 interface HomeSectionsTabProps {
   onOpenDedicateModal?: (song: NormalizedSong) => void;
-  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'uploaded' | 'dedications' | 'favorites') => void;
+  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'dedications' | 'favorites') => void;
 }
 
 export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal, onSelectTab }) => {
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const { addToast } = useUIStore();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [recentlyPlayed, setRecentlyPlayed] = useState<NormalizedSong[]>([]);
   const [sectionData, setSectionData] = useState<Record<string, NormalizedSong[]>>({});
   const [heroPalette, setHeroPalette] = useState<ColorPalette>({
@@ -34,26 +38,27 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   });
 
   const [favoritesMap, setFavoritesMap] = useState<Record<string, boolean>>({});
-  const [uploadedSongs, setUploadedSongs] = useState<NormalizedSong[]>([]);
 
   useEffect(() => {
-    // Fetch initial datasets
-    Promise.all([
-      musicApi.getRecentlyPlayed().catch(() => []),
-      musicApi.getFavorites().catch(() => []),
-      musicApi.getUploadedSongs().catch(() => []),
-      musicApi.getPlaylists().catch(() => []),
-    ]).then(([recents, favs, uploaded]) => {
-      const recentSongs = recents.map((r) => r.songId).filter(Boolean);
-      setRecentlyPlayed(recentSongs);
-      setUploadedSongs(Array.isArray(uploaded) ? uploaded : uploaded?.songs || []);
+    setIsLoading(true);
 
-      const favMap: Record<string, boolean> = {};
-      favs.forEach((f) => (favMap[f.providerSongId] = true));
-      setFavoritesMap(favMap);
-    });
+    const recentsPromise = musicApi
+      .getRecentlyPlayed()
+      .then((recents) => {
+        const recentSongs = recents.map((r) => r.songId).filter(Boolean);
+        setRecentlyPlayed(recentSongs);
+      })
+      .catch(() => { });
 
-    // Populate curated section tracks via Deezer Proxy
+    const favsPromise = musicApi
+      .getFavorites()
+      .then((favs) => {
+        const favMap: Record<string, boolean> = {};
+        favs.forEach((f) => (favMap[f.providerSongId] = true));
+        setFavoritesMap(favMap);
+      })
+      .catch(() => { });
+
     const categoryQueries = [
       { key: 'made_for_us', query: 'Love Duets' },
       { key: 'romantic', query: 'Romantic Hits' },
@@ -65,10 +70,17 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
       { key: 'chill', query: 'Chill Ambient' },
     ];
 
-    categoryQueries.forEach(({ key, query }) => {
-      musicApi.searchSongs(query, 0, 10).then((res) => {
-        setSectionData((prev) => ({ ...prev, [key]: res.songs || [] }));
-      });
+    const categoryPromises = categoryQueries.map(({ key, query }) =>
+      musicApi
+        .searchSongs(query, 0, 10)
+        .then((res) => {
+          setSectionData((prev) => ({ ...prev, [key]: res.songs || [] }));
+        })
+        .catch(() => { })
+    );
+
+    Promise.allSettled([recentsPromise, favsPromise, ...categoryPromises]).finally(() => {
+      setIsLoading(false);
     });
   }, []);
 
@@ -80,14 +92,16 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
     }
   }, [currentTrack, recentlyPlayed]);
 
-  const activeHeroTrack = currentTrack || recentlyPlayed[0] || {
+  const firstCategorySong = (sectionData['made_for_us'] && sectionData['made_for_us'][0]) || (sectionData['romantic'] && sectionData['romantic'][0]);
+
+  const activeHeroTrack = currentTrack || recentlyPlayed[0] || firstCategorySong || {
     provider: 'deezer',
-    providerSongId: '1',
-    title: 'Afrin Universe Jukebox',
-    artist: 'Afzal & Amrin',
-    album: 'Lifetime Platform',
+    providerSongId: 'fallback_hero_1',
+    title: 'Love Story',
+    artist: 'Taylor Swift',
+    album: 'Fearless',
     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
-    previewUrl: '',
+    previewUrl: 'https://cdns-preview-d.dzcdn.net/stream/c-d64627d3129528d22384a2754d924ebc-3.mp3',
     duration: 30,
   };
 
@@ -109,7 +123,6 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   };
 
   const sectionsConfig = [
-    { title: '📁 Personal Uploaded Library', tracks: uploadedSongs },
     { title: '❤️ Continue Listening', tracks: recentlyPlayed.slice(0, 10) },
     { title: '❤️ Recently Played', tracks: recentlyPlayed },
     { title: '❤️ Made For Afzal & Amrin', tracks: sectionData['made_for_us'] || [] },
@@ -121,6 +134,42 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
     { title: '❤️ Wedding Playlist', tracks: sectionData['wedding'] || [] },
     { title: '❤️ Chill Mix', tracks: sectionData['chill'] || [] },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Hero Banner Skeleton */}
+        <div className="h-72 rounded-3xl bg-slate-900/60 border border-white/10 p-8 flex flex-col md:flex-row items-center gap-6">
+          <div className="w-48 h-48 rounded-2xl bg-white/10 shrink-0" />
+          <div className="flex-1 space-y-4 w-full">
+            <div className="h-4 bg-white/10 rounded-full w-28" />
+            <div className="h-8 bg-white/10 rounded-xl w-3/4" />
+            <div className="h-5 bg-white/5 rounded-lg w-1/2" />
+            <div className="flex gap-4 pt-2">
+              <div className="h-12 w-36 rounded-full bg-rose-500/30 animate-pulse" />
+              <div className="h-12 w-12 rounded-full bg-white/10" />
+            </div>
+          </div>
+        </div>
+
+        {/* Category Rows Skeleton */}
+        {[1, 2, 3].map((row) => (
+          <div key={row} className="space-y-4">
+            <div className="h-6 bg-white/10 rounded-lg w-48" />
+            <div className="flex gap-4 overflow-hidden">
+              {[1, 2, 3, 4, 5].map((card) => (
+                <div key={card} className="w-44 md:w-52 h-64 rounded-2xl bg-slate-900/60 border border-white/5 p-4 shrink-0 space-y-3">
+                  <div className="w-full aspect-square rounded-xl bg-white/10" />
+                  <div className="h-4 bg-white/10 rounded w-3/4" />
+                  <div className="h-3 bg-white/5 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 md:space-y-10">
@@ -134,12 +183,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           <span className="px-3.5 py-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold shadow-md shadow-rose-500/30 shrink-0">
             Music
           </span>
-          <button
-            onClick={() => onSelectTab && onSelectTab('uploaded')}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
-          >
-            Uploaded
-          </button>
+
           <button
             onClick={() => onSelectTab && onSelectTab('favorites')}
             className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
@@ -179,7 +223,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl p-6 md:p-10 text-white shadow-2xl border border-white/10"
+        className="relative overflow-hidden rounded-3xl p-5 md:p-10 text-white shadow-2xl border border-white/10"
         style={{ background: heroPalette.ambientGradient }}
       >
         {/* Dynamic Blurred Glow */}
@@ -188,84 +232,82 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           style={{ background: heroPalette.dominant }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-8">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-5 md:gap-8">
           {/* Left: Large Artwork & Disc */}
           <div className="relative group shrink-0">
-            <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
+            <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
               <img
                 src={activeHeroTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'}
                 alt={activeHeroTrack.title}
-                className={`w-full h-full object-cover transition-transform duration-700 ${
-                  isPlaying ? 'scale-105' : 'scale-100'
-                }`}
+                className={`w-full h-full object-cover transition-transform duration-700 ${isPlaying ? 'scale-105' : 'scale-100'
+                  }`}
               />
             </div>
             {/* Spinning Vinyl Accent */}
-            <div className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full bg-slate-900 border-2 border-white/20 flex items-center justify-center shadow-xl">
-              <Disc className={`w-10 h-10 text-rose-400 ${isPlaying ? 'animate-spin-slow' : ''}`} />
+            <div className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-900 border-2 border-white/20 flex items-center justify-center shadow-xl">
+              <Disc className={`w-7 h-7 md:w-10 md:h-10 text-rose-400 ${isPlaying ? 'animate-spin-slow' : ''}`} />
             </div>
           </div>
 
           {/* Right: Track Info & Actions */}
-          <div className="flex-1 min-w-0 space-y-4 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md text-xs font-bold text-rose-300">
-              <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+          <div className="flex-1 min-w-0 space-y-2.5 md:space-y-4 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md text-[11px] md:text-xs font-bold text-rose-300">
+              <Radio className="w-3 h-3 md:w-3.5 md:h-3.5 text-rose-400 animate-pulse" />
               <span>{currentTrack ? 'Now Playing' : 'Spotlight Feature'}</span>
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white line-clamp-2 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight text-white line-clamp-2 leading-tight">
               {activeHeroTrack.title}
             </h1>
 
-            <p className="text-base md:text-xl font-medium text-slate-300 truncate">
+            <p className="text-xs sm:text-sm md:text-xl font-medium text-slate-300 truncate">
               {activeHeroTrack.artist} {activeHeroTrack.album ? `• ${activeHeroTrack.album}` : ''}
             </p>
 
             {/* Waveform visualizer */}
             {isPlaying && (
-              <div className="py-1">
-                <MusicWaveform isPlaying={isPlaying} barCount={24} height={28} color="bg-rose-400" />
+              <div className="py-0.5">
+                <MusicWaveform isPlaying={isPlaying} barCount={24} height={24} color="bg-rose-400" />
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 md:gap-4 pt-1">
               <button
                 onClick={() =>
                   currentTrack?.providerSongId === activeHeroTrack.providerSongId
                     ? togglePlay()
                     : playTrack(activeHeroTrack)
                 }
-                className="px-8 py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-base flex items-center gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition"
+                className="px-5 py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition"
               >
                 {isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
                   <>
-                    <Pause className="w-6 h-6 fill-current" /> Pause Preview
+                    <Pause className="w-4 h-4 md:w-6 md:h-6 fill-current" /> Pause Preview
                   </>
                 ) : (
                   <>
-                    <Play className="w-6 h-6 fill-current ml-0.5" /> Play Track
+                    <Play className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" /> Play Track
                   </>
                 )}
               </button>
 
               <button
                 onClick={() => handleToggleFav(activeHeroTrack)}
-                className={`p-3.5 rounded-full border transition ${
-                  favoritesMap[activeHeroTrack.providerSongId]
-                    ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                    : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-                }`}
+                className={`p-2.5 md:p-3.5 rounded-full border transition ${favoritesMap[activeHeroTrack.providerSongId]
+                  ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                  : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+                  }`}
                 title="Favorite Track"
               >
-                <Heart className={`w-6 h-6 ${favoritesMap[activeHeroTrack.providerSongId] ? 'fill-rose-500' : ''}`} />
+                <Heart className={`w-4 h-4 md:w-6 md:h-6 ${favoritesMap[activeHeroTrack.providerSongId] ? 'fill-rose-500' : ''}`} />
               </button>
 
               {onOpenDedicateModal && (
                 <button
                   onClick={() => onOpenDedicateModal(activeHeroTrack)}
-                  className="px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-sm flex items-center gap-2 transition"
+                  className="px-3.5 py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition"
                 >
-                  <HeartHandshake className="w-5 h-5 text-rose-300" /> Dedicate
+                  <HeartHandshake className="w-4 h-4 md:w-5 md:h-5 text-rose-300" /> Dedicate
                 </button>
               )}
             </div>
@@ -322,9 +364,8 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div
-                          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity ${
-                            isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                          }`}
+                          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
                         >
                           <button className="w-11 h-11 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition">
                             {isSongPlaying ? (

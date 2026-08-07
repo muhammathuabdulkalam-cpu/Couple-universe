@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge.js';
 import { Button } from '../../components/ui/Button.js';
 import { Card } from '../../components/ui/Card.js';
 import { useAuthStore } from '../../store/authStore.js';
+import { useInviteRegistrationStore } from '../../store/inviteRegistrationStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse, User } from '../../types/index.js';
 
@@ -15,17 +16,27 @@ export const RegisterPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { fetchSystemStatus, systemStatus, setAuth } = useAuthStore();
   const { addToast } = useUIStore();
+  const { pendingInvite, clearPendingInvite } = useInviteRegistrationStore();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(pendingInvite?.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState(searchParams.get('inviteCode') || '');
+  const [inviteCode, setInviteCode] = useState(pendingInvite?.token || searchParams.get('inviteCode') || '');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchSystemStatus();
   }, [fetchSystemStatus]);
+
+  useEffect(() => {
+    if (pendingInvite?.token) {
+      setInviteCode(pendingInvite.token);
+    }
+    if (pendingInvite?.email) {
+      setEmail(pendingInvite.email);
+    }
+  }, [pendingInvite]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +61,7 @@ export const RegisterPage: React.FC = () => {
       });
 
       const { user, accessToken } = response.data.data!;
+      clearPendingInvite();
       setAuth(user, accessToken);
       addToast('Registration Complete!', `Account created successfully with role ${user.role}`, 'success');
       navigate('/');
@@ -63,7 +75,6 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className="max-w-md mx-auto py-8">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        
         <div className="mb-6">
           <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Welcome
@@ -71,7 +82,6 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <Card variant="glass" className="p-8 border-white/10 shadow-2xl">
-          
           <div className="text-center space-y-2 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amrin to-heart p-0.5 mx-auto overflow-hidden shadow-xl">
               <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[14px]" />
@@ -90,12 +100,20 @@ export const RegisterPage: React.FC = () => {
                   You will automatically become the permanent <Badge variant="green" size="sm">SUPER_OWNER</Badge>.
                 </div>
               </div>
+            ) : pendingInvite ? (
+              <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-500/30 flex items-start gap-2 text-xs text-purple-300">
+                <Key className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
+                <div>
+                  <strong className="block text-purple-200">Invited to {pendingInvite.relationshipName}</strong>
+                  Joining as <span className="font-bold text-white">{pendingInvite.targetRole}</span>
+                </div>
+              </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-amrin-950/40 border border-amrin/30 flex items-start gap-2 text-xs text-amrin-glow">
                 <Key className="w-4 h-4 shrink-0 mt-0.5" />
                 <div>
                   <strong className="block text-white">Private Registration Mode</strong>
-                  Public signup is closed. Enter your 8-character invite code below.
+                  Public signup is closed. Enter your invite code below.
                 </div>
               </div>
             )}
@@ -127,7 +145,8 @@ export const RegisterPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@afrinuniverse.com"
                   required
-                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
+                  disabled={!!pendingInvite?.email}
+                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors disabled:opacity-70"
                 />
               </div>
             </div>
@@ -143,6 +162,7 @@ export const RegisterPage: React.FC = () => {
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                     placeholder="e.g. 8A3F9B2C"
                     required
+                    readOnly={!!pendingInvite?.token}
                     className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-afzal focus:ring-1 focus:ring-afzal transition-colors"
                   />
                 </div>

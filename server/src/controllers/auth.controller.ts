@@ -6,6 +6,7 @@ import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES, USER_STATUS, UserRole } from '.
 import { Invite } from '../models/invite.model';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
+import { InviteService } from '../services/invite.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
@@ -41,6 +42,7 @@ export const getSystemAuthStatus = catchAsync(async (_req: Request, res: Respons
 
 /**
  * Register User
+ * Controller strictly handles user creation and delegates invite/relationship binding to InviteService.consumeInvite()
  */
 export const register = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, inviteCode } = req.body;
@@ -56,7 +58,6 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   }
 
   let assignedRole: UserRole = ROLES.INVITED_USER;
-  let inviteDoc: any = null;
 
   if (isFirstUser || cleanCode === 'MASTER2026' || cleanCode === 'AFZAL2026') {
     // First user or master setup code automatically grants SUPER_OWNER
@@ -71,24 +72,16 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       );
     }
 
-    inviteDoc = await Invite.findOne({
-      code: cleanCode,
-      isUsed: false,
-      expiresAt: { $gt: new Date() },
-    });
+    const { invite } = await InviteService.validateToken(cleanCode);
 
-    if (!inviteDoc) {
-      throw new AppError('Invalid, expired, or already used invitation code.', HTTP_STATUS.BAD_REQUEST);
+    if (invite.email && invite.email !== email.toLowerCase()) {
+      throw new AppError(`This invitation code is reserved for ${invite.email}.`, HTTP_STATUS.FORBIDDEN);
     }
 
-    if (inviteDoc.email && inviteDoc.email !== email.toLowerCase()) {
-      throw new AppError(`This invitation code is reserved for ${inviteDoc.email}.`, HTTP_STATUS.FORBIDDEN);
-    }
-
-    assignedRole = inviteDoc.targetRole;
+    assignedRole = invite.targetRole;
   }
 
-  // Create User
+  // Create User Record
   const user = await User.create({
     name,
     email: email.toLowerCase(),
@@ -99,12 +92,9 @@ export const register = catchAsync(async (req: Request, res: Response) => {
     lastLoginAt: new Date(),
   });
 
-  // If created via invite, mark invite as used
-  if (inviteDoc) {
-    inviteDoc.isUsed = true;
-    inviteDoc.usedBy = user._id;
-    inviteDoc.usedAt = new Date();
-    await inviteDoc.save();
+  // Consume Invite & Auto-join Relationship via InviteService
+  if (cleanCode && cleanCode !== 'MASTER2026' && cleanCode !== 'AFZAL2026') {
+    await InviteService.consumeInvite(cleanCode, user._id.toString());
   }
 
   // Create Session & Lifetime Tokens (100 Years)

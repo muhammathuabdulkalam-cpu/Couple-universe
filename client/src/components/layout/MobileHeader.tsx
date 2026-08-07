@@ -25,7 +25,7 @@ export const MobileHeader: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel bg-obsidian-950/95 backdrop-blur-2xl border-b border-white/10 px-4 py-2.5 flex items-center justify-between md:hidden select-none">
-      
+
       {/* Left: Brand Logo & Title (Instagram Style) */}
       <Link to="/dashboard" className="flex items-center gap-2 group">
         <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-md shadow-amrin/20 overflow-hidden">
@@ -41,7 +41,7 @@ export const MobileHeader: React.FC = () => {
 
       {/* Right: Live Badged Notification Bell & Direct Message Chat Icons */}
       <div className="flex items-center gap-2">
-        
+
         {/* Notification Bell Icon */}
         <button
           type="button"

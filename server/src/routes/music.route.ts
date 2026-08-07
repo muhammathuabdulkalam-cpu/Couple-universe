@@ -24,11 +24,15 @@ import {
   toggleFavorite,
   updatePlaylist,
   uploadSong,
+  playSongAudio,
 } from '../controllers/music.controller';
-import { authenticate } from '../middlewares/auth.middleware';
+import { authenticate, optionalAuthenticate } from '../middlewares/auth.middleware';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 
 const router = Router();
+
+// Public / Optional-Auth Audio Stream (HTML <audio> src & fetch support)
+router.get('/songs/:providerSongId/play', optionalAuthenticate, playSongAudio);
 
 router.use(authenticate);
 

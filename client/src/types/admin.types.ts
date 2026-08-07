@@ -48,11 +48,10 @@ export interface SystemHealthData {
 export interface PlatformStatsData {
   totalUsers: number;
   activeUsers: number;
+  suspendedUsers: number;
+  deletedUsers: number;
   totalRelationships: number;
-  totalMemories: number;
-  totalAlbums: number;
-  totalStories: number;
-  totalSharedSongs: number;
+  activeInvites: number;
 }
 
 export interface AdminDashboardSummary {
@@ -73,7 +72,9 @@ export interface AdminDashboardSummary {
 export interface AdminUserListItem {
   id: string;
   name: string;
+  username?: string;
   email: string;
+  phone?: string;
   role: UserRole;
   status: UserStatus;
   avatar?: string;
@@ -86,7 +87,6 @@ export interface AdminUserListItem {
   lastSeen?: string;
   lastLoginAt?: string;
   createdAt: string;
-  storageNotice: string;
 }
 
 export interface EnabledFeatureItem {
@@ -97,24 +97,35 @@ export interface EnabledFeatureItem {
 export interface AdminUserDetail {
   id: string;
   name: string;
+  displayName: string;
+  username: string;
   email: string;
   phone: string;
+  birthday: string;
+  gender: string;
+  bio: string;
   role: UserRole;
-  status: UserStatus;
   avatar?: string;
-  bio?: string;
-  birthday?: string;
+  coverImage?: string;
   relationshipName: string;
   relationshipType: string;
+  relationshipStatus: string;
   partnerName: string;
   startDate: string;
-  storageUsed: string;
   isOnline: boolean;
-  lastActiveAt: string;
   lastLoginAt: string;
+  lastActiveAt: string;
   accountStatus: UserStatus;
-  loginMethod: string;
+  createdAt: string;
+  updatedAt: string;
+  createdDate: string;
+  updatedDate: string;
+  storageUsed: string;
+  loginProvider: string;
+  emailVerified: string;
   createdBy: string;
+  registeredDeviceCount: number;
+  lastKnownIp: string;
   enabledFeatures: EnabledFeatureItem[];
 }
 
@@ -126,12 +137,17 @@ export interface AdminRelationshipItem {
   startDate: string;
   daysTogether: number;
   status: string;
-  members: Array<{ id: string; name: string; role: string; avatar?: string }>;
+  description?: string;
+  members: Array<{ id: string; name: string; email?: string; role: string; avatar?: string }>;
   stats: {
+    members?: number;
     totalMemories: number;
     totalAlbums: number;
     totalStories: number;
     totalSharedSongs: number;
+    photos?: number;
+    videos?: number;
+    storageUsed?: string;
   };
   createdDate: string;
 }
@@ -224,5 +240,5 @@ export interface InviteValidationResult {
   relationshipName: string;
   expiresAt: string;
   status: string;
+  email?: string;
 }
-

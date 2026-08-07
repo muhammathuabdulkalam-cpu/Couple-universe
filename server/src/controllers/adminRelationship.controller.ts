@@ -25,14 +25,20 @@ export const createRelationship = catchAsync(async (req: Request, res: Response)
 
 /** PUT /api/v1/admin/relationships/:id */
 export const updateRelationship = catchAsync(async (req: Request, res: Response) => {
-  const rel = await RelationshipService.updateRelationship(req.params.id, req.body);
+  const rel = await RelationshipService.updateRelationship(req.params.id, req.body, req.user!._id.toString());
   return ApiResponse.success(res, 'Relationship updated successfully', rel);
 });
 
 /** PATCH /api/v1/admin/relationships/:id/archive */
 export const archiveRelationship = catchAsync(async (req: Request, res: Response) => {
-  const rel = await RelationshipService.archiveRelationship(req.params.id);
-  return ApiResponse.success(res, `Relationship ${rel.status.toLowerCase()} successfully`, rel);
+  const rel = await RelationshipService.archiveRelationship(req.params.id, req.user!._id.toString());
+  return ApiResponse.success(res, 'Relationship archived successfully', rel);
+});
+
+/** PATCH /api/v1/admin/relationships/:id/restore */
+export const restoreRelationship = catchAsync(async (req: Request, res: Response) => {
+  const rel = await RelationshipService.restoreRelationship(req.params.id, req.user!._id.toString());
+  return ApiResponse.success(res, 'Relationship restored successfully', rel);
 });
 
 /** POST /api/v1/admin/relationships/:id/members/add */
@@ -59,7 +65,7 @@ export const generateRelationshipInvite = catchAsync(async (req: Request, res: R
     relationshipId: req.params.id,
     targetRole: req.body.targetRole || 'INVITED_USER',
     createdBy: req.user!._id.toString(),
-    expiryDays: req.body.expiryDays ?? 7,
+    expiryDays: req.body.expiryDays !== undefined ? Number(req.body.expiryDays) : 7,
     maxUses: req.body.maxUses ?? 1,
   });
   return ApiResponse.success(res, 'Relationship invite token generated', invite);

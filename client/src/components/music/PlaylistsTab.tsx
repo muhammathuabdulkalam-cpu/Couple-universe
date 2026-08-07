@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   ChevronLeft,
+  Folder,
   FolderPlus,
   ListMusic,
   Music,
@@ -10,6 +11,7 @@ import {
   Play,
   Trash2,
   X,
+  RefreshCw,
 } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
@@ -19,18 +21,26 @@ export const PlaylistsTab: React.FC = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [activePlaylist, setActivePlaylist] = useState<Playlist | null>(null);
   const [playlistSongs, setPlaylistSongs] = useState<PlaylistSongItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isCreatingModal, setIsCreatingModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
   const fetchPlaylists = async () => {
+    setIsLoading(true);
     try {
       const data = await musicApi.getPlaylists();
       setPlaylists(data || []);
     } catch (_err) {
       setPlaylists([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,13 +48,47 @@ export const PlaylistsTab: React.FC = () => {
     fetchPlaylists();
   }, []);
 
+  const UPLOADS_FOLDER_PLAYLIST: Playlist = {
+    _id: 'uploads_folder',
+    title: 'Uploads',
+    description: 'Your personal uploaded MP3 songs',
+    coverUrl: '',
+    isDefault: true,
+    isShared: true,
+    songCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
   const openPlaylistDetail = async (playlist: Playlist) => {
     setActivePlaylist(playlist);
+    setIsDetailLoading(true);
     try {
-      const res = await musicApi.getPlaylistSongs(playlist._id);
-      setPlaylistSongs(res.songs || []);
+      if (playlist._id === 'uploads_folder') {
+        const res = await musicApi.getUploadedSongs(1, 100);
+        const songsList = Array.isArray(res) ? res : res?.songs || [];
+        const mapped: PlaylistSongItem[] = songsList.map((s, idx) => ({
+          _id: s.providerSongId,
+          playlistId: 'uploads_folder',
+          songId: s,
+          addedBy: {
+            _id: 'system',
+            name: s.uploadedBy?.name || 'Afzal & Amrin',
+            email: 'system@afrinverse.com',
+            avatar: s.uploadedBy?.avatar || ''
+          },
+          position: idx,
+          createdAt: s.createdAt || new Date().toISOString()
+        }));
+        setPlaylistSongs(mapped);
+      } else {
+        const res = await musicApi.getPlaylistSongs(playlist._id);
+        setPlaylistSongs(res.songs || []);
+      }
     } catch (_err) {
       setPlaylistSongs([]);
+    } finally {
+      setIsDetailLoading(false);
     }
   };
 
@@ -81,9 +125,14 @@ export const PlaylistsTab: React.FC = () => {
   const handleRemoveSong = async (songId: string) => {
     if (!activePlaylist) return;
     try {
-      await musicApi.removeSongFromPlaylist(activePlaylist._id, songId);
-      setPlaylistSongs((prev) => prev.filter((s) => s.songId._id !== songId && s.songId.providerSongId !== songId));
-      fetchPlaylists();
+      if (activePlaylist._id === 'uploads_folder') {
+        await musicApi.deleteUploadedSong(songId);
+        setPlaylistSongs((prev) => prev.filter((s) => s.songId.providerSongId !== songId));
+      } else {
+        await musicApi.removeSongFromPlaylist(activePlaylist._id, songId);
+        setPlaylistSongs((prev) => prev.filter((s) => s.songId._id !== songId && s.songId.providerSongId !== songId));
+        fetchPlaylists();
+      }
     } catch (_err) {
       // Handle gracefully
     }
@@ -145,14 +194,25 @@ export const PlaylistsTab: React.FC = () => {
 
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6">
             <div>
-              <span className="text-xs uppercase tracking-wider text-rose-400 font-bold">
-                {activePlaylist.isDefault ? 'Default Shared Playlist' : 'Custom Playlist'}
+              <span className="text-xs uppercase tracking-wider text-emerald-400 font-bold">
+                {activePlaylist._id === 'uploads_folder' ? 'Media Library Folder' : (activePlaylist.isDefault ? 'Default Shared Playlist' : 'Custom Playlist')}
               </span>
               <h1 className="text-3xl font-extrabold text-white mt-1">{activePlaylist.title}</h1>
               {activePlaylist.description && (
                 <p className="text-sm text-slate-400 mt-1">{activePlaylist.description}</p>
               )}
-              <p className="text-xs text-slate-500 mt-2">{playlistSongs.length} Tracks</p>
+              <div className="text-xs text-slate-500 mt-2 flex items-center gap-2">
+                <span>{playlistSongs.length} Tracks</span>
+                {activePlaylist._id === 'uploads_folder' && (
+                  <button
+                    onClick={() => openPlaylistDetail(activePlaylist)}
+                    className="p-1 hover:text-emerald-400 text-slate-400 hover:scale-110 active:rotate-180 transition duration-350"
+                    title="Refresh folder content"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {playlistSongs.length > 0 && (
@@ -166,7 +226,13 @@ export const PlaylistsTab: React.FC = () => {
           </div>
 
           {/* Track list */}
-          {playlistSongs.length === 0 ? (
+          {isDetailLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          ) : playlistSongs.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <Music className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <p className="font-semibold text-slate-300">No playlists available yet.</p>
@@ -202,24 +268,26 @@ export const PlaylistsTab: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleReorder(idx, idx - 1)}
-                          disabled={idx === 0}
-                          className="p-1 text-slate-500 hover:text-white disabled:opacity-30"
-                          title="Move Up"
-                        >
-                          <ArrowUp className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleReorder(idx, idx + 1)}
-                          disabled={idx === playlistSongs.length - 1}
-                          className="p-1 text-slate-500 hover:text-white disabled:opacity-30"
-                          title="Move Down"
-                        >
-                          <ArrowDown className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {activePlaylist._id !== 'uploads_folder' && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleReorder(idx, idx - 1)}
+                            disabled={idx === 0}
+                            className="p-1 text-slate-500 hover:text-white disabled:opacity-30"
+                            title="Move Up"
+                          >
+                            <ArrowUp className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleReorder(idx, idx + 1)}
+                            disabled={idx === playlistSongs.length - 1}
+                            className="p-1 text-slate-500 hover:text-white disabled:opacity-30"
+                            title="Move Down"
+                          >
+                            <ArrowDown className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
 
                       <button
                         onClick={() =>
@@ -248,15 +316,43 @@ export const PlaylistsTab: React.FC = () => {
             </div>
           )}
         </div>
-      ) : playlists.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/40 border border-white/5 rounded-3xl text-slate-400">
-          <ListMusic className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="font-semibold text-lg text-white">No playlists available yet.</h3>
-          <p className="text-xs text-slate-500 mt-1">Create a custom playlist to get started!</p>
-        </div>
       ) : (
         /* Playlists Grid */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="h-44 rounded-2xl bg-slate-900/60 border border-white/5 animate-pulse p-5 space-y-4">
+                <div className="w-12 h-12 rounded-xl bg-white/10" />
+                <div className="h-4 bg-white/10 rounded w-3/4" />
+                <div className="h-3 bg-white/5 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* Uploads Folder Card */}
+          <div
+            onClick={() => openPlaylistDetail(UPLOADS_FOLDER_PLAYLIST)}
+            className="group relative bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-emerald-500/40 rounded-2xl p-5 cursor-pointer transition-all duration-300 shadow-xl flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg">
+                  <Folder className="w-6 h-6 text-white" />
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-bold uppercase">
+                  Library Folder
+                </span>
+              </div>
+
+              <h3 className="font-bold text-white text-base group-hover:text-emerald-300 transition">Uploads</h3>
+              <p className="text-xs text-slate-400 mt-1 line-clamp-2">Your custom uploaded MP3 library</p>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-3 border-t border-white/5 text-xs text-slate-500">
+              <span>View Uploaded Songs</span>
+            </div>
+          </div>
           {playlists.map((pl) => (
             <div
               key={pl._id}
@@ -297,6 +393,7 @@ export const PlaylistsTab: React.FC = () => {
             </div>
           ))}
         </div>
+        )
       )}
 
       {/* Create Playlist Modal */}

@@ -2,24 +2,23 @@ import React from 'react';
 import { Heart, Power, Radio } from 'lucide-react';
 import { useListenTogetherStore } from '../../store/listenTogetherStore';
 
-export const ListenTogetherBadge: React.FC = () => {
-  const {
-    isSessionActive,
-    partnerConnected,
-    partnerName,
-    partnerAvatar,
-    sendInvite,
-    endSession,
-  } = useListenTogetherStore();
+export const ListenTogetherBadge: React.FC = React.memo(() => {
+  const isSessionActive = useListenTogetherStore((s) => s.isSessionActive);
+  const partnerConnected = useListenTogetherStore((s) => s.partnerConnected);
+  const partnerName = useListenTogetherStore((s) => s.partnerName);
+  const partnerAvatar = useListenTogetherStore((s) => s.partnerAvatar);
+  const sendInvite = useListenTogetherStore((s) => s.sendInvite);
+  const endSession = useListenTogetherStore((s) => s.endSession);
 
   if (!isSessionActive) {
     return (
       <button
         onClick={sendInvite}
-        className="h-9 px-3.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-950/30 transition hover:scale-105 active:scale-95 shrink-0"
+        className="h-8 md:h-9 px-2.5 md:px-3.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-[11px] md:text-xs flex items-center gap-1 md:gap-1.5 shadow-md hover:scale-105 active:scale-95 transition shrink-0"
       >
-        <Radio className="w-3.5 h-3.5 animate-pulse" />
-        <span>Listen Together</span>
+        <Radio className="w-3 h-3 md:w-3.5 md:h-3.5 animate-pulse" />
+        <span className="hidden sm:inline">Listen Together</span>
+        <span className="sm:hidden">Listen</span>
       </button>
     );
   }
@@ -64,4 +63,4 @@ export const ListenTogetherBadge: React.FC = () => {
       </button>
     </div>
   );
-};
+});

@@ -1,3 +1,6 @@
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 import app from './app';
 import { connectDatabase, disconnectDatabase } from './config/db.config';
 import { env } from './config/env.config';

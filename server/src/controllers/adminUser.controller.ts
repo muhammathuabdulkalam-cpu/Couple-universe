@@ -17,27 +17,33 @@ export const listUsers = catchAsync(async (req: Request, res: Response) => {
   return ApiResponse.success(res, 'Users retrieved', result);
 });
 
+/** GET /api/v1/admin/users/:id */
+export const getUserDetail = catchAsync(async (req: Request, res: Response) => {
+  const detail = await UserService.getUserDetailFull(req.params.id);
+  return ApiResponse.success(res, 'User details retrieved', detail);
+});
+
 /** POST /api/v1/admin/users */
 export const createUser = catchAsync(async (req: Request, res: Response) => {
-  const user = await UserService.createUser(req.body);
+  const user = await UserService.createUser(req.body, req.user!._id.toString());
   return ApiResponse.success(res, 'User created successfully', user, 201);
 });
 
 /** PUT /api/v1/admin/users/:id */
 export const updateUser = catchAsync(async (req: Request, res: Response) => {
-  const user = await UserService.updateUser(req.params.id, req.body);
+  const user = await UserService.updateUser(req.params.id, req.body, req.user!._id.toString());
   return ApiResponse.success(res, 'User updated successfully', user);
 });
 
 /** PATCH /api/v1/admin/users/:id/suspend */
 export const suspendUser = catchAsync(async (req: Request, res: Response) => {
-  const user = await UserService.setStatus(req.params.id, USER_STATUS.SUSPENDED);
+  const user = await UserService.setStatus(req.params.id, USER_STATUS.SUSPENDED, req.user!._id.toString());
   return ApiResponse.success(res, 'User suspended successfully', user);
 });
 
 /** PATCH /api/v1/admin/users/:id/activate */
 export const activateUser = catchAsync(async (req: Request, res: Response) => {
-  const user = await UserService.setStatus(req.params.id, USER_STATUS.ACTIVE);
+  const user = await UserService.setStatus(req.params.id, USER_STATUS.ACTIVE, req.user!._id.toString());
   return ApiResponse.success(res, 'User activated successfully', user);
 });
 
@@ -45,6 +51,12 @@ export const activateUser = catchAsync(async (req: Request, res: Response) => {
 export const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
   await UserService.softDeleteUser(req.params.id, req.user!._id.toString());
   return ApiResponse.success(res, 'User soft deleted successfully');
+});
+
+/** PATCH /api/v1/admin/users/:id/restore */
+export const restoreUser = catchAsync(async (req: Request, res: Response) => {
+  const user = await UserService.restoreUser(req.params.id, req.user!._id.toString());
+  return ApiResponse.success(res, 'User restored successfully', user);
 });
 
 /** POST /api/v1/admin/users/bulk */
@@ -59,11 +71,13 @@ export const bulkAction = catchAsync(async (req: Request, res: Response) => {
   for (const id of userIds) {
     try {
       if (action === 'suspend') {
-        await UserService.setStatus(id, USER_STATUS.SUSPENDED);
+        await UserService.setStatus(id, USER_STATUS.SUSPENDED, req.user!._id.toString());
       } else if (action === 'activate') {
-        await UserService.setStatus(id, USER_STATUS.ACTIVE);
+        await UserService.setStatus(id, USER_STATUS.ACTIVE, req.user!._id.toString());
       } else if (action === 'delete') {
         await UserService.softDeleteUser(id, req.user!._id.toString());
+      } else if (action === 'restore') {
+        await UserService.restoreUser(id, req.user!._id.toString());
       }
       affected++;
     } catch (_err) {
@@ -75,8 +89,12 @@ export const bulkAction = catchAsync(async (req: Request, res: Response) => {
 });
 
 /** GET /api/v1/admin/users/export */
-export const exportUsersCSV = catchAsync(async (_req: Request, res: Response) => {
-  const csv = await UserService.exportUsersCSV();
+export const exportUsersCSV = catchAsync(async (req: Request, res: Response) => {
+  const csv = await UserService.exportUsersCSV({
+    search: req.query.search as string,
+    role: req.query.role as string,
+    status: req.query.status as string,
+  });
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=users_export.csv');
   res.status(200).send(csv);

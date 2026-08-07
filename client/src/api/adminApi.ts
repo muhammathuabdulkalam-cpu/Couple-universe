@@ -28,7 +28,7 @@ export const adminApi = {
     return res.data.data!;
   },
 
-  // --- Users (Phase 1 reads) ---
+  // --- Users ---
   getUsers: async (params?: { page?: number; limit?: number; search?: string; role?: string; status?: string }) => {
     const res = await axiosClient.get<ApiResponse<AdminUsersResponse>>('/admin/users', { params });
     return res.data.data!;
@@ -39,7 +39,6 @@ export const adminApi = {
     return res.data.data!;
   },
 
-  // --- Users (Phase 2 writes) ---
   createUser: async (data: CreateUserFormData) => {
     const res = await axiosClient.post<ApiResponse>('/admin/users', data);
     return res.data.data!;
@@ -65,7 +64,12 @@ export const adminApi = {
     return res.data;
   },
 
-  bulkAction: async (action: 'suspend' | 'activate' | 'delete', userIds: string[]) => {
+  restoreUser: async (id: string) => {
+    const res = await axiosClient.patch<ApiResponse>(`/admin/users/${id}/restore`);
+    return res.data;
+  },
+
+  bulkAction: async (action: 'suspend' | 'activate' | 'delete' | 'restore', userIds: string[]) => {
     const res = await axiosClient.post<ApiResponse>('/admin/users/bulk', { action, userIds });
     return res.data;
   },
@@ -75,13 +79,12 @@ export const adminApi = {
     return res.data.data!;
   },
 
-  // --- Relationships (Phase 1 reads) ---
+  // --- Relationships ---
   getRelationships: async (params?: { search?: string; type?: string; status?: string }) => {
     const res = await axiosClient.get<ApiResponse<AdminRelationshipItem[]>>('/admin/relationships', { params });
     return res.data.data!;
   },
 
-  // --- Relationships (Phase 2 writes) ---
   createRelationship: async (data: CreateRelationshipFormData) => {
     const res = await axiosClient.post<ApiResponse>('/admin/relationships', data);
     return res.data.data!;
@@ -94,6 +97,11 @@ export const adminApi = {
 
   archiveRelationship: async (id: string) => {
     const res = await axiosClient.patch<ApiResponse>(`/admin/relationships/${id}/archive`);
+    return res.data;
+  },
+
+  restoreRelationship: async (id: string) => {
+    const res = await axiosClient.patch<ApiResponse>(`/admin/relationships/${id}/restore`);
     return res.data;
   },
 
@@ -138,4 +146,3 @@ export const adminApi = {
     return res.data;
   },
 };
-

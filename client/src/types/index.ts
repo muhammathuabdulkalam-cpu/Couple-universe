@@ -2,7 +2,7 @@
 // Auth & User Types
 // -------------------------------------------------------
 export type UserRole = 'SUPER_OWNER' | 'CO_OWNER' | 'INVITED_USER' | 'ADMIN';
-export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION' | 'DELETED';
 
 export interface User {
   id: string;

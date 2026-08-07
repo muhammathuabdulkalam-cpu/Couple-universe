@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   ChevronLeft,
@@ -11,10 +11,12 @@ import {
   Pencil,
   Trash2,
   Download,
+  RotateCcw,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { AdminUserListItem } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
-
 
 interface UsersTableProps {
   users: AdminUserListItem[];
@@ -26,12 +28,12 @@ interface UsersTableProps {
   };
   onPageChange: (page: number) => void;
   isLoading?: boolean;
-  // Phase 2 action props
   onCreateUser?: () => void;
   onEditUser?: (user: any) => void;
   onSuspendUser?: (id: string) => void;
   onActivateUser?: (id: string) => void;
   onDeleteUser?: (id: string) => void;
+  onRestoreUser?: (id: string) => void;
   selectedUserIds?: string[];
   onSelectUser?: (id: string) => void;
   onSelectAll?: (ids: string[]) => void;
@@ -47,6 +49,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   onSuspendUser,
   onActivateUser,
   onDeleteUser,
+  onRestoreUser,
   selectedUserIds = [],
   onSelectUser,
   onSelectAll,
@@ -60,6 +63,8 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     statusFilter,
     setStatusFilter,
   } = useAdminAuthStore();
+
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -90,20 +95,25 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     }
   };
 
-  const allSelected = users.length > 0 && users.every(u => selectedUserIds.includes(u.id));
+  const allSelected = users.length > 0 && users.every((u) => selectedUserIds.includes(u.id));
 
   const handleSelectAll = () => {
     if (allSelected) {
       onSelectAll?.([]);
     } else {
-      onSelectAll?.(users.map(u => u.id));
+      onSelectAll?.(users.map((u) => u.id));
     }
   };
 
   const handleExportCSV = async () => {
     try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (roleFilter) params.append('role', roleFilter);
+      if (statusFilter) params.append('status', statusFilter);
+
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/admin/users/export`,
+        `${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/admin/users/export?${params.toString()}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('admin_access_token')}` } }
       );
       const blob = await res.blob();
@@ -113,12 +123,14 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       a.download = 'users_export.csv';
       a.click();
       URL.revokeObjectURL(url);
-    } catch {}
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
   };
 
   return (
     <div className="space-y-4 bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl">
-      {/* Table Title & Filter Controls Header */}
+      {/* Header Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
@@ -130,7 +142,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           </p>
         </div>
 
-        {/* Filters bar */}
+        {/* Filters & Export Bar */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Search Input */}
           <div className="relative w-full sm:w-60">
@@ -139,7 +151,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search user..."
+              placeholder="Search user / email / phone..."
               className="w-full bg-slate-800 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
             />
           </div>
@@ -166,16 +178,58 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <option value="">All Statuses</option>
             <option value="ACTIVE">ACTIVE</option>
             <option value="SUSPENDED">SUSPENDED</option>
+            <option value="DELETED">DELETED</option>
           </select>
 
-          {/* CSV Export */}
-          <button
-            onClick={handleExportCSV}
-            title="Export CSV"
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition"
-          >
-            <Download className="w-4 h-4" />
-          </button>
+          {/* Export Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
+            >
+              <Download className="w-4 h-4 text-emerald-400" /> Export
+            </button>
+
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-white/10 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-xs">
+                <button
+                  onClick={() => {
+                    handleExportCSV();
+                    setShowExportMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 text-slate-200 text-left transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <Download className="w-3.5 h-3.5 text-emerald-400" /> CSV Export
+                  </span>
+                </button>
+
+                <button
+                  disabled
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-500 text-left cursor-not-allowed opacity-60"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Excel
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">
+                    Coming Soon
+                  </span>
+                </button>
+
+                <button
+                  disabled
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-500 text-left cursor-not-allowed opacity-60"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText className="w-3.5 h-3.5 text-rose-600" /> PDF
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">
+                    Coming Soon
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Create User Button */}
           {onCreateUser && (
@@ -206,9 +260,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
               <th className="pb-3 px-3">Partner</th>
               <th className="pb-3 px-3 text-center">Status</th>
               <th className="pb-3 px-3">Joined</th>
-              {(onEditUser || onSuspendUser || onDeleteUser) && (
-                <th className="pb-3 px-3 text-right">Actions</th>
-              )}
+              {(onEditUser || onSuspendUser || onDeleteUser) && <th className="pb-3 px-3 text-right">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -232,11 +284,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                 <tr
                   key={usr.id}
                   onClick={() => setSelectedUserIdForDrawer(usr.id)}
-                  className={`hover:bg-white/5 transition cursor-pointer group ${selectedUserIds.includes(usr.id) ? 'bg-rose-500/5' : ''}`}
+                  className={`hover:bg-white/5 transition cursor-pointer group ${
+                    selectedUserIds.includes(usr.id) ? 'bg-rose-500/5' : ''
+                  }`}
                 >
                   {/* Checkbox */}
                   {onSelectUser && (
-                    <td className="py-3 px-3" onClick={e => e.stopPropagation()}>
+                    <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedUserIds.includes(usr.id)}
@@ -305,7 +359,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
 
                   {/* Action Buttons */}
                   {(onEditUser || onSuspendUser || onDeleteUser) && (
-                    <td className="py-3 px-3 text-right" onClick={e => e.stopPropagation()}>
+                    <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
                         {onEditUser && (
                           <button
@@ -332,6 +386,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                             className="p-1.5 rounded-lg bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-400 text-slate-400 transition"
                           >
                             <UserCheck className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {onRestoreUser && usr.status === 'DELETED' && (
+                          <button
+                            onClick={() => onRestoreUser(usr.id)}
+                            title="Restore User"
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-purple-500/20 hover:text-purple-400 text-slate-400 transition"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
                           </button>
                         )}
                         {onDeleteUser && (
@@ -368,15 +431,14 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="px-3 py-1 rounded-xl bg-slate-800 text-white font-bold text-xs">
-            {pagination.page}
-          </span>
+          <span className="px-3 py-1 rounded-xl bg-slate-800 text-white font-bold text-xs">{pagination.page}</span>
           <button
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.totalPages}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition"
           >
-            <ChevronRight className="w-4 h-4" /></button>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>

@@ -2,9 +2,11 @@ import React from 'react';
 import { Heart, Music, Check, X, Clock } from 'lucide-react';
 import { useListenTogetherStore } from '../../store/listenTogetherStore';
 
-export const ListenTogetherInviteBanner: React.FC = () => {
-  const { incomingInvite, inviteCountdown, acceptInvite, declineInvite } =
-    useListenTogetherStore();
+export const ListenTogetherInviteBanner: React.FC = React.memo(() => {
+  const incomingInvite = useListenTogetherStore((s) => s.incomingInvite);
+  const inviteCountdown = useListenTogetherStore((s) => s.inviteCountdown);
+  const acceptInvite = useListenTogetherStore((s) => s.acceptInvite);
+  const declineInvite = useListenTogetherStore((s) => s.declineInvite);
 
   if (!incomingInvite) return null;
 
@@ -48,4 +50,4 @@ export const ListenTogetherInviteBanner: React.FC = () => {
       </div>
     </div>
   );
-};
+});

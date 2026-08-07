@@ -40,15 +40,16 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
   const [selectedSongForPlaylist, setSelectedSongForPlaylist] = useState<NormalizedSong | null>(null);
   const [favoritesMap, setFavoritesMap] = useState<Record<string, boolean>>({});
 
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
-  // Debounced input search
+  // Debounced input search (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.trim()) {
-        setSearchTerm(query.trim());
-      }
-    }, 400);
+      setSearchTerm(query.trim());
+    }, 300);
     return () => clearTimeout(timer);
   }, [query]);
 

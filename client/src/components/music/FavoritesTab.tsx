@@ -8,7 +8,10 @@ export const FavoritesTab: React.FC = () => {
   const [favorites, setFavorites] = useState<NormalizedSong[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
   const fetchFavorites = async () => {
     setIsLoading(true);

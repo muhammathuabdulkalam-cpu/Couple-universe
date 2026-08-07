@@ -21,7 +21,9 @@ import { UploadSongModal } from './UploadSongModal';
 export const UploadedSongsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.user);
-  const { currentTrack, playTrack, togglePlay } = useMusicPlayerStore();
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const { addToast } = useUIStore();
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -33,7 +35,7 @@ export const UploadedSongsTab: React.FC = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['uploadedSongs'],
     queryFn: async () => {
-      const res = await musicApi.getUploadedSongs(1, 50);
+      const res = await musicApi.getUploadedSongs(1, 100);
       // Pre-fetch favorites map
       musicApi
         .getFavorites()
@@ -42,16 +44,18 @@ export const UploadedSongsTab: React.FC = () => {
           favs.forEach((f) => (map[f.providerSongId] = true));
           setFavoritesMap(map);
         })
-        .catch(() => {});
+        .catch(() => { });
 
       // Pre-fetch playlists
       musicApi
         .getPlaylists()
         .then(setPlaylists)
-        .catch(() => {});
+        .catch(() => { });
 
       return res;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const songs = data?.songs || [];
@@ -168,11 +172,10 @@ export const UploadedSongsTab: React.FC = () => {
             return (
               <div
                 key={song.providerSongId}
-                className={`group relative flex items-center justify-between p-3 sm:p-4 rounded-2xl transition border ${
-                  isCurrent
+                className={`group relative flex items-center justify-between p-3 sm:p-4 rounded-2xl transition border ${isCurrent
                     ? 'bg-rose-500/10 border-rose-500/30 text-white shadow-lg'
                     : 'bg-slate-900/40 border-white/5 hover:bg-white/5 text-slate-200'
-                }`}
+                  }`}
               >
                 {/* Left: Index, Cover & Title */}
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -190,9 +193,8 @@ export const UploadedSongsTab: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                     <div
-                      className={`absolute inset-0 flex items-center justify-center bg-black/50 transition ${
-                        isCurrent ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'
-                      }`}
+                      className={`absolute inset-0 flex items-center justify-center bg-black/50 transition ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'
+                        }`}
                     >
                       <Radio className="w-6 h-6 text-rose-400 animate-pulse" />
                     </div>

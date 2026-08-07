@@ -5,16 +5,22 @@ import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { DashboardMusicSummary } from '../../types/music.types';
 
-export const DashboardMusicWidget: React.FC = () => {
+export const DashboardMusicWidget: React.FC = React.memo(() => {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardMusicSummary | null>(null);
-  const { currentTrack, isPlaying, playTrack, togglePlay } = useMusicPlayerStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const playTrack = useMusicPlayerStore((s) => s.playTrack);
+  const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
   useEffect(() => {
+    setIsLoading(true);
     musicApi
       .getDashboardSummary()
       .then(setSummary)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
   }, []);
 
   const trackToDisplay = currentTrack || summary?.recentPlayed;
@@ -45,7 +51,17 @@ export const DashboardMusicWidget: React.FC = () => {
       </div>
 
       {/* Main Track Display */}
-      {trackToDisplay ? (
+      {isLoading ? (
+        <div className="flex items-center gap-4 bg-white/5 rounded-2xl p-3.5 border border-white/5 animate-pulse">
+          <div className="w-14 h-14 rounded-xl bg-white/10 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="h-3 bg-white/10 rounded w-1/3" />
+            <div className="h-4 bg-white/10 rounded w-3/4" />
+            <div className="h-3 bg-white/5 rounded w-1/2" />
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/10 shrink-0" />
+        </div>
+      ) : trackToDisplay ? (
         <div className="flex items-center gap-4 bg-white/5 rounded-2xl p-3.5 border border-white/5">
           <div className="relative shrink-0">
             <img
@@ -103,4 +119,4 @@ export const DashboardMusicWidget: React.FC = () => {
       )}
     </div>
   );
-};
+});

@@ -55,6 +55,28 @@ export const authenticate = catchAsync(async (req: Request, _res: Response, next
   }
 });
 
+export const optionalAuthenticate = catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.query && req.query.token) {
+    token = req.query.token as string;
+  }
+
+  if (token) {
+    try {
+      const decoded = verifyAccessToken(token);
+      const user = await User.findById(decoded.userId);
+      if (user && user.status !== USER_STATUS.SUSPENDED) {
+        req.user = user;
+        req.tokenPayload = decoded;
+      }
+    } catch (_err) {}
+  }
+  next();
+});
+
 export const authorize = (...roles: UserRole[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
