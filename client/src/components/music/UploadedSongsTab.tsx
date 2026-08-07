@@ -104,21 +104,21 @@ export const UploadedSongsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Top Action Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-lg">
-            <UploadCloud className="w-7 h-7" />
+      <div className="flex items-center justify-between gap-3 p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl shadow-xl">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-lg shrink-0">
+            <UploadCloud className="w-5 h-5 sm:w-7 sm:h-7" />
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>Personal Uploaded Library</span>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold border border-rose-500/30">
-                {total} Songs
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-2xl font-black text-white tracking-tight flex items-center gap-2 truncate">
+              <span className="truncate">Uploaded Library</span>
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold border border-rose-500/30 shrink-0">
+                {total}
               </span>
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 mt-1 hidden sm:block">
               Custom high-quality audio files uploaded by Afzal & Amrin with full playback support.
             </p>
           </div>
@@ -126,10 +126,11 @@ export const UploadedSongsTab: React.FC = () => {
 
         <button
           onClick={() => setIsUploadModalOpen(true)}
-          className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold flex items-center justify-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition"
+          className="px-3.5 py-2 sm:px-5 sm:py-3 rounded-full sm:rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg hover:scale-105 active:scale-95 transition shrink-0"
         >
-          <Plus className="w-5 h-5 stroke-[3]" />
-          <span>Upload Song</span>
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+          <span className="hidden sm:inline">Upload Song</span>
+          <span className="sm:hidden">Upload</span>
         </button>
       </div>
 
