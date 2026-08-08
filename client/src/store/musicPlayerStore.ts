@@ -43,15 +43,25 @@ interface MusicPlayerState {
   toggleQueueDrawer: (open?: boolean) => void;
   toggleLyricsModal: (open?: boolean) => void;
   toggleMobileFullPlayer: (open?: boolean) => void;
+  closePlayer: () => void;
 }
 
 let globalAudio: HTMLAudioElement | null = null;
 const resolvedUrlCache = new Map<string, string>();
 let lastRecordedSongId: string | null = null;
 let activePlayRequestId = 0;
+let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+
 const preloaderAudio = typeof window !== 'undefined' ? new Audio() : null;
 if (preloaderAudio) {
   preloaderAudio.preload = 'auto';
+}
+
+function clearLoadingTimer() {
+  if (loadingTimer) {
+    clearTimeout(loadingTimer);
+    loadingTimer = null;
+  }
 }
 
 function preloadNextTrack(queue: NormalizedSong[], currentIndex: number, isShuffle: boolean) {
@@ -105,6 +115,10 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
         if (Math.abs(get().currentTime - newTime) >= 0.25) {
           set({ currentTime: newTime });
         }
+        if (get().isLoading) {
+          clearLoadingTimer();
+          set({ isLoading: false });
+        }
       }
     });
 
@@ -115,18 +129,33 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     });
 
     globalAudio.addEventListener('playing', () => {
+      clearLoadingTimer();
       set({ isPlaying: true, isLoading: false });
     });
 
     globalAudio.addEventListener('waiting', () => {
-      set({ isLoading: true });
+      if (globalAudio && globalAudio.currentTime === 0 && globalAudio.paused) {
+        clearLoadingTimer();
+        loadingTimer = setTimeout(() => {
+          if (globalAudio && globalAudio.paused) {
+            set({ isLoading: true });
+          }
+        }, 600);
+      }
     });
 
     globalAudio.addEventListener('canplay', () => {
+      clearLoadingTimer();
+      set({ isLoading: false });
+    });
+
+    globalAudio.addEventListener('canplaythrough', () => {
+      clearLoadingTimer();
       set({ isLoading: false });
     });
 
     globalAudio.addEventListener('ended', () => {
+      clearLoadingTimer();
       const { repeatMode } = get();
       if (repeatMode === 'one' && globalAudio) {
         globalAudio.currentTime = 0;
@@ -138,6 +167,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
     globalAudio.addEventListener('error', (e) => {
       console.warn('Audio playback error event captured:', e, globalAudio?.error);
+      clearLoadingTimer();
       set({ isPlaying: false, isLoading: false });
     });
 
@@ -156,24 +186,28 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     const currentRequestId = ++activePlayRequestId;
     const songId = track.providerSongId;
 
+    clearLoadingTimer();
+
     // 1. Instant Playback optimization: If clicking play on currently loaded song, toggle without changing src
     if (currentTrack?.providerSongId === songId && audioElement.src) {
       if (!isPlaying) {
-        set({ isLoading: true });
         audioElement
           .play()
           .then(() => {
             if (currentRequestId === activePlayRequestId) {
+              clearLoadingTimer();
               set({ isPlaying: true, isLoading: false });
             }
           })
           .catch(() => {
             if (currentRequestId === activePlayRequestId) {
+              clearLoadingTimer();
               set({ isPlaying: false, isLoading: false });
             }
           });
       } else {
         audioElement.pause();
+        clearLoadingTimer();
         set({ isPlaying: false, isLoading: false });
       }
       return;
@@ -194,16 +228,25 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     let targetUrl = resolvedUrlCache.get(songId) || getNormalizedAudioUrl(track.previewUrl || '');
     let resolvedTrack: NormalizedSong = { ...track, previewUrl: targetUrl };
 
-    // 3. INSTANT ZUSTAND STORE UPDATE - SHOW LOADING, PAUSE OLD PLAYING STATE
+    // 3. INSTANT ZUSTAND STORE UPDATE - 0ms UI response
     set({
       currentTrack: resolvedTrack,
-      isPlaying: false,
-      isLoading: true,
+      isPlaying: true,
+      isLoading: false,
       queue: newQueue,
       queueIndex: queueIndex >= 0 ? queueIndex : 0,
       currentTime: 0,
       duration: track.duration || 30,
     });
+
+    loadingTimer = setTimeout(() => {
+      if (currentRequestId === activePlayRequestId) {
+        const state = get();
+        if (state.currentTrack?.providerSongId === songId && globalAudio && (globalAudio.paused || globalAudio.readyState < 2)) {
+          set({ isLoading: true });
+        }
+      }
+    }, 600);
 
     // Preload next track in background for instant transition
     preloadNextTrack(newQueue, queueIndex, get().isShuffle);
@@ -212,7 +255,6 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     if (targetUrl && targetUrl.trim() !== '' && !targetUrl.includes('cloudinary.com/demo/')) {
       if (audioElement.src !== targetUrl) {
         audioElement.src = targetUrl;
-        audioElement.load();
       }
       audioElement.currentTime = 0;
       audioElement.volume = get().isMuted ? 0 : get().volume;
@@ -221,6 +263,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
         .play()
         .then(() => {
           if (currentRequestId === activePlayRequestId) {
+            clearLoadingTimer();
             resolvedUrlCache.set(songId, targetUrl);
             set({ isPlaying: true, isLoading: false });
           }
@@ -234,22 +277,26 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
             const mp3Url = getCloudinaryMp3Url(targetUrl);
             if (mp3Url && mp3Url !== targetUrl && audioElement) {
               audioElement.src = mp3Url;
-              audioElement.load();
               audioElement
                 .play()
                 .then(() => {
                   if (currentRequestId === activePlayRequestId) {
+                    clearLoadingTimer();
                     resolvedUrlCache.set(songId, mp3Url);
                     set({ isPlaying: true, isLoading: false });
                   }
                 })
                 .catch(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false, isLoading: false });
+                  if (currentRequestId === activePlayRequestId) {
+                    clearLoadingTimer();
+                    set({ isPlaying: false, isLoading: false });
+                  }
                 });
               return;
             }
           }
 
+          clearLoadingTimer();
           set({ isPlaying: false, isLoading: false });
         });
     } else {
@@ -269,18 +316,24 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
             if (audioElement) {
               audioElement.src = fallbackUrl;
-              audioElement.load();
               audioElement.currentTime = 0;
               audioElement
                 .play()
                 .then(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: true, isLoading: false });
+                  if (currentRequestId === activePlayRequestId) {
+                    clearLoadingTimer();
+                    set({ isPlaying: true, isLoading: false });
+                  }
                 })
                 .catch(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false, isLoading: false });
+                  if (currentRequestId === activePlayRequestId) {
+                    clearLoadingTimer();
+                    set({ isPlaying: false, isLoading: false });
+                  }
                 });
             }
           } else {
+            clearLoadingTimer();
             useUIStore
               .getState()
               .addToast(
@@ -292,7 +345,10 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
           }
         })
         .catch(() => {
-          if (currentRequestId !== activePlayRequestId) set({ isPlaying: false, isLoading: false });
+          if (currentRequestId === activePlayRequestId) {
+            clearLoadingTimer();
+            set({ isPlaying: false, isLoading: false });
+          }
         });
     }
 
@@ -474,5 +530,24 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
   toggleMobileFullPlayer: (open?: boolean) => {
     set((state) => ({ isMobileFullPlayerOpen: open !== undefined ? open : !state.isMobileFullPlayerOpen }));
+  },
+
+  closePlayer: () => {
+    const { audioElement } = get();
+    if (audioElement) {
+      try {
+        audioElement.pause();
+        audioElement.currentTime = 0;
+      } catch (_err) { }
+    }
+    set({
+      currentTrack: null,
+      isPlaying: false,
+      isLoading: false,
+      currentTime: 0,
+      isQueueDrawerOpen: false,
+      isLyricsModalOpen: false,
+      isMobileFullPlayerOpen: false,
+    });
   },
 }));

@@ -78,6 +78,12 @@ function writeString(view: DataView, offset: number, string: string) {
 export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
   if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) return cloudinaryUrl;
 
+  // If already an MP3 file, return direct secure URL without forcing re-transcoding overhead
+  const cleanPath = cloudinaryUrl.split('?')[0];
+  if (/\.mp3$/i.test(cleanPath)) {
+    return cloudinaryUrl;
+  }
+
   // Replace audio/video extensions with .mp3 or insert /f_mp3/ transformation flag
   let mp3Url = cloudinaryUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
 

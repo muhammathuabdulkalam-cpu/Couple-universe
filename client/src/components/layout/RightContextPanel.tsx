@@ -121,32 +121,17 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
       {/* Gradient-Border Circular Floating Trigger Buttons on Mobile Viewports */}
       <div className="fixed right-3 bottom-20 z-40 md:hidden flex flex-col gap-3 items-center select-none">
         
-        {/* 1. Partner Profile Floating Button */}
+        {/* 1. Shared Music Floating Circle Button */}
         <button
           type="button"
-          onClick={() => {
-            if (partner?._id) {
-              navigate('/profile', { state: { targetUserId: partner._id } });
-            } else {
-              navigate('/profile');
-            }
-          }}
-          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-afzal via-amrin to-heart shadow-2xl active:scale-95 transition-transform group flex items-center justify-center relative"
-          aria-label={`View ${partnerName}'s Profile`}
-          title={`View ${partnerName}'s Profile`}
+          onClick={() => navigate('/shared-music')}
+          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 shadow-2xl active:scale-95 transition-transform group flex items-center justify-center relative"
+          aria-label="Shared Music"
+          title="Shared Music"
         >
-          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-white font-bold text-xs overflow-hidden p-0.5">
-            {partnerAvatar ? (
-              <img
-                src={partnerAvatar}
-                alt={partnerName}
-                className="w-full h-full object-cover rounded-full group-hover:scale-105 transition-transform"
-              />
-            ) : (
-              <span>{partnerName?.[0] || '❤️'}</span>
-            )}
+          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-rose-400">
+            <Music className="w-5 h-5 group-hover:scale-110 transition-transform text-amrin-glow" />
           </div>
-          <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute bottom-0 right-0 shadow-md" />
         </button>
 
         {/* 2. Activity Context Circular Button with Radiant Gradient Border */}

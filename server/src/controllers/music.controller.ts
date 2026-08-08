@@ -916,9 +916,13 @@ export const playSongAudio = catchAsync(async (req: Request, res: Response) => {
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+      const maxChunkSize = 1024 * 1024; // 1MB streaming chunk limit for instant audio start
+      let end = parts[1] ? parseInt(parts[1], 10) : start + maxChunkSize - 1;
+      if (end >= totalSize) {
+        end = totalSize - 1;
+      }
 
-      if (start >= totalSize || end >= totalSize) {
+      if (start >= totalSize) {
         res.status(416).setHeader('Content-Range', `bytes */${totalSize}`);
         return res.end();
       }
@@ -930,7 +934,7 @@ export const playSongAudio = catchAsync(async (req: Request, res: Response) => {
         'Content-Length': chunkSize,
         'Content-Type': contentType,
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=86400',
       });
       return res.end(buffer.subarray(start, end + 1));
     } else {
@@ -939,19 +943,22 @@ export const playSongAudio = catchAsync(async (req: Request, res: Response) => {
         'Content-Type': contentType,
         'Accept-Ranges': 'bytes',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'public, max-age=86400',
       });
       return res.end(buffer);
     }
   }
 
-  // If it's a normal Cloudinary HTTP/S URL, redirect the browser to it (converting to MP3 transcode format)
+  // If it's a normal Cloudinary HTTP/S URL, redirect the browser to it
   if (song.previewUrl && song.previewUrl.startsWith('http')) {
     let redirectUrl = song.previewUrl;
     if (redirectUrl.includes('cloudinary.com')) {
-      redirectUrl = redirectUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
-      if (!redirectUrl.includes('/f_mp3') && redirectUrl.includes('/upload/')) {
-        redirectUrl = redirectUrl.replace('/upload/', '/upload/f_mp3,ac_mp3/');
+      const cleanPath = redirectUrl.split('?')[0];
+      if (!/\.mp3$/i.test(cleanPath)) {
+        redirectUrl = redirectUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
+        if (!redirectUrl.includes('/f_mp3') && redirectUrl.includes('/upload/')) {
+          redirectUrl = redirectUrl.replace('/upload/', '/upload/f_mp3,ac_mp3/');
+        }
       }
     }
     return res.redirect(redirectUrl);

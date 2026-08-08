@@ -10,7 +10,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NAVIGATION_CONFIG } from '../../config/navigation.config.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -27,6 +27,11 @@ export const BottomNav: React.FC = () => {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Automatically close mobile drawer menu whenever current route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Hide Bottom Navigation ONLY when inside an active open chat thread on mobile
   if (location.pathname.startsWith('/chat') && mobileView === 'chat') {
@@ -120,12 +125,16 @@ export const BottomNav: React.FC = () => {
       {/* Mobile Side Drawer Menu for accessing Chat and ALL Application Features */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-[200] flex justify-end bg-black/80 backdrop-blur-md md:hidden">
+          <div
+            className="fixed inset-0 z-[200] flex justify-end bg-black/80 backdrop-blur-md md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
               className="w-4/5 max-w-xs h-full bg-obsidian-950 border-l border-white/10 p-5 flex flex-col justify-between overflow-y-auto"
             >
               <div className="space-y-6">

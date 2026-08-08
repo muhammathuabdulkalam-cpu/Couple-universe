@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
+  ChevronRight,
   LogIn,
   LogOut,
   MessageCircle,
@@ -11,12 +12,16 @@ import {
   Sun,
   User,
   UserPlus,
+  X,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useNotificationStore } from '../../store/notificationStore.js';
 import { useUIStore } from '../../store/uiStore.js';
+import { ApiResponse } from '../../types/index.js';
 import { Badge } from '../ui/Badge.js';
 import { Button } from '../ui/Button.js';
 
@@ -27,6 +32,16 @@ export const Navbar: React.FC = () => {
   const { unreadNotifCount, unreadChatCount, toggleNotifDrawer } = useNotificationStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch Partner & Profile Details for search matching
+  const { data: profileData } = useQuery<any>({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const res = await axiosClient.get<ApiResponse<any>>('/profile');
+      return res.data.data;
+    },
+    enabled: isAuthenticated,
+  });
 
   const handleLogout = async () => {
     setIsDropdownOpen(false);
@@ -57,23 +72,119 @@ export const Navbar: React.FC = () => {
         </Link>
 
         {/* Center: Global Search Bar */}
-        {isAuthenticated && (
-          <div className="flex-1 max-w-md hidden md:block">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search memories, diary, albums, milestones..."
-                className="w-full bg-obsidian-950/80 border border-slate-800 rounded-xl py-2 left-10 pl-10 pr-12 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 border border-slate-700/60 rounded px-1.5 py-0.5">
-                ⌘K
-              </span>
+        {isAuthenticated && (() => {
+          const partner = profileData?.partner || {
+            _id: user?.role === 'SUPER_OWNER' ? 'co-owner-id' : 'super-owner-id',
+            name: user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal',
+            email: user?.role === 'SUPER_OWNER' ? 'amrin@verse.app' : 'afzal@verse.app',
+            role: user?.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER',
+            avatar: null,
+          };
+
+          const candidates = [
+            user ? { _id: user._id || user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } : null,
+            partner ? { _id: partner._id, name: partner.name, email: partner.email, role: partner.role, avatar: partner.avatar } : null,
+          ].filter(Boolean) as any[];
+
+          const trimmed = searchQuery.trim().toLowerCase();
+          const searchResults = trimmed
+            ? candidates.filter(
+                (c) =>
+                  c.name?.toLowerCase().includes(trimmed) ||
+                  c.email?.toLowerCase().includes(trimmed) ||
+                  c.role?.toLowerCase().includes(trimmed) ||
+                  (trimmed.includes('amrin') && c.name?.toLowerCase().includes('amrin')) ||
+                  (trimmed.includes('afzal') && c.name?.toLowerCase().includes('afzal'))
+              )
+            : [];
+
+          return (
+            <div className="flex-1 max-w-md hidden md:block relative">
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search profile by name (e.g. Amrin, Afzal)..."
+                  className="w-full bg-obsidian-950/80 border border-slate-800 rounded-xl py-2 left-10 pl-10 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Live Search User Profile Dropdown */}
+              <AnimatePresence>
+                {searchQuery.trim().length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                    className="absolute top-12 left-0 right-0 z-50 glass-panel rounded-2xl p-2.5 border border-white/15 shadow-2xl space-y-2 bg-obsidian-950/98 backdrop-blur-2xl"
+                  >
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2">
+                      User Profile Search Results
+                    </div>
+
+                    {searchResults.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-400">
+                        No user found matching "{searchQuery}"
+                      </div>
+                    ) : (
+                      searchResults.map((matchedUser) => {
+                        const isAmrin = matchedUser.name?.toLowerCase().includes('amrin') || matchedUser.role === 'CO_OWNER';
+
+                        return (
+                          <div
+                            key={matchedUser._id}
+                            onClick={() => {
+                              navigate('/profile', { state: { targetUserId: matchedUser._id } });
+                              setSearchQuery('');
+                            }}
+                            className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] overflow-hidden shrink-0 shadow-md">
+                                {matchedUser.avatar ? (
+                                  <img src={matchedUser.avatar} alt={matchedUser.name} className="w-full h-full object-cover rounded-full" />
+                                ) : (
+                                  <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                                    {matchedUser.name?.[0] || '❤️'}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-extrabold text-white group-hover:text-amrin-glow transition-colors truncate">
+                                    {matchedUser.name}
+                                  </span>
+                                  <Badge variant={isAmrin ? 'cyan' : 'green'} size="sm">
+                                    {isAmrin ? 'Princess 👸' : 'Owner'}
+                                  </Badge>
+                                </div>
+                                <span className="text-[10px] text-slate-400 block truncate">{matchedUser.email}</span>
+                                <span className="text-[10px] text-amrin-glow font-semibold block mt-0.5">
+                                  Tap to view full profile, followers, posts & stories →
+                                </span>
+                              </div>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white shrink-0" />
+                          </div>
+                        );
+                      })
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Right: Actions, Notifications, Theme Toggle & User Menu */}
         <div className="flex items-center gap-3 shrink-0">

@@ -18,10 +18,12 @@ export const ProfilePage: React.FC = () => {
   const { user: currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('posts');
 
+  const searchParams = new URLSearchParams(location.search);
+  const queryUserId = searchParams.get('userId') || searchParams.get('id');
   const locationState = location.state as { targetUserId?: string; userId?: string } | null;
-  const targetUserId = locationState?.targetUserId || locationState?.userId;
+  const targetUserId = queryUserId || locationState?.targetUserId || locationState?.userId;
 
-  const isSelfProfile = !targetUserId || String(targetUserId) === String(currentUser?._id);
+  const isSelfProfile = !targetUserId || String(targetUserId) === String(currentUser?._id || currentUser?.id);
 
   // Fetch Profile Stats & Details
   const { data: profileData, isLoading, refetch } = useQuery<any>({

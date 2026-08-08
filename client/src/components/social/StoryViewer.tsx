@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, Heart, Trash2, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useUIStore } from '../../store/uiStore.js';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openActivitySheet = false }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const qc = useQueryClient();
@@ -215,8 +217,17 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
         </div>
 
         {/* Story Author Header */}
-        <div className="absolute top-7 left-3 right-16 z-20 flex items-center gap-2.5 bg-gradient-to-b from-black/60 to-transparent p-2 rounded-xl">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 p-[2px] shrink-0">
+        <div
+          className="absolute top-7 left-3 right-16 z-20 flex items-center gap-2.5 bg-gradient-to-b from-black/60 to-transparent p-2 rounded-xl cursor-pointer hover:bg-black/80 transition-colors group"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+            if (currentAuthorId) {
+              navigate('/profile', { state: { targetUserId: currentAuthorId } });
+            }
+          }}
+        >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 p-[2px] shrink-0 group-hover:scale-105 transition-transform">
             <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {current.userId.avatar ? (
                 <img src={current.userId.avatar} className="w-full h-full object-cover" alt="" />
@@ -226,7 +237,7 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-white text-xs font-bold leading-none truncate">{current.userId.name}</p>
+            <p className="text-white text-xs font-bold leading-none truncate group-hover:text-amrin-glow transition-colors">{current.userId.name}</p>
             <p className="text-white/70 text-[10px] mt-0.5 font-mono truncate">
               {new Date(current.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </p>
@@ -351,7 +362,13 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
                   consolidatedUserActivities.map((item) => (
                     <div
                       key={item.userId}
-                      className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-md"
+                      onClick={() => {
+                        onClose();
+                        if (item.userId) {
+                          navigate('/profile', { state: { targetUserId: item.userId } });
+                        }
+                      }}
+                      className="flex items-center justify-between p-2.5 rounded-2xl bg-white/5 border border-white/10 shadow-md cursor-pointer hover:bg-white/10 transition-colors group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] overflow-hidden shrink-0 shadow-md">

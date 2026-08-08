@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, MessageCircle, MoreVertical, Send, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useUIStore } from '../../store/uiStore.js';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, autoOpenLikes = false, highlighted = false, variant = 'default' }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const qc = useQueryClient();
@@ -125,8 +127,16 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
     >
       {/* 1. Instagram Post Header */}
       <div className="p-3.5 flex items-center justify-between border-b border-white/5 bg-obsidian-950/60">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0">
+        <div
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={() => {
+            const authorId = activity.userId._id || (activity.userId as any).id;
+            if (authorId) {
+              navigate('/profile', { state: { targetUserId: authorId } });
+            }
+          }}
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0 group-hover:scale-105 transition-transform">
             <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {activity.userId.avatar ? (
                 <img src={activity.userId.avatar} alt={activity.userId.name} className="w-full h-full object-cover" />
@@ -136,7 +146,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white leading-snug">{activity.userId.name}</h4>
+            <h4 className="text-xs font-bold text-white leading-snug group-hover:text-amrin-glow transition-colors">{activity.userId.name}</h4>
             <p className="text-[10px] text-slate-400 font-mono">{activity.description?.startsWith('📍') ? activity.description : formattedDate}</p>
           </div>
         </div>
