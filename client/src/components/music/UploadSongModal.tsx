@@ -293,12 +293,10 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
           <div className="space-y-2.5 pt-2">
             <button
               onClick={() => playTrack(uploadedSong)}
-              className="w-full px-4 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-rose-950/50 flex items-center justify-center gap-2 transform active:scale-95 transition min-w-0"
+              className="w-full px-4 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-rose-950/50 flex items-center justify-center gap-2 transform active:scale-95 transition"
             >
-              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
-              <span className="truncate min-w-0 max-w-full">
-                Play "{uploadedSong.title}" Now
-              </span>
+              <Play className="w-5 h-5 fill-current shrink-0" />
+              <span>Play Song Now</span>
             </button>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
