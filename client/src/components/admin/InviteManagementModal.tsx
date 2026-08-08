@@ -215,15 +215,14 @@ export const InviteManagementModal: React.FC<InviteManagementModalProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-amber-300 text-sm tracking-wider">{inv.code}</span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            inv.status === 'UNUSED'
+                          className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${inv.status === 'UNUSED'
                               ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
                               : inv.status === 'USED'
-                              ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
-                              : inv.status === 'EXPIRED'
-                              ? 'bg-amber-500/20 border border-amber-500/30 text-amber-300'
-                              : 'bg-rose-500/20 border border-rose-500/30 text-rose-300'
-                          }`}
+                                ? 'bg-purple-500/20 border border-purple-500/30 text-purple-300'
+                                : inv.status === 'EXPIRED'
+                                  ? 'bg-amber-500/20 border border-amber-500/30 text-amber-300'
+                                  : 'bg-rose-500/20 border border-rose-500/30 text-rose-300'
+                            }`}
                         >
                           {inv.status}
                         </span>

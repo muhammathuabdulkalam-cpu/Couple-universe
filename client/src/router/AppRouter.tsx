@@ -63,7 +63,7 @@ export const AppRouter: React.FC = () => {
   return (
     <Suspense fallback={<SuspenseFallback />}>
       <Routes>
-        
+
         {/* Public & Guest Routes */}
         <Route
           path="/welcome"

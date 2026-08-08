@@ -165,14 +165,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                     <Link key={item.key} to={item.path}>
                       <motion.div
                         whileHover={{ x: 3 }}
-                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                          isActive
+                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
                             ? 'bg-gradient-to-r from-afzal/20 to-amrin/20 text-white font-semibold border border-amrin/30 shadow-lg shadow-amrin/10'
                             : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                        }`}
+                          }`}
                       >
                         <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amrin-glow' : ''}`} />
-                        
+
                         {isExpanded && (
                           <motion.span
                             initial={{ opacity: 0 }}
