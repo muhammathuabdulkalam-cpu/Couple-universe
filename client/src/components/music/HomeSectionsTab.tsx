@@ -211,7 +211,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         {/* Title */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-            <span>Welcome to Muzic</span>
+            <span>Welcome to Muzify</span>
             <span className="text-rose-500 animate-pulse">🎧</span>
           </h1>
         </div>
@@ -342,7 +342,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl p-5 md:p-10 text-white shadow-2xl border border-white/10"
+        className="relative overflow-hidden rounded-3xl p-5 md:p-10 text-white shadow-2xl border border-white/10 w-full max-w-full"
         style={{ background: heroPalette.ambientGradient }}
       >
         {/* Dynamic Blurred Glow */}
@@ -351,7 +351,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           style={{ background: heroPalette.dominant }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-5 md:gap-8">
+        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-5 md:gap-8 w-full max-w-full overflow-hidden">
           {/* Left: Large Artwork & Disc */}
           <div className="relative group shrink-0">
             <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
@@ -369,35 +369,35 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           </div>
 
           {/* Right: Track Info & Actions */}
-          <div className="flex-1 min-w-0 space-y-2.5 md:space-y-4 text-center md:text-left">
+          <div className="flex-1 min-w-0 w-full max-w-full space-y-2.5 md:space-y-4 text-center md:text-left overflow-hidden">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md text-[11px] md:text-xs font-bold text-rose-300">
               <Radio className="w-3 h-3 md:w-3.5 md:h-3.5 text-rose-400 animate-pulse" />
               <span>{currentTrack ? 'Now Playing' : 'Spotlight Feature'}</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight text-white line-clamp-2 leading-tight">
+            <h1 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-white line-clamp-2 leading-tight break-words max-w-full">
               {activeHeroTrack.title}
             </h1>
 
-            <p className="text-xs sm:text-sm md:text-xl font-medium text-slate-300 truncate">
+            <p className="text-xs sm:text-sm md:text-xl font-medium text-slate-300 truncate max-w-full">
               {activeHeroTrack.artist} {activeHeroTrack.album ? `• ${activeHeroTrack.album}` : ''}
             </p>
 
             {/* Waveform visualizer */}
             {isPlaying && (
-              <div className="py-0.5">
-                <MusicWaveform isPlaying={isPlaying} barCount={24} height={24} color="bg-rose-400" />
+              <div className="py-0.5 flex justify-center md:justify-start max-w-full overflow-hidden">
+                <MusicWaveform isPlaying={isPlaying} barCount={16} height={20} color="bg-rose-400" />
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 md:gap-4 pt-1">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 md:gap-4 pt-1 max-w-full">
               <button
                 onClick={() =>
                   currentTrack?.providerSongId === activeHeroTrack.providerSongId
                     ? togglePlay()
                     : playTrack(activeHeroTrack)
                 }
-                className="px-5 py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition"
+                className="px-4 py-2.5 sm:px-5 sm:py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs sm:text-sm md:text-base flex items-center gap-2 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition shrink-0"
               >
                 {isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
                   <>
@@ -412,7 +412,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
 
               <button
                 onClick={() => handleToggleFav(activeHeroTrack)}
-                className={`p-2.5 md:p-3.5 rounded-full border transition ${favoritesMap[activeHeroTrack.providerSongId]
+                className={`p-2.5 sm:p-2.5 md:p-3.5 rounded-full border transition shrink-0 ${favoritesMap[activeHeroTrack.providerSongId]
                   ? 'bg-rose-500/20 border-rose-500 text-rose-400'
                   : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
                   }`}
@@ -424,7 +424,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
               {onOpenDedicateModal && (
                 <button
                   onClick={() => onOpenDedicateModal(activeHeroTrack)}
-                  className="px-3.5 py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition"
+                  className="px-3.5 py-2.5 sm:px-4 sm:py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition shrink-0"
                 >
                   <HeartHandshake className="w-4 h-4 md:w-5 md:h-5 text-rose-300" /> Dedicate
                 </button>
