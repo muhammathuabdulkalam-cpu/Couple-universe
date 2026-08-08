@@ -4,7 +4,6 @@ import {
   Heart,
   HeartHandshake,
   ListMusic,
-  Plus,
   Search,
   UploadCloud,
 } from 'lucide-react';
@@ -12,7 +11,6 @@ import { socketClient } from '../api/socketClient';
 import { DedicationsTab } from '../components/music/DedicationsTab';
 import { FavoritesTab } from '../components/music/FavoritesTab';
 import { HomeSectionsTab } from '../components/music/HomeSectionsTab';
-import { ListenTogetherBadge } from '../components/music/ListenTogetherBadge';
 import { ListenTogetherInviteBanner } from '../components/music/ListenTogetherInviteBanner';
 import { MusicSearchTab } from '../components/music/MusicSearchTab';
 import { PlaylistsTab } from '../components/music/PlaylistsTab';
@@ -137,21 +135,6 @@ export const SharedMusicPage: React.FC = () => {
               <Heart className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span>Favorites</span>
             </button>
-          </div>
-
-          {/* Action Buttons: Single Compact Upload Pill & Listen Together Badge */}
-          <div className="flex items-center gap-1.5 md:gap-2 shrink-0 ml-auto pl-2 border-l border-white/10">
-            <button
-              onClick={() => setIsUploadModalOpen(true)}
-              className="h-8 md:h-9 px-2.5 md:px-3.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-[11px] md:text-xs font-bold flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition shrink-0"
-              title="Upload Custom Song"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
-              <span className="hidden sm:inline">Upload Song</span>
-              <span className="sm:hidden">Upload</span>
-            </button>
-
-            <ListenTogetherBadge />
           </div>
         </div>
       </div>

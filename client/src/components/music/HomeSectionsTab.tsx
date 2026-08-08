@@ -211,8 +211,8 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         {/* Title */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
-            <span>Welcome to Music</span>
-            <span className="text-rose-500 animate-pulse">❤️</span>
+            <span>Welcome to Muzic</span>
+            <span className="text-rose-500 animate-pulse">🎧</span>
           </h1>
         </div>
 
@@ -283,7 +283,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
             </div>
 
             {inlineSearchResults.length > 0 ? (
-              <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth snap-x">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 pt-1">
                 {inlineSearchResults.map((song, sIdx) => {
                   const isCurrent = currentTrack?.providerSongId === song.providerSongId;
                   const isSongPlaying = isCurrent && isPlaying;
@@ -293,7 +293,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     <div
                       key={`inline-${song.providerSongId}-${sIdx}`}
                       onClick={() => (isCurrent ? togglePlay() : playTrack(song, inlineSearchResults))}
-                      className="group shrink-0 w-44 md:w-52 bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl snap-start flex flex-col justify-between"
+                      className="group bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl flex flex-col justify-between"
                     >
                       <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
                         <img
