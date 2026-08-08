@@ -55,7 +55,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
   useEffect(() => {
     if (!currentTrack) return;
-    
+
     // Deduplicate getFavorites API calls using in-memory cached promise
     if (!favsCachePromise) {
       favsCachePromise = musicApi.getFavorites().then((favs) => {
@@ -68,7 +68,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
       .then((set) => {
         setIsFavorite(set.has(currentTrack.providerSongId));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [currentTrack]);
 
   if (!currentTrack) return null;
@@ -133,11 +133,10 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                     <div
                       key={`${track.providerSongId}-${idx}`}
                       onClick={() => playTrack(track, queue)}
-                      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${
-                        isCurrent
+                      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition ${isCurrent
                           ? 'bg-rose-500/20 border border-rose-500/30 text-rose-300'
                           : 'hover:bg-white/5 text-slate-300'
-                      }`}
+                        }`}
                     >
                       <img
                         src={track.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
@@ -169,9 +168,8 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
       {/* Main Floating Bottom Player Bar */}
       <div
-        className={`fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${
-          isCollapsed ? 'translate-y-[calc(100%-3.5rem)]' : ''
-        }`}
+        className={`fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${isCollapsed ? 'translate-y-[calc(100%-3.5rem)]' : ''
+          }`}
       >
         <div className="relative overflow-hidden rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl shadow-rose-950/20 text-white p-3 md:p-4">
           {/* Subtle Top Glowing Progress Line */}
@@ -199,9 +197,8 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                 <img
                   src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
                   alt={currentTrack.title}
-                  className={`w-12 h-12 rounded-xl object-cover shadow-md transition-transform duration-500 ${
-                    isPlaying ? 'animate-spin-slow scale-105 ring-2 ring-rose-500/50' : ''
-                  }`}
+                  className={`w-12 h-12 rounded-xl object-cover shadow-md transition-transform duration-500 ${isPlaying ? 'animate-spin-slow scale-105 ring-2 ring-rose-500/50' : ''
+                    }`}
                 />
               </div>
               <div className="min-w-0">
@@ -227,9 +224,8 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => toggleShuffle()}
-                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${
-                    isShuffle ? 'text-rose-400' : 'text-slate-400'
-                  }`}
+                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${isShuffle ? 'text-rose-400' : 'text-slate-400'
+                    }`}
                   title="Shuffle"
                 >
                   <Shuffle className="w-4 h-4" />
@@ -246,11 +242,10 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                 <button
                   onClick={() => togglePlay()}
                   disabled={!currentTrack.previewUrl}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${
-                    currentTrack.previewUrl
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${currentTrack.previewUrl
                       ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:scale-105 active:scale-95'
                       : 'bg-slate-700 opacity-50 cursor-not-allowed'
-                  }`}
+                    }`}
                   title={!currentTrack.previewUrl ? 'Preview unavailable.' : isPlaying ? 'Pause' : 'Play'}
                 >
                   {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
@@ -266,9 +261,8 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
                 <button
                   onClick={() => cycleRepeatMode()}
-                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${
-                    repeatMode !== 'none' ? 'text-rose-400' : 'text-slate-400'
-                  }`}
+                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${repeatMode !== 'none' ? 'text-rose-400' : 'text-slate-400'
+                    }`}
                   title={`Repeat: ${repeatMode}`}
                 >
                   {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
@@ -304,11 +298,10 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
               <button
                 onClick={() => toggleQueueDrawer()}
-                className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${
-                  isQueueDrawerOpen
+                className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${isQueueDrawerOpen
                     ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                     : 'hover:bg-white/10 text-slate-300'
-                }`}
+                  }`}
                 title="Queue"
               >
                 <ListMusic className="w-4 h-4" />

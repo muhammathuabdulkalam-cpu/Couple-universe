@@ -57,7 +57,7 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
         .then((favs) => {
           setIsFavorite(favs.some((f) => f.providerSongId === currentTrack.providerSongId));
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [currentTrack]);
 
