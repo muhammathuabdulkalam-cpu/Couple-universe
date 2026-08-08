@@ -10,9 +10,14 @@ import {
 } from '../types/music.types';
 
 export const musicApi = {
-  uploadSong: async (formData: FormData) => {
+  uploadSong: async (
+    formData: FormData,
+    onUploadProgress?: (progressEvent: any) => void
+  ) => {
     const res = await axiosClient.post('/music/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000, // 5 minutes timeout for large audio uploads
+      onUploadProgress,
     });
     return res.data.data as NormalizedSong;
   },

@@ -175,7 +175,14 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
     cloudinaryDuration = Math.round(audioUpload.duration || 0);
     logger.info('✓ Cloudinary Upload success (MP3 transcoded):', audioUploadUrl);
   } catch (err: any) {
-    logger.error('❌ Cloudinary upload warning (using base64 audio fallback):', err.message);
+    logger.error('❌ Cloudinary audio upload failed:', err.message);
+    // If file buffer size exceeds 11MB, converting to base64 will exceed MongoDB's 16MB BSON limit
+    if (audioFile.buffer.length > 11 * 1024 * 1024) {
+      throw new AppError(
+        `Cloudinary storage error: ${err.message || 'Failed to upload audio to cloud'}. File is too large for local fallback.`,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR
+      );
+    }
     const base64Audio = audioFile.buffer.toString('base64');
     audioUploadUrl = `data:${audioFile.mimetype || 'audio/mpeg'};base64,${base64Audio}`;
   }
