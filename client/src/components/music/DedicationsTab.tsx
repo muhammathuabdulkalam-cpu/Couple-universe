@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   HeartHandshake,
+  Loader2,
   MessageCircle,
   Pause,
   Play,
@@ -31,6 +32,7 @@ export const DedicationsTab: React.FC<DedicationsTabProps> = ({
 
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const isAudioLoading = useMusicPlayerStore((s) => s.isLoading);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
@@ -159,13 +161,17 @@ export const DedicationsTab: React.FC<DedicationsTabProps> = ({
                   onClick={() => (isCurrent ? togglePlay() : playTrack(song))}
                   className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white font-semibold text-xs flex items-center gap-2 border border-rose-500/30 transition shrink-0"
                 >
-                  {isSongPlaying ? (
+                  {isCurrent && isAudioLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-current" /> Loading
+                    </>
+                  ) : isSongPlaying ? (
                     <>
                       <Pause className="w-4 h-4 fill-current" /> Pause
                     </>
                   ) : (
                     <>
-                      <Play className="w-4 h-4 fill-current" /> Play Preview
+                      <Play className="w-4 h-4 fill-current" /> Play
                     </>
                   )}
                 </button>

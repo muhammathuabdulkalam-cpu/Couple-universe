@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronUp,
   Heart,
+  Loader2,
   MoreVertical,
   Pause,
   Play,
@@ -23,6 +24,7 @@ import { extractDominantColor } from '../../utils/colorExtractor';
 export const MobileFullPlayerModal: React.FC = React.memo(() => {
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const isLoading = useMusicPlayerStore((s) => s.isLoading);
   const currentTime = useMusicPlayerStore((s) => s.currentTime);
   const duration = useMusicPlayerStore((s) => s.duration);
   const isShuffle = useMusicPlayerStore((s) => s.isShuffle);
@@ -203,7 +205,9 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
               onClick={() => togglePlay()}
               className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition"
             >
-              {isPlaying ? (
+              {isLoading ? (
+                <Loader2 className="w-8 h-8 animate-spin text-black" />
+              ) : isPlaying ? (
                 <Pause className="w-8 h-8 fill-black text-black" />
               ) : (
                 <Play className="w-8 h-8 fill-black text-black ml-1" />

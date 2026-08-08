@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, Music, Pause, Play, Trash2 } from 'lucide-react';
+import { Heart, Loader2, Music, Pause, Play, Trash2 } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { NormalizedSong } from '../../types/music.types';
@@ -10,6 +10,7 @@ export const FavoritesTab: React.FC = () => {
 
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const isAudioLoading = useMusicPlayerStore((s) => s.isLoading);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
@@ -112,7 +113,9 @@ export const FavoritesTab: React.FC = () => {
                     onClick={() => (isCurrent ? togglePlay() : playTrack(song, favorites))}
                     className="p-2 rounded-full bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white transition"
                   >
-                    {isSongPlaying ? (
+                    {isCurrent && isAudioLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-current" />
+                    ) : isSongPlaying ? (
                       <Pause className="w-4 h-4 fill-current" />
                     ) : (
                       <Play className="w-4 h-4 fill-current ml-0.5" />

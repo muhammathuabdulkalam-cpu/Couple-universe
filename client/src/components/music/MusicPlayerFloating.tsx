@@ -3,6 +3,7 @@ import {
   FileText,
   Heart,
   ListMusic,
+  Loader2,
   Maximize2,
   Minimize2,
   Pause,
@@ -28,6 +29,7 @@ let favsCacheSet: Set<string> | null = null;
 export const MusicPlayerFloating: React.FC = React.memo(() => {
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const isLoading = useMusicPlayerStore((s) => s.isLoading);
   const currentTime = useMusicPlayerStore((s) => s.currentTime);
   const duration = useMusicPlayerStore((s) => s.duration);
   const volume = useMusicPlayerStore((s) => s.volume);
@@ -246,9 +248,15 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                       ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:scale-105 active:scale-95'
                       : 'bg-slate-700 opacity-50 cursor-not-allowed'
                     }`}
-                  title={!currentTrack.previewUrl ? 'Preview unavailable.' : isPlaying ? 'Pause' : 'Play'}
+                  title={!currentTrack.previewUrl ? 'Preview unavailable.' : isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
                 >
-                  {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  ) : isPlaying ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                  )}
                 </button>
 
                 <button

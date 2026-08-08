@@ -390,29 +390,33 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 md:gap-4 pt-1 max-w-full">
+            <div className="flex flex-row flex-nowrap items-center justify-center md:justify-start gap-2 sm:gap-3 md:gap-4 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
               <button
                 onClick={() =>
                   currentTrack?.providerSongId === activeHeroTrack.providerSongId
                     ? togglePlay()
                     : playTrack(activeHeroTrack)
                 }
-                className="px-4 py-2.5 sm:px-5 sm:py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs sm:text-sm md:text-base flex items-center gap-2 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition shrink-0"
+                className="px-3.5 py-2 sm:px-5 sm:py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs sm:text-sm md:text-base flex items-center gap-1.5 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition shrink-0"
               >
-                {isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
+                {isAudioLoading && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
                   <>
-                    <Pause className="w-4 h-4 md:w-6 md:h-6 fill-current" /> Pause Preview
+                    <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-white" /> Loading
+                  </>
+                ) : isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
+                  <>
+                    <Pause className="w-4 h-4 md:w-6 md:h-6 fill-current" /> Pause
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" /> Play Track
+                    <Play className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" /> Play
                   </>
                 )}
               </button>
 
               <button
                 onClick={() => handleToggleFav(activeHeroTrack)}
-                className={`p-2.5 sm:p-2.5 md:p-3.5 rounded-full border transition shrink-0 ${favoritesMap[activeHeroTrack.providerSongId]
+                className={`p-2 sm:p-2.5 md:p-3.5 rounded-full border transition shrink-0 ${favoritesMap[activeHeroTrack.providerSongId]
                   ? 'bg-rose-500/20 border-rose-500 text-rose-400'
                   : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
                   }`}
@@ -424,7 +428,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
               {onOpenDedicateModal && (
                 <button
                   onClick={() => onOpenDedicateModal(activeHeroTrack)}
-                  className="px-3.5 py-2.5 sm:px-4 sm:py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition shrink-0"
+                  className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition shrink-0"
                 >
                   <HeartHandshake className="w-4 h-4 md:w-5 md:h-5 text-rose-300" /> Dedicate
                 </button>

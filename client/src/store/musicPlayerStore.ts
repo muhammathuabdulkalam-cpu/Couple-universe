@@ -114,6 +114,18 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
       }
     });
 
+    globalAudio.addEventListener('playing', () => {
+      set({ isPlaying: true, isLoading: false });
+    });
+
+    globalAudio.addEventListener('waiting', () => {
+      set({ isLoading: true });
+    });
+
+    globalAudio.addEventListener('canplay', () => {
+      set({ isLoading: false });
+    });
+
     globalAudio.addEventListener('ended', () => {
       const { repeatMode } = get();
       if (repeatMode === 'one' && globalAudio) {
@@ -126,7 +138,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
     globalAudio.addEventListener('error', (e) => {
       console.warn('Audio playback error event captured:', e, globalAudio?.error);
-      set({ isPlaying: false });
+      set({ isPlaying: false, isLoading: false });
     });
 
     set({ audioElement: globalAudio });
@@ -147,13 +159,31 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // 1. Instant Playback optimization: If clicking play on currently loaded song, toggle without changing src
     if (currentTrack?.providerSongId === songId && audioElement.src) {
       if (!isPlaying) {
+        set({ isLoading: true });
         audioElement
           .play()
-          .then(() => set({ isPlaying: true }))
-          .catch(() => { });
+          .then(() => {
+            if (currentRequestId === activePlayRequestId) {
+              set({ isPlaying: true, isLoading: false });
+            }
+          })
+          .catch(() => {
+            if (currentRequestId === activePlayRequestId) {
+              set({ isPlaying: false, isLoading: false });
+            }
+          });
+      } else {
+        audioElement.pause();
+        set({ isPlaying: false, isLoading: false });
       }
       return;
     }
+
+    // Stop old song immediately so audio buffer doesn't keep outputting old track
+    try {
+      audioElement.pause();
+      audioElement.currentTime = 0;
+    } catch (_err) { }
 
     // Determine target queue & queue index synchronously
     const newQueue = queueList && queueList.length > 0 ? queueList : get().queue.length > 0 ? get().queue : [track];
@@ -164,10 +194,11 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     let targetUrl = resolvedUrlCache.get(songId) || getNormalizedAudioUrl(track.previewUrl || '');
     let resolvedTrack: NormalizedSong = { ...track, previewUrl: targetUrl };
 
-    // 3. INSTANT ZUSTAND STORE UPDATE (0ms delay UI response)
+    // 3. INSTANT ZUSTAND STORE UPDATE - SHOW LOADING, PAUSE OLD PLAYING STATE
     set({
       currentTrack: resolvedTrack,
-      isPlaying: true,
+      isPlaying: false,
+      isLoading: true,
       queue: newQueue,
       queueIndex: queueIndex >= 0 ? queueIndex : 0,
       currentTime: 0,
@@ -179,11 +210,9 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
     // 4. INSTANT NATIVE AUDIO PLAYBACK
     if (targetUrl && targetUrl.trim() !== '' && !targetUrl.includes('cloudinary.com/demo/')) {
-      if (!audioElement.paused) {
-        audioElement.pause();
-      }
       if (audioElement.src !== targetUrl) {
         audioElement.src = targetUrl;
+        audioElement.load();
       }
       audioElement.currentTime = 0;
       audioElement.volume = get().isMuted ? 0 : get().volume;
@@ -193,7 +222,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
         .then(() => {
           if (currentRequestId === activePlayRequestId) {
             resolvedUrlCache.set(songId, targetUrl);
-            set({ isPlaying: true });
+            set({ isPlaying: true, isLoading: false });
           }
         })
         .catch((err: any) => {
@@ -205,22 +234,23 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
             const mp3Url = getCloudinaryMp3Url(targetUrl);
             if (mp3Url && mp3Url !== targetUrl && audioElement) {
               audioElement.src = mp3Url;
+              audioElement.load();
               audioElement
                 .play()
                 .then(() => {
                   if (currentRequestId === activePlayRequestId) {
                     resolvedUrlCache.set(songId, mp3Url);
-                    set({ isPlaying: true });
+                    set({ isPlaying: true, isLoading: false });
                   }
                 })
                 .catch(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false });
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false, isLoading: false });
                 });
               return;
             }
           }
 
-          set({ isPlaying: false });
+          set({ isPlaying: false, isLoading: false });
         });
     } else {
       // Async fallback search ONLY if previewUrl is missing or demo link
@@ -239,14 +269,15 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
             if (audioElement) {
               audioElement.src = fallbackUrl;
+              audioElement.load();
               audioElement.currentTime = 0;
               audioElement
                 .play()
                 .then(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: true });
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: true, isLoading: false });
                 })
                 .catch(() => {
-                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false });
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false, isLoading: false });
                 });
             }
           } else {
@@ -257,11 +288,11 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
                 `Audio stream for "${track.title}" is currently unavailable.`,
                 'warning'
               );
-            set({ isPlaying: false });
+            set({ isPlaying: false, isLoading: false });
           }
         })
         .catch(() => {
-          if (currentRequestId !== activePlayRequestId) set({ isPlaying: false });
+          if (currentRequestId !== activePlayRequestId) set({ isPlaying: false, isLoading: false });
         });
     }
 
