@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { musicApi } from '../api/musicApi';
 import { NormalizedSong } from '../types/music.types';
-import { decodeAudioToWavUrl, getCloudinaryMp3Url, getNormalizedAudioUrl } from '../utils/audioDecoder';
+import { getCloudinaryMp3Url, getNormalizedAudioUrl } from '../utils/audioDecoder';
 import { useListenTogetherStore } from './listenTogetherStore';
 import { useUIStore } from './uiStore';
 
@@ -48,6 +48,30 @@ let globalAudio: HTMLAudioElement | null = null;
 const resolvedUrlCache = new Map<string, string>();
 let lastRecordedSongId: string | null = null;
 let activePlayRequestId = 0;
+const preloaderAudio = typeof window !== 'undefined' ? new Audio() : null;
+if (preloaderAudio) {
+  preloaderAudio.preload = 'auto';
+}
+
+function preloadNextTrack(queue: NormalizedSong[], currentIndex: number, isShuffle: boolean) {
+  if (!queue || queue.length <= 1) return;
+  const nextIdx = isShuffle ? Math.floor(Math.random() * queue.length) : (currentIndex + 1) % queue.length;
+  const nextTrack = queue[nextIdx];
+  if (!nextTrack) return;
+
+  const songId = nextTrack.providerSongId;
+  let nextUrl = resolvedUrlCache.get(songId);
+  if (!nextUrl && nextTrack.previewUrl) {
+    nextUrl = getNormalizedAudioUrl(nextTrack.previewUrl);
+    if (nextUrl) {
+      resolvedUrlCache.set(songId, nextUrl);
+    }
+  }
+
+  if (nextUrl && preloaderAudio && preloaderAudio.src !== nextUrl) {
+    preloaderAudio.src = nextUrl;
+  }
+}
 
 export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   currentTrack: null,
@@ -106,7 +130,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     set({ audioElement: globalAudio });
   },
 
-  playTrack: async (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean) => {
+  playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean) => {
     let { audioElement, currentTrack, isPlaying } = get();
     if (!audioElement) {
       get().initAudio();
@@ -121,138 +145,125 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // 1. Instant Playback optimization: If clicking play on currently loaded song, toggle without changing src
     if (currentTrack?.providerSongId === songId && audioElement.src) {
       if (!isPlaying) {
-        try {
-          await audioElement.play();
-          set({ isPlaying: true });
-        } catch (_err) {}
+        audioElement
+          .play()
+          .then(() => set({ isPlaying: true }))
+          .catch(() => { });
       }
       return;
     }
+
+    // Determine target queue & queue index synchronously
+    const newQueue = queueList && queueList.length > 0 ? queueList : get().queue.length > 0 ? get().queue : [track];
+    const existingIdx = newQueue.findIndex((t) => t.providerSongId === songId);
+    const queueIndex = existingIdx >= 0 ? existingIdx : 0;
 
     // 2. Cache check: Retrieve pre-cached playable URL or normalize input previewUrl
     let targetUrl = resolvedUrlCache.get(songId) || getNormalizedAudioUrl(track.previewUrl || '');
     let resolvedTrack: NormalizedSong = { ...track, previewUrl: targetUrl };
 
-    // 3. Fallback search only if previewUrl is missing or points to demo link
-    if (!targetUrl || targetUrl.includes('cloudinary.com/demo/')) {
-      try {
-        const searchRes = await musicApi.searchSongs(`${track.title} ${track.artist}`, 0, 5);
-        if (currentRequestId !== activePlayRequestId) return;
-        const liveMatch = searchRes?.songs?.find((s) => Boolean(s.previewUrl) && !s.previewUrl.includes('cloudinary.com/demo/'));
-        if (liveMatch) {
-          targetUrl = getNormalizedAudioUrl(liveMatch.previewUrl);
-          resolvedTrack.previewUrl = targetUrl;
-        }
-      } catch (_err) { }
-    }
-
-    if (currentRequestId !== activePlayRequestId) return;
-
-    // STRICT GUARD: If targetUrl is empty or invalid, abort setting src to prevent browser loading HTML page as audio
-    if (!targetUrl || targetUrl.trim() === '') {
-      console.warn('Audio stream URL is unavailable for track:', track.title);
-      useUIStore.getState().addToast('Preview Unavailable', `Audio stream for "${track.title}" is currently unavailable.`, 'warning');
-      set({ isPlaying: false });
-      return;
-    }
-
-    const newQueue = queueList && queueList.length > 0 ? queueList : get().queue;
-    const existingIdx = newQueue.findIndex((t) => t.providerSongId === songId);
-    const queueIndex = existingIdx >= 0 ? existingIdx : 0;
-
-    // Safely pause audio before setting new source to prevent pending play promise interruptions
-    if (!audioElement.paused && audioElement.src !== targetUrl) {
-      audioElement.pause();
-    }
-
-    // Update src only if target URL has changed (prevents discarding buffered data & duplicate network requests)
-    if (audioElement.src !== targetUrl) {
-      audioElement.src = targetUrl;
-    }
-    audioElement.volume = get().isMuted ? 0 : get().volume;
-
-    let playSuccess = false;
-
-    // Stage 1: Native HTML5 audio play
-    try {
-      if (targetUrl) {
-        await audioElement.play();
-        if (currentRequestId !== activePlayRequestId) return;
-        playSuccess = true;
-        resolvedUrlCache.set(songId, targetUrl);
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError' || currentRequestId !== activePlayRequestId) {
-        // Interrupted by a newer play request - exit cleanly without triggering fallbacks
-        return;
-      }
-      console.warn('Native HTMLAudioElement play failed for format/source, initializing fallback recovery chain:', err);
-    }
-
-    // Stage 2: Cloudinary MP3 transcode fallback
-    if (!playSuccess && targetUrl && targetUrl.includes('cloudinary.com')) {
-      try {
-        const mp3Url = getCloudinaryMp3Url(targetUrl);
-        if (mp3Url && mp3Url !== targetUrl) {
-          audioElement.src = mp3Url;
-          await audioElement.play();
-          if (currentRequestId !== activePlayRequestId) return;
-          resolvedTrack.previewUrl = mp3Url;
-          playSuccess = true;
-          resolvedUrlCache.set(songId, mp3Url);
-        }
-      } catch (cErr: any) {
-        if (cErr?.name === 'AbortError' || currentRequestId !== activePlayRequestId) return;
-        console.warn('Cloudinary MP3 transcode fallback warning:', cErr);
-      }
-    }
-
-    // Stage 3: Web Audio API PCM decoder fallback (Transcode any unsupported container/codec to universal WAV Blob URL)
-    if (!playSuccess && targetUrl) {
-      try {
-        const wavBlobUrl = await decodeAudioToWavUrl(targetUrl);
-        if (currentRequestId !== activePlayRequestId) return;
-        audioElement.src = wavBlobUrl;
-        await audioElement.play();
-        if (currentRequestId !== activePlayRequestId) return;
-        playSuccess = true;
-        resolvedUrlCache.set(songId, wavBlobUrl);
-      } catch (transcodeErr: any) {
-        if (transcodeErr?.name === 'AbortError' || currentRequestId !== activePlayRequestId) return;
-        console.warn('Web Audio API PCM decoding fallback warning:', transcodeErr);
-      }
-    }
-
-    // Stage 4: Deezer / provider search fallback
-    if (!playSuccess && track.provider !== 'local') {
-      try {
-        const searchRes = await musicApi.searchSongs(`${track.title} ${track.artist}`, 0, 5);
-        if (currentRequestId !== activePlayRequestId) return;
-        const liveMatch = searchRes?.songs?.find((s) => Boolean(s.previewUrl) && s.previewUrl !== targetUrl);
-        if (liveMatch) {
-          const fallbackUrl = getNormalizedAudioUrl(liveMatch.previewUrl);
-          resolvedTrack.previewUrl = fallbackUrl;
-          audioElement.src = fallbackUrl;
-          await audioElement.play();
-          if (currentRequestId !== activePlayRequestId) return;
-          playSuccess = true;
-          resolvedUrlCache.set(songId, fallbackUrl);
-        }
-      } catch (_fallbackErr) { }
-    }
-
-    if (currentRequestId !== activePlayRequestId) return;
-
+    // 3. INSTANT ZUSTAND STORE UPDATE (0ms delay UI response)
     set({
       currentTrack: resolvedTrack,
-      isPlaying: playSuccess,
-      queue: newQueue.length > 0 ? newQueue : [resolvedTrack],
+      isPlaying: true,
+      queue: newQueue,
       queueIndex: queueIndex >= 0 ? queueIndex : 0,
       currentTime: 0,
-      duration: resolvedTrack.duration || 30,
+      duration: track.duration || 30,
     });
 
-    // Broadcast Listen Together Socket Sync
+    // Preload next track in background for instant transition
+    preloadNextTrack(newQueue, queueIndex, get().isShuffle);
+
+    // 4. INSTANT NATIVE AUDIO PLAYBACK
+    if (targetUrl && targetUrl.trim() !== '' && !targetUrl.includes('cloudinary.com/demo/')) {
+      if (!audioElement.paused) {
+        audioElement.pause();
+      }
+      if (audioElement.src !== targetUrl) {
+        audioElement.src = targetUrl;
+      }
+      audioElement.currentTime = 0;
+      audioElement.volume = get().isMuted ? 0 : get().volume;
+
+      audioElement
+        .play()
+        .then(() => {
+          if (currentRequestId === activePlayRequestId) {
+            resolvedUrlCache.set(songId, targetUrl);
+            set({ isPlaying: true });
+          }
+        })
+        .catch((err: any) => {
+          if (currentRequestId !== activePlayRequestId || err?.name === 'AbortError') return;
+          console.warn('Native play failed or blocked:', err);
+
+          // Fast Cloudinary MP3 transcode fallback
+          if (targetUrl.includes('cloudinary.com')) {
+            const mp3Url = getCloudinaryMp3Url(targetUrl);
+            if (mp3Url && mp3Url !== targetUrl && audioElement) {
+              audioElement.src = mp3Url;
+              audioElement
+                .play()
+                .then(() => {
+                  if (currentRequestId === activePlayRequestId) {
+                    resolvedUrlCache.set(songId, mp3Url);
+                    set({ isPlaying: true });
+                  }
+                })
+                .catch(() => {
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false });
+                });
+              return;
+            }
+          }
+
+          set({ isPlaying: false });
+        });
+    } else {
+      // Async fallback search ONLY if previewUrl is missing or demo link
+      musicApi
+        .searchSongs(`${track.title} ${track.artist}`, 0, 5)
+        .then((searchRes) => {
+          if (currentRequestId !== activePlayRequestId) return;
+          const liveMatch = searchRes?.songs?.find(
+            (s) => Boolean(s.previewUrl) && !s.previewUrl.includes('cloudinary.com/demo/')
+          );
+          if (liveMatch) {
+            const fallbackUrl = getNormalizedAudioUrl(liveMatch.previewUrl);
+            resolvedTrack.previewUrl = fallbackUrl;
+            resolvedUrlCache.set(songId, fallbackUrl);
+            set({ currentTrack: resolvedTrack });
+
+            if (audioElement) {
+              audioElement.src = fallbackUrl;
+              audioElement.currentTime = 0;
+              audioElement
+                .play()
+                .then(() => {
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: true });
+                })
+                .catch(() => {
+                  if (currentRequestId === activePlayRequestId) set({ isPlaying: false });
+                });
+            }
+          } else {
+            useUIStore
+              .getState()
+              .addToast(
+                'Preview Unavailable',
+                `Audio stream for "${track.title}" is currently unavailable.`,
+                'warning'
+              );
+            set({ isPlaying: false });
+          }
+        })
+        .catch(() => {
+          if (currentRequestId !== activePlayRequestId) set({ isPlaying: false });
+        });
+    }
+
+    // Broadcast Listen Together Socket Sync in background
     if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
       useListenTogetherStore.getState().syncPlay(resolvedTrack, 0);
     }
@@ -260,7 +271,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // Record recently played API ONLY ONCE per song
     if (lastRecordedSongId !== songId) {
       lastRecordedSongId = songId;
-      musicApi.recordRecentlyPlayed(resolvedTrack).catch(() => {});
+      musicApi.recordRecentlyPlayed(resolvedTrack).catch(() => { });
     }
   },
 

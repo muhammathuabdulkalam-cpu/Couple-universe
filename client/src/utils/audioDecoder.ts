@@ -77,14 +77,14 @@ function writeString(view: DataView, offset: number, string: string) {
  */
 export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
   if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) return cloudinaryUrl;
-  
+
   // Replace audio/video extensions with .mp3 or insert /f_mp3/ transformation flag
   let mp3Url = cloudinaryUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
-  
+
   if (!mp3Url.includes('/f_mp3') && mp3Url.includes('/upload/')) {
     mp3Url = mp3Url.replace('/upload/', '/upload/f_mp3,ac_mp3/');
   }
-  
+
   return mp3Url;
 }
 
@@ -148,7 +148,7 @@ export async function decodeAudioToWavUrl(audioUrl: string): Promise<string> {
   const audioCtx = new AudioCtxClass();
   try {
     if (audioCtx.state === 'suspended') {
-      await audioCtx.resume().catch(() => {});
+      await audioCtx.resume().catch(() => { });
     }
 
     const bufferCopy = arrayBuffer.slice(0);
@@ -180,7 +180,7 @@ export async function decodeAudioToWavUrl(audioUrl: string): Promise<string> {
     const wavBlob = bufferToWav(audioBuffer);
     return URL.createObjectURL(wavBlob);
   } finally {
-    audioCtx.close().catch(() => {});
+    audioCtx.close().catch(() => { });
   }
 }
 
