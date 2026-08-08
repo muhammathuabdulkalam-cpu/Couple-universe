@@ -5,25 +5,32 @@ import {
   Disc,
   Heart,
   HeartHandshake,
+  Loader2,
   Pause,
   Play,
+  Plus,
   Radio,
+  Search,
+  X,
 } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { useUIStore } from '../../store/uiStore';
 import { NormalizedSong } from '../../types/music.types';
 import { ColorPalette, extractDominantColor } from '../../utils/colorExtractor';
+import { ListenTogetherBadge } from './ListenTogetherBadge';
 import { MusicWaveform } from './MusicWaveform';
 
 interface HomeSectionsTabProps {
   onOpenDedicateModal?: (song: NormalizedSong) => void;
-  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'dedications' | 'favorites') => void;
+  onOpenUploadModal?: () => void;
+  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'dedications' | 'favorites' | 'uploads') => void;
 }
 
-export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal, onSelectTab }) => {
+export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal, onOpenUploadModal, onSelectTab }) => {
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const isAudioLoading = useMusicPlayerStore((s) => s.isLoading);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const { addToast } = useUIStore();
@@ -38,6 +45,32 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   });
 
   const [favoritesMap, setFavoritesMap] = useState<Record<string, boolean>>({});
+
+  // Inline Search State directly on Home Page
+  const [inlineSearchQuery, setInlineSearchQuery] = useState('');
+  const [inlineSearchResults, setInlineSearchResults] = useState<NormalizedSong[]>([]);
+  const [isInlineSearching, setIsInlineSearching] = useState(false);
+
+  useEffect(() => {
+    if (!inlineSearchQuery.trim()) {
+      setInlineSearchResults([]);
+      setIsInlineSearching(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsInlineSearching(true);
+      musicApi
+        .searchSongs(inlineSearchQuery.trim(), 0, 10)
+        .then((res) => {
+          setInlineSearchResults(res.songs || []);
+        })
+        .catch(() => {})
+        .finally(() => setIsInlineSearching(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [inlineSearchQuery]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -173,49 +206,135 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
 
   return (
     <div className="space-y-6 md:space-y-10">
-      {/* Mobile-Only Spotify Header (Reference UI) */}
-      <div className="block md:hidden space-y-4 pt-1">
-        <h2 className="text-2xl font-black tracking-tight text-white">
-          {new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'}
-        </h2>
-
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          <span className="px-3.5 py-1.5 rounded-full bg-rose-500 text-white text-xs font-extrabold shadow-md shadow-rose-500/30 shrink-0">
-            Music
-          </span>
-
-          <button
-            onClick={() => onSelectTab && onSelectTab('favorites')}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
-          >
-            Favorites
-          </button>
-          <button
-            onClick={() => onSelectTab && onSelectTab('playlists')}
-            className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-bold shrink-0 transition"
-          >
-            Playlists
-          </button>
+      {/* 0. Top Spotify Welcome Header, Search & Action Bar */}
+      <div className="space-y-4 pb-2">
+        {/* Title */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+            <span>Welcome to Music</span>
+            <span className="text-rose-500 animate-pulse">❤️</span>
+          </h1>
         </div>
 
-        {/* Favorite Artists Circular Row (Reference UI) */}
-        <div className="space-y-2 pt-1">
-          <h3 className="text-xs font-bold text-slate-300">Your favorite artists</h3>
-          <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2">
-            {[
-              { name: 'Arijit Singh', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150' },
-              { name: 'Ed Sheeran', img: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150' },
-              { name: 'Sid Sriram', img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150' },
-              { name: 'Taylor Swift', img: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=150' },
-              { name: 'Anirudh', img: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=150' },
-            ].map((art) => (
-              <div key={art.name} className="flex flex-col items-center gap-1.5 shrink-0">
-                <img src={art.img} alt={art.name} className="w-14 h-14 rounded-full object-cover border-2 border-white/10 shadow-lg" />
-                <span className="text-[11px] font-semibold text-slate-300 truncate max-w-[70px] text-center">{art.name}</span>
-              </div>
-            ))}
+        {/* Search Bar directly on page without scrolling */}
+        <div className="relative w-full max-w-xl">
+          <div className="relative flex items-center">
+            <Search className="absolute left-4 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={inlineSearchQuery}
+              onChange={(e) => setInlineSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && inlineSearchQuery.trim() && onSelectTab) {
+                  onSelectTab('search');
+                }
+              }}
+              placeholder="Search songs, artists, albums..."
+              className="w-full pl-11 pr-24 py-2.5 sm:py-3 rounded-2xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 text-xs sm:text-sm font-medium transition shadow-xl backdrop-blur-xl"
+            />
+            {inlineSearchQuery ? (
+              <button
+                onClick={() => {
+                  setInlineSearchQuery('');
+                  setInlineSearchResults([]);
+                }}
+                className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (inlineSearchQuery.trim() && onSelectTab) {
+                    onSelectTab('search');
+                  }
+                }}
+                className="absolute right-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition"
+              >
+                Search
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Action Row: Upload Song & Listen Together */}
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            onClick={() => onOpenUploadModal && onOpenUploadModal()}
+            className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Upload Song</span>
+          </button>
+
+          <div className="shrink-0">
+            <ListenTogetherBadge />
+          </div>
+        </div>
+
+        {/* Instant Search Results directly on Home page */}
+        {inlineSearchQuery.trim().length > 0 && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2">
+                <span>Results for "{inlineSearchQuery}"</span>
+              </h3>
+              {isInlineSearching && <Loader2 className="w-4 h-4 text-rose-400 animate-spin" />}
+            </div>
+
+            {inlineSearchResults.length > 0 ? (
+              <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth snap-x">
+                {inlineSearchResults.map((song, sIdx) => {
+                  const isCurrent = currentTrack?.providerSongId === song.providerSongId;
+                  const isSongPlaying = isCurrent && isPlaying;
+                  const isSongLoading = isCurrent && isAudioLoading;
+
+                  return (
+                    <div
+                      key={`inline-${song.providerSongId}-${sIdx}`}
+                      onClick={() => (isCurrent ? togglePlay() : playTrack(song, inlineSearchResults))}
+                      className="group shrink-0 w-44 md:w-52 bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl snap-start flex flex-col justify-between"
+                    >
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
+                        <img
+                          src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200'}
+                          alt={song.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div
+                          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity ${
+                            isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          }`}
+                        >
+                          <button className="w-11 h-11 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition">
+                            {isSongLoading ? (
+                              <Loader2 className="w-5 h-5 animate-spin text-white" />
+                            ) : isSongPlaying ? (
+                              <Pause className="w-5 h-5 fill-current" />
+                            ) : (
+                              <Play className="w-5 h-5 fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-white text-sm truncate group-hover:text-rose-300 transition">
+                          {song.title}
+                        </h4>
+                        <p className="text-xs text-slate-400 truncate mt-0.5">{song.artist}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              !isInlineSearching && (
+                <p className="text-xs text-slate-400 italic px-1">No songs found matching "{inlineSearchQuery}".</p>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* 1. Spotify Premium Hero Section */}

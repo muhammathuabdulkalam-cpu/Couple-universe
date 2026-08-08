@@ -159,7 +159,11 @@ export const SharedMusicPage: React.FC = () => {
       {/* 3. Main Tab Content (Persistent DOM mounting for instant 0ms tab switching) */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-4">
         <div className={activeTab === 'home' ? 'block' : 'hidden'}>
-          <HomeSectionsTab onOpenDedicateModal={handleOpenDedicateModal} onSelectTab={setActiveTab} />
+          <HomeSectionsTab
+            onOpenDedicateModal={handleOpenDedicateModal}
+            onSelectTab={setActiveTab}
+            onOpenUploadModal={() => setIsUploadModalOpen(true)}
+          />
         </div>
 
         <div className={activeTab === 'search' ? 'block' : 'hidden'}>

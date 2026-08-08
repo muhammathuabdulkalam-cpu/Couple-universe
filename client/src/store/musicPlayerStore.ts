@@ -10,6 +10,7 @@ export type RepeatMode = 'none' | 'all' | 'one';
 interface MusicPlayerState {
   currentTrack: NormalizedSong | null;
   isPlaying: boolean;
+  isLoading: boolean;
   currentTime: number;
   duration: number;
   volume: number; // 0 to 1
@@ -76,6 +77,7 @@ function preloadNextTrack(queue: NormalizedSong[], currentIndex: number, isShuff
 export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   currentTrack: null,
   isPlaying: false,
+  isLoading: false,
   currentTime: 0,
   duration: 30,
   volume: 0.8,
