@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Disc, HeartHandshake, Music, Pause, Play } from 'lucide-react';
+import { ArrowRight, HeartHandshake, Music, Pause, Play } from 'lucide-react';
 import { musicApi } from '../../api/musicApi';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { DashboardMusicSummary } from '../../types/music.types';
@@ -67,13 +67,10 @@ export const DashboardMusicWidget: React.FC = React.memo(() => {
             <img
               src={trackToDisplay.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
               alt={trackToDisplay.title}
-              className={`w-14 h-14 rounded-xl object-cover shadow-md transition-transform duration-700 ${
-                isPlaying ? 'animate-spin-slow ring-2 ring-rose-500/50' : ''
+              className={`w-14 h-14 rounded-xl object-cover shadow-md transition-transform duration-300 ${
+                isPlaying ? 'scale-105 ring-2 ring-rose-500/50' : ''
               }`}
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Disc className={`w-6 h-6 text-white/40 ${isPlaying ? 'animate-spin' : ''}`} />
-            </div>
           </div>
 
           <div className="min-w-0 flex-1">

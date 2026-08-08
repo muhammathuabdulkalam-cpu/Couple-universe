@@ -20,6 +20,7 @@ import { useListenTogetherStore } from '../../store/listenTogetherStore';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { useUIStore } from '../../store/uiStore';
 import { extractDominantColor } from '../../utils/colorExtractor';
+import { MusicWaveform } from './MusicWaveform';
 
 export const MobileFullPlayerModal: React.FC = React.memo(() => {
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
@@ -140,20 +141,29 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
             )}
           </div>
 
-          {/* Centered Circular Album Artwork (Reference UI) */}
-          <div className="flex-1 flex items-center justify-center my-4">
-            <motion.div
-              animate={{ rotate: isPlaying ? 360 : 0 }}
-              transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-              className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-full overflow-hidden shadow-2xl border-4 border-white/10 p-1 bg-slate-900"
-            >
+          {/* Centered Fixed Circular Album Artwork + Small Equalizer */}
+          <div className="flex-1 flex flex-col items-center justify-center my-3 relative">
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-full overflow-hidden shadow-2xl border-4 border-white/10 p-1 bg-slate-900 flex items-center justify-center">
               <img
                 src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500'}
                 alt={currentTrack.title}
                 className="w-full h-full object-cover rounded-full"
               />
               <div className="absolute inset-0 rounded-full border border-black/20 pointer-events-none" />
-            </motion.div>
+
+              {/* Center Vinyl Center Hole Accent */}
+              <div className="absolute w-10 h-10 rounded-full bg-slate-950/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center shadow-inner pointer-events-none">
+                <div className="w-3.5 h-3.5 rounded-full bg-rose-500/80" />
+              </div>
+            </div>
+
+            {/* Small Animated Sound Equalizer */}
+            <div className="mt-3 px-3.5 py-1.5 rounded-full bg-slate-900/80 border border-white/10 backdrop-blur-md flex items-center gap-2 shadow-lg">
+              <MusicWaveform isPlaying={isPlaying} barCount={5} height={14} color="bg-rose-400" />
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-300">
+                {isPlaying ? 'Live Audio' : 'Paused'}
+              </span>
+            </div>
           </div>
 
           {/* Song Metadata (Title Left, Rose Heart Right) */}

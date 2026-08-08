@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   ChevronRight,
-  Disc,
   Heart,
   HeartHandshake,
   Loader2,
+  Music,
   Pause,
   Play,
   Plus,
@@ -362,9 +362,9 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                   }`}
               />
             </div>
-            {/* Spinning Vinyl Accent */}
-            <div className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-900 border-2 border-white/20 flex items-center justify-center shadow-xl">
-              <Disc className={`w-7 h-7 md:w-10 md:h-10 text-rose-400 ${isPlaying ? 'animate-spin-slow' : ''}`} />
+            {/* Music Badge Accent */}
+            <div className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 border-2 border-white/20 flex items-center justify-center shadow-xl">
+              <Music className="w-5 h-5 md:w-7 md:h-7 text-white" />
             </div>
           </div>
 
