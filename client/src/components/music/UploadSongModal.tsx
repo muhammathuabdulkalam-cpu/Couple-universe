@@ -230,7 +230,18 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4 animate-fadeIn overflow-y-auto">
       {/* SUCCESS POPUP MODAL */}
       {uploadedSong ? (
-        <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 w-full max-w-md text-white shadow-2xl space-y-6 text-center animate-scaleUp my-auto relative overflow-hidden">
+        <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-5 sm:p-8 w-full max-w-[92vw] sm:max-w-md text-white shadow-2xl space-y-4 sm:space-y-6 text-center animate-scaleUp my-auto relative overflow-hidden">
+          {/* Top-Right Dismiss Button */}
+          <button
+            onClick={() => {
+              onClose();
+              handleResetModal();
+            }}
+            className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-white/10 transition z-10"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           {/* Subtle background glow */}
           <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -282,19 +293,21 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
           <div className="space-y-2.5 pt-2">
             <button
               onClick={() => playTrack(uploadedSong)}
-              className="w-full py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-sm shadow-xl shadow-rose-950/50 flex items-center justify-center gap-2 transform active:scale-95 transition"
+              className="w-full px-4 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-rose-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm shadow-xl shadow-rose-950/50 flex items-center justify-center gap-2 transform active:scale-95 transition min-w-0"
             >
-              <Play className="w-5 h-5 fill-current" />
-              <span>Play "{uploadedSong.title}" Now</span>
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
+              <span className="truncate min-w-0 max-w-full">
+                Play "{uploadedSong.title}" Now
+              </span>
             </button>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5">
               <button
                 onClick={handleResetModal}
-                className="py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition"
               >
-                <PlusCircle className="w-4 h-4 text-rose-400" />
-                <span>Upload Another</span>
+                <PlusCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="truncate">Upload Another</span>
               </button>
 
               <button
@@ -302,9 +315,9 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
                   onClose();
                   handleResetModal();
                 }}
-                className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 border border-white/10 text-white font-bold text-xs transition"
+                className="w-full py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-750 border border-white/10 text-white font-bold text-xs flex items-center justify-center transition"
               >
-                Done / View Library
+                <span className="truncate">Done / View Library</span>
               </button>
             </div>
           </div>
