@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { axiosClient } from '../api/axiosClient';
 import { musicApi } from '../api/musicApi';
 import { ListenInvitePayload, ListeningSession, NormalizedSong } from '../types/music.types';
 import { useAuthStore } from './authStore';
@@ -34,19 +35,36 @@ let socketInstance: any = null;
 let heartbeatInterval: any = null;
 let countdownInterval: any = null;
 
+export const fetchPartnerProfile = async (): Promise<{ name: string | null; avatar: string | null }> => {
+  try {
+    const res = await axiosClient.get<{ success: boolean; data: any }>('/profile');
+    const partner = res.data?.data?.partner;
+    if (partner) {
+      const pName = partner.name || 'Partner';
+      const pAvatar = partner.avatar || null;
+      useListenTogetherStore.setState({
+        partnerName: pName,
+        partnerAvatar: pAvatar,
+      });
+      return { name: pName, avatar: pAvatar };
+    }
+  } catch (_err) { }
+  return { name: null, avatar: null };
+};
+
 const resolvePartner = (session: ListeningSession | null) => {
   if (!session) return { name: null, avatar: null };
   const user = useAuthStore.getState().user;
   const currentUserId = user?._id?.toString() || user?.id?.toString();
-  const hostId = typeof session.host === 'object' ? session.host?._id?.toString() : session.host;
+  const hostId = typeof session.host === 'object' ? (session.host as any)?._id?.toString() : session.host;
 
   const isHost = hostId === currentUserId;
   const partnerObj = isHost ? session.participant : session.host;
 
-  if (typeof partnerObj === 'object' && partnerObj) {
-    return { name: partnerObj.name || 'Partner', avatar: partnerObj.avatar || null };
+  if (typeof partnerObj === 'object' && partnerObj && partnerObj !== null) {
+    return { name: (partnerObj as any).name || 'Partner', avatar: (partnerObj as any).avatar || null };
   }
-  return { name: 'Partner', avatar: null };
+  return { name: null, avatar: null };
 };
 
 export const useListenTogetherStore = create<ListenTogetherState>((set, get) => ({
@@ -62,27 +80,65 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     if (!socket) return;
     socketInstance = socket;
 
+    // Fetch initial partner profile in background for real-time state
+    fetchPartnerProfile();
+
     // Check for existing session status
     musicApi
       .getListenSessionStatus()
       .then((session) => {
         if (session && session.status === 'ACTIVE') {
           const partnerInfo = resolvePartner(session);
+          const name = partnerInfo.name || get().partnerName;
+          const avatar = partnerInfo.avatar || get().partnerAvatar;
+
           set({
             activeSession: session,
             isSessionActive: true,
             partnerConnected: true,
-            partnerName: partnerInfo.name,
-            partnerAvatar: partnerInfo.avatar,
+            partnerName: name,
+            partnerAvatar: avatar,
           });
+
+          if (!name || name === 'Partner' || !avatar) {
+            fetchPartnerProfile();
+          }
         }
       })
       .catch(() => {});
 
+    // Listen to real-time profile update events from socket
+    socket.on('profile_updated', (data: { userId: string; name: string; avatar: string }) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      if (data.userId && data.userId !== currentUserId) {
+        set({
+          partnerName: data.name || get().partnerName,
+          partnerAvatar: data.avatar || get().partnerAvatar,
+        });
+      }
+    });
+
+    socket.on('user:profile_updated', (data: { userId: string; name: string; avatar: string }) => {
+      const currentUser = useAuthStore.getState().user;
+      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      if (data.userId && data.userId !== currentUserId) {
+        set({
+          partnerName: data.name || get().partnerName,
+          partnerAvatar: data.avatar || get().partnerAvatar,
+        });
+      }
+    });
+
     // 1. Incoming Invite Notification
-    socket.on('listen:invite', (payload: ListenInvitePayload) => {
+    socket.on('listen:invite', (payload: ListenInvitePayload & { session?: ListeningSession }) => {
       const expiresAt = new Date(payload.expiresAt).getTime();
       const secondsLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+
+      const partnerInfo = resolvePartner(payload.session || null);
+      if (partnerInfo.name) {
+        set({ partnerName: partnerInfo.name, partnerAvatar: partnerInfo.avatar });
+      }
 
       set({
         incomingInvite: payload,
@@ -101,16 +157,26 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     });
 
     // 2. Invite Accepted
-    socket.on('listen:accept', (data: { sessionId: string; acceptedBy: string }) => {
-      const active = get().activeSession;
+    socket.on('listen:accept', (data: { sessionId: string; acceptedBy: string; acceptedByAvatar?: string; session?: ListeningSession }) => {
+      const active = data.session || get().activeSession;
       const partnerInfo = resolvePartner(active);
 
+      const resolvedName = partnerInfo.name || data.acceptedBy || get().partnerName || 'Partner';
+      const resolvedAvatar = partnerInfo.avatar || data.acceptedByAvatar || get().partnerAvatar || null;
+
       set({
+        activeSession: active,
         isSessionActive: true,
         partnerConnected: true,
-        partnerName: partnerInfo.name || data.acceptedBy || 'Partner',
+        partnerName: resolvedName,
+        partnerAvatar: resolvedAvatar,
         incomingInvite: null,
       });
+
+      if (!resolvedName || resolvedName === 'Partner' || !resolvedAvatar) {
+        fetchPartnerProfile();
+      }
+
       if (countdownInterval) clearInterval(countdownInterval);
 
       // Trigger instant playback sync if current track is available
@@ -133,7 +199,7 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       if (countdownInterval) clearInterval(countdownInterval);
     });
 
-    // 4. Play Sync Event Handler
+    // 4. Play Sync Event Handler (0ms Lag Playback)
     socket.on('listen:play', (data: { senderId: string; currentTime?: number; track?: NormalizedSong }) => {
       const currentUser = useAuthStore.getState().user;
       const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
@@ -141,12 +207,12 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       if (data.senderId !== currentUserId) {
         const playerStore = useMusicPlayerStore.getState();
         if (data.track) {
-          playerStore.playTrack(data.track, undefined, true);
+          playerStore.playTrack(data.track, undefined, true, data.currentTime || 0);
         } else {
+          if (data.currentTime !== undefined && data.currentTime > 0) {
+            playerStore.seekTo(data.currentTime, true);
+          }
           playerStore.resume(true);
-        }
-        if (data.currentTime !== undefined && data.currentTime > 0) {
-          playerStore.seekTo(data.currentTime, true);
         }
       }
     });
@@ -235,7 +301,13 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     try {
       const session = await musicApi.createListenInvite();
       const partnerInfo = resolvePartner(session);
-      set({ activeSession: session, partnerName: partnerInfo.name, partnerAvatar: partnerInfo.avatar });
+      const name = partnerInfo.name || get().partnerName;
+      const avatar = partnerInfo.avatar || get().partnerAvatar;
+      set({ activeSession: session, partnerName: name, partnerAvatar: avatar });
+
+      if (!name || name === 'Partner' || !avatar) {
+        fetchPartnerProfile();
+      }
     } catch (_err) {
       // Gracefully handle
     }
@@ -245,15 +317,21 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     try {
       const session = await musicApi.respondListenInvite(sessionId, 'accept');
       const partnerInfo = resolvePartner(session);
+      const name = partnerInfo.name || get().partnerName;
+      const avatar = partnerInfo.avatar || get().partnerAvatar;
 
       set({
         activeSession: session,
         isSessionActive: true,
         partnerConnected: true,
-        partnerName: partnerInfo.name,
-        partnerAvatar: partnerInfo.avatar,
+        partnerName: name,
+        partnerAvatar: avatar,
         incomingInvite: null,
       });
+
+      if (!name || name === 'Partner' || !avatar) {
+        fetchPartnerProfile();
+      }
       if (countdownInterval) clearInterval(countdownInterval);
 
       // Trigger instant play sync

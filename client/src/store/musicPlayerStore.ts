@@ -27,7 +27,7 @@ interface MusicPlayerState {
 
   // Actions
   initAudio: () => void;
-  playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean) => void;
+  playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean, startTime?: number) => void;
   togglePlay: (skipSocketSync?: boolean) => void;
   pause: (skipSocketSync?: boolean) => void;
   resume: (skipSocketSync?: boolean) => void;
@@ -174,7 +174,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     set({ audioElement: globalAudio });
   },
 
-  playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean) => {
+  playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean, startTime?: number) => {
     let { audioElement, currentTrack, isPlaying } = get();
     if (!audioElement) {
       get().initAudio();
@@ -191,6 +191,9 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // 1. Instant Playback optimization: If clicking play on currently loaded song, toggle without changing src
     if (currentTrack?.providerSongId === songId && audioElement.src) {
       if (!isPlaying) {
+        if (startTime !== undefined) {
+          audioElement.currentTime = startTime;
+        }
         audioElement
           .play()
           .then(() => {
@@ -216,7 +219,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // Stop old song immediately so audio buffer doesn't keep outputting old track
     try {
       audioElement.pause();
-      audioElement.currentTime = 0;
+      audioElement.currentTime = startTime !== undefined ? startTime : 0;
     } catch (_err) { }
 
     // Determine target queue & queue index synchronously
@@ -235,7 +238,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
       isLoading: false,
       queue: newQueue,
       queueIndex: queueIndex >= 0 ? queueIndex : 0,
-      currentTime: 0,
+      currentTime: startTime !== undefined ? startTime : 0,
       duration: track.duration || 30,
     });
 
@@ -256,7 +259,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
       if (audioElement.src !== targetUrl) {
         audioElement.src = targetUrl;
       }
-      audioElement.currentTime = 0;
+      audioElement.currentTime = startTime !== undefined ? startTime : 0;
       audioElement.volume = get().isMuted ? 0 : get().volume;
 
       audioElement

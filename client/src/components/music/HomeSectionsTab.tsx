@@ -205,9 +205,9 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   }
 
   return (
-    <div className="space-y-6 md:space-y-10">
+    <div className="space-y-6 md:space-y-10 w-full max-w-full overflow-x-hidden">
       {/* 0. Top Spotify Welcome Header, Search & Action Bar */}
-      <div className="space-y-4 pb-2">
+      <div className="space-y-4 pb-2 w-full max-w-full">
         {/* Title */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
@@ -257,13 +257,13 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           </div>
         </div>
 
-        {/* Action Row: Upload Song & Listen Together */}
-        <div className="flex items-center gap-3 pt-1">
+        {/* Action Row: Upload Song & Listen Together in Same Single Row */}
+        <div className="flex flex-row flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-3 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={() => onOpenUploadModal && onOpenUploadModal()}
-            className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
+            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
             <span>Upload Song</span>
           </button>
 

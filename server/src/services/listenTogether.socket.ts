@@ -59,7 +59,8 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   });
 
   // 3. Play Event Sync
-  socket.on('listen:play', async (data: { sessionId: string; currentTime?: number; track?: any }) => {
+  // 3. Play Event Sync
+  socket.on('listen:play', (data: { sessionId: string; currentTime?: number; track?: any }) => {
     try {
       io.to(roomName).emit('listen:play', {
         senderId: user._id.toString(),
@@ -67,44 +68,44 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
         track: data.track,
       });
 
-      await ListeningSession.findOneAndUpdate(
+      ListeningSession.findOneAndUpdate(
         { sessionId: data.sessionId },
         { isPlaying: true, currentTime: data.currentTime || 0 }
-      );
+      ).catch((err) => logger.error('Error updating listen session play state:', err));
     } catch (err) {
       logger.error('Error handling listen:play:', err);
     }
   });
 
   // 4. Pause Event Sync
-  socket.on('listen:pause', async (data: { sessionId: string; currentTime?: number }) => {
+  socket.on('listen:pause', (data: { sessionId: string; currentTime?: number }) => {
     try {
       io.to(roomName).emit('listen:pause', {
         senderId: user._id.toString(),
         currentTime: data.currentTime || 0,
       });
 
-      await ListeningSession.findOneAndUpdate(
+      ListeningSession.findOneAndUpdate(
         { sessionId: data.sessionId },
         { isPlaying: false, currentTime: data.currentTime || 0 }
-      );
+      ).catch((err) => logger.error('Error updating listen session pause state:', err));
     } catch (err) {
       logger.error('Error handling listen:pause:', err);
     }
   });
 
   // 5. Seek Event Sync
-  socket.on('listen:seek', async (data: { sessionId: string; currentTime: number }) => {
+  socket.on('listen:seek', (data: { sessionId: string; currentTime: number }) => {
     try {
       io.to(roomName).emit('listen:seek', {
         senderId: user._id.toString(),
         currentTime: data.currentTime,
       });
 
-      await ListeningSession.findOneAndUpdate(
+      ListeningSession.findOneAndUpdate(
         { sessionId: data.sessionId },
         { currentTime: data.currentTime }
-      );
+      ).catch((err) => logger.error('Error updating listen session seek state:', err));
     } catch (err) {
       logger.error('Error handling listen:seek:', err);
     }

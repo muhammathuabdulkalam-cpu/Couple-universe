@@ -70,9 +70,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
         {/* Center Main Content Area */}
         <main
-          className={`flex-1 min-w-0 h-full scroll-smooth ${fullViewport
+          className={`flex-1 min-w-0 h-full scroll-smooth w-full max-w-full overflow-x-hidden ${fullViewport
             ? 'p-0 m-0 border-0 rounded-none overflow-hidden flex flex-col'
-            : 'p-3 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto'
+            : 'p-3 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto overflow-x-hidden'
             }`}
         >
           {!fullViewport && <Breadcrumb />}

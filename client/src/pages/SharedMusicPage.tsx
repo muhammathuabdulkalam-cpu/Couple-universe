@@ -47,7 +47,7 @@ export const SharedMusicPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white pb-36 space-y-2 md:space-y-4 pt-0 md:pt-2">
+    <div className="min-h-screen bg-slate-950 text-white pb-36 space-y-2 md:space-y-4 pt-0 md:pt-2 w-full max-w-full overflow-x-hidden">
       {/* Upload Song Modal */}
       <UploadSongModal
         isOpen={isUploadModalOpen}
@@ -55,13 +55,13 @@ export const SharedMusicPage: React.FC = () => {
       />
 
       {/* 1. Incoming Invite Banner Notification */}
-      <div className="max-w-7xl mx-auto px-3 md:px-8">
+      <div className="max-w-7xl mx-auto px-3 md:px-8 w-full max-w-full overflow-x-hidden">
         <ListenTogetherInviteBanner />
       </div>
 
       {/* 2. Navigation Header Tabs & Actions */}
-      <div className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 px-3 md:px-8 py-2 md:py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5">
+      <div className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 px-3 md:px-8 py-2 md:py-3 w-full max-w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 w-full max-w-full">
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
             <button

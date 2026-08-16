@@ -401,6 +401,11 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
     expiresAt,
   });
 
+  await session.populate([
+    { path: 'host', select: 'name email avatar role' },
+    { path: 'participant', select: 'name email avatar role' },
+  ]);
+
   const io = getSocketServer();
   if (io) {
     const payload = {
@@ -408,6 +413,7 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
       hostName: host.name,
       hostAvatar: host.avatar,
       expiresAt,
+      session,
     };
     io.to(partner._id.toString()).emit('listen:invite', payload);
     io.to(`user:${partner._id.toString()}`).emit('listen:invite', payload);
@@ -440,10 +446,17 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
     session.status = 'ACTIVE';
     await session.save();
 
+    await session.populate([
+      { path: 'host', select: 'name email avatar role' },
+      { path: 'participant', select: 'name email avatar role' },
+    ]);
+
     if (io) {
       io.to('listen_together_couple_room').emit('listen:accept', {
         sessionId,
         acceptedBy: user.name,
+        acceptedByAvatar: user.avatar,
+        session,
       });
     }
     return ApiResponse.success(res, 'Listen Together session started ❤️', session);
