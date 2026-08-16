@@ -120,8 +120,33 @@ export const adminApi = {
     return res.data;
   },
 
-  generateRelationshipInvite: async (relationshipId: string, data: { targetRole?: string; expiryDays?: number; maxUses?: number }) => {
+  generateRelationshipInvite: async (
+    relationshipId: string,
+    data: {
+      targetRole?: string;
+      expiryDays?: number;
+      maxUses?: number;
+      enabledFeatures?: string[];
+      inviteDisplayName?: string;
+      relationshipType?: string;
+      relationshipName?: string;
+    }
+  ) => {
     const res = await axiosClient.post<ApiResponse<AdminInviteToken>>(`/admin/relationships/${relationshipId}/invite`, data);
+    return res.data.data!;
+  },
+
+  createStandaloneInvite: async (data: {
+    relationshipId?: string;
+    relationshipName?: string;
+    relationshipType?: string;
+    inviteDisplayName?: string;
+    targetRole?: string;
+    enabledFeatures?: string[];
+    expiryDays?: number;
+    maxUses?: number;
+  }) => {
+    const res = await axiosClient.post<ApiResponse<AdminInviteToken>>('/admin/relationships/invite/create', data);
     return res.data.data!;
   },
 

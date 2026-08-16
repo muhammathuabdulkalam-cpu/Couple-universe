@@ -52,6 +52,9 @@ const AdminLoginPage = lazy(() => import('../pages/admin/AdminLoginPage.js').the
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage.js').then((m) => ({ default: m.AdminDashboardPage })));
 const AdminRouteGuard = lazy(() => import('./AdminRouteGuard.js').then((m) => ({ default: m.AdminRouteGuard })));
 const InviteRegistrationResolver = lazy(() => import('../pages/InviteRegistrationResolver.js'));
+const OnboardingPage = lazy(() => import('../pages/auth/OnboardingPage.js').then((m) => ({ default: m.OnboardingPage })));
+import { FeatureRouteGuard } from '../components/auth/FeatureRouteGuard.js';
+import { FEATURES } from '../config/features.js';
 
 const SuspenseFallback = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
@@ -106,6 +109,16 @@ export const AppRouter: React.FC = () => {
           }
         />
 
+        {/* Onboarding Profile Route */}
+        <Route
+          path="/onboarding"
+          element={
+            <AuthGuard>
+              <OnboardingPage />
+            </AuthGuard>
+          }
+        />
+
         {/* Authenticated Dashboard Workspace Routes */}
         <Route
           path="/dashboard"
@@ -128,9 +141,11 @@ export const AppRouter: React.FC = () => {
           path="/gallery"
           element={
             <AuthGuard>
-              <DashboardLayout>
-                <GalleryPage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.GALLERY}>
+                <DashboardLayout>
+                  <GalleryPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />
@@ -145,9 +160,11 @@ export const AppRouter: React.FC = () => {
           path="/timeline"
           element={
             <AuthGuard>
-              <DashboardLayout>
-                <TimelinePage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.TIMELINE}>
+                <DashboardLayout>
+                  <TimelinePage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />
@@ -157,9 +174,11 @@ export const AppRouter: React.FC = () => {
           path="/calendar"
           element={
             <AuthGuard>
-              <DashboardLayout>
-                <CalendarPage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.CALENDAR}>
+                <DashboardLayout>
+                  <CalendarPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />
@@ -169,9 +188,11 @@ export const AppRouter: React.FC = () => {
           path="/chat"
           element={
             <AuthGuard>
-              <DashboardLayout fullViewport>
-                <ChatPage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.CHAT}>
+                <DashboardLayout fullViewport>
+                  <ChatPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />
@@ -204,9 +225,11 @@ export const AppRouter: React.FC = () => {
           path="/stories"
           element={
             <AuthGuard>
-              <DashboardLayout>
-                <StoriesPage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.STORIES}>
+                <DashboardLayout>
+                  <StoriesPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />
@@ -216,9 +239,11 @@ export const AppRouter: React.FC = () => {
           path="/shared-music"
           element={
             <AuthGuard>
-              <DashboardLayout>
-                <SharedMusicPage />
-              </DashboardLayout>
+              <FeatureRouteGuard featureKey={FEATURES.MUSIC}>
+                <DashboardLayout>
+                  <SharedMusicPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
             </AuthGuard>
           }
         />

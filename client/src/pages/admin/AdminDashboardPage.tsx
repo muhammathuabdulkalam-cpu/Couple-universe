@@ -17,6 +17,7 @@ import UserModal from '../../components/admin/UserModal';
 import RelationshipModal from '../../components/admin/RelationshipModal';
 import MemberManagementModal from '../../components/admin/MemberManagementModal';
 import { InviteManagementModal } from '../../components/admin/InviteManagementModal';
+import { CreateInvitationModal } from '../../components/admin/CreateInvitationModal';
 
 export const AdminDashboardPage: React.FC = () => {
   const { searchQuery, roleFilter, statusFilter } = useAdminAuthStore();
@@ -28,6 +29,9 @@ export const AdminDashboardPage: React.FC = () => {
 
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
+
+  // Phase 3 Invitation Modal State
+  const [showCreateInviteModal, setShowCreateInviteModal] = useState(false);
 
   // Phase 2 modal states
   const [showUserModal, setShowUserModal] = useState(false);
@@ -324,8 +328,7 @@ export const AdminDashboardPage: React.FC = () => {
           onPageChange={handlePageChange}
           isLoading={isUsersLoading}
           onCreateUser={() => {
-            setEditingUser(null);
-            setShowUserModal(true);
+            setShowCreateInviteModal(true);
           }}
           onEditUser={handleEditUser}
           onSuspendUser={handleSuspendUser}
@@ -356,6 +359,17 @@ export const AdminDashboardPage: React.FC = () => {
         {/* User Detail Side Drawer */}
         <UserDetailDrawer />
       </div>
+
+      {/* Phase 3 Create Invitation Modal */}
+      <CreateInvitationModal
+        isOpen={showCreateInviteModal}
+        onClose={() => setShowCreateInviteModal(false)}
+        onSuccess={() => {
+          fetchAll();
+          fetchUsers(pagination.page);
+        }}
+        relationships={relationships}
+      />
 
       {/* Phase 2 Modals */}
       <UserModal

@@ -26,6 +26,9 @@ export interface IUser extends Document {
   isDeleted?: boolean;
   deletedAt?: Date;
   deletedBy?: mongoose.Types.ObjectId;
+  relationshipId?: mongoose.Types.ObjectId;
+  enabledFeatures?: string[];
+  onboardingCompleted: boolean;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -61,6 +64,20 @@ const userSchema = new Schema<IUser>(
       type: String,
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
+      index: true,
+    },
+    relationshipId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Relationship',
+      index: true,
+    },
+    enabledFeatures: {
+      type: [String],
+      default: [],
+    },
+    onboardingCompleted: {
+      type: Boolean,
+      default: true,
       index: true,
     },
     avatar: {

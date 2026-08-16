@@ -21,6 +21,10 @@ declare global {
 }
 
 export const authenticate = catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
+  if (req.user) {
+    return next();
+  }
+
   let token: string | undefined;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -56,6 +60,10 @@ export const authenticate = catchAsync(async (req: Request, _res: Response, next
 });
 
 export const optionalAuthenticate = catchAsync(async (req: Request, _res: Response, next: NextFunction) => {
+  if (req.user) {
+    return next();
+  }
+
   let token: string | undefined;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {

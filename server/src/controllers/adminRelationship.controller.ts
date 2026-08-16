@@ -1,8 +1,41 @@
 import { Request, Response } from 'express';
-import { InviteService } from '../services/invite.service';
+import mongoose from 'mongoose';
+import { HTTP_STATUS } from '../constants';
+import { Relationship } from '../models/relationship.model';
+import { InviteService, toObjectId } from '../services/invite.service';
 import { RelationshipService } from '../services/relationship.service';
 import { ApiResponse } from '../utils/ApiResponse';
+import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
+
+/**
+ * Transaction session helper with graceful fallback for standalone MongoDB instances
+ */
+async function runInSessionOrDirect<T>(fn: (session?: mongoose.ClientSession) => Promise<T>): Promise<T> {
+  const session = await mongoose.startSession();
+  try {
+    let result: T;
+    try {
+      session.startTransaction();
+      result = await fn(session);
+      await session.commitTransaction();
+      return result;
+    } catch (txErr: any) {
+      await session.abortTransaction();
+      // Fallback for standalone MongoDB (without replica set enabled)
+      if (
+        txErr?.message?.includes('Transaction numbers') ||
+        txErr?.message?.includes('replica set') ||
+        txErr?.code === 20
+      ) {
+        return await fn(undefined);
+      }
+      throw txErr;
+    }
+  } finally {
+    await session.endSession();
+  }
+}
 
 /** GET /api/v1/admin/relationships */
 export const listRelationships = catchAsync(async (req: Request, res: Response) => {
@@ -59,14 +92,105 @@ export const replaceMember = catchAsync(async (req: Request, res: Response) => {
   return ApiResponse.success(res, 'Member replaced in relationship', rel);
 });
 
+/**
+ * POST /api/v1/admin/relationships/invite/create
+ * Standalone invitation creation with atomic relationship creation transaction support
+ */
+export const createStandaloneInvite = catchAsync(async (req: Request, res: Response) => {
+  const {
+    relationshipId,
+    relationshipName,
+    relationshipType,
+    inviteDisplayName,
+    targetRole,
+    enabledFeatures,
+    expiryDays,
+    maxUses,
+  } = req.body;
+
+  const adminId = req.user?._id ? req.user._id.toString() : '';
+
+  // If existing relationship ID provided and valid ObjectId, generate invite directly
+  if (relationshipId && mongoose.Types.ObjectId.isValid(relationshipId) && relationshipId !== 'new' && relationshipId !== 'create') {
+    const invite = await InviteService.generateToken({
+      relationshipId,
+      targetRole: targetRole || 'CO_OWNER',
+      createdBy: adminId,
+      expiryDays: expiryDays !== undefined ? Number(expiryDays) : 7,
+      maxUses: maxUses ?? 1,
+      enabledFeatures: enabledFeatures || [],
+      inviteDisplayName: inviteDisplayName || '',
+      relationshipType: relationshipType || 'Couple',
+    });
+    return ApiResponse.success(res, 'Relationship invite token generated', invite, 201);
+  }
+
+  if (!relationshipName || !relationshipName.trim()) {
+    throw new AppError('Relationship Name is required when creating a new relationship.', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // Atomic Relationship + Invitation creation inside MongoDB transaction (with standalone fallback)
+  const resultInvite = await runInSessionOrDirect(async (session) => {
+    let relQuery = Relationship.findOne({ name: relationshipName.trim(), isDeleted: { $ne: true } });
+    if (session) relQuery = relQuery.session(session);
+    let rel = await relQuery.exec();
+
+    if (!rel) {
+      const createdDocs = await Relationship.create(
+        [
+          {
+            name: relationshipName.trim(),
+            type: relationshipType || 'Couple',
+            status: 'ACTIVE',
+            createdBy: toObjectId(adminId),
+          },
+        ],
+        session ? { session } : {}
+      );
+      rel = createdDocs[0];
+    }
+
+    return await InviteService.generateToken(
+      {
+        relationshipId: rel._id.toString(),
+        targetRole: targetRole || 'CO_OWNER',
+        createdBy: adminId,
+        expiryDays: expiryDays !== undefined ? Number(expiryDays) : 7,
+        maxUses: maxUses ?? 1,
+        enabledFeatures: enabledFeatures || [],
+        inviteDisplayName: inviteDisplayName || '',
+        relationshipType: relationshipType || rel.type || 'Couple',
+      },
+      session
+    );
+  });
+
+  return ApiResponse.success(res, 'Relationship invitation created successfully', resultInvite, 201);
+});
+
 /** POST /api/v1/admin/relationships/:id/invite */
-export const generateRelationshipInvite = catchAsync(async (req: Request, res: Response) => {
+export const generateRelationshipInvite = catchAsync(async (req: Request, res: Response, next: any) => {
+  const targetId = req.params.id;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(targetId) ||
+    targetId === 'new' ||
+    targetId === 'invite' ||
+    targetId === 'create' ||
+    (req.body.relationshipName && !req.body.relationshipId)
+  ) {
+    return createStandaloneInvite(req, res, next);
+  }
+
   const invite = await InviteService.generateToken({
-    relationshipId: req.params.id,
-    targetRole: req.body.targetRole || 'INVITED_USER',
+    relationshipId: targetId,
+    targetRole: req.body.targetRole || 'CO_OWNER',
     createdBy: req.user!._id.toString(),
     expiryDays: req.body.expiryDays !== undefined ? Number(req.body.expiryDays) : 7,
     maxUses: req.body.maxUses ?? 1,
+    enabledFeatures: req.body.enabledFeatures || [],
+    inviteDisplayName: req.body.inviteDisplayName || req.body.relationshipName || '',
+    relationshipType: req.body.relationshipType || 'Couple',
   });
   return ApiResponse.success(res, 'Relationship invite token generated', invite);
 });

@@ -38,7 +38,13 @@ export const BottomNav: React.FC = () => {
     return null;
   }
 
-  const allowedNavItems = NAVIGATION_CONFIG.filter((item) => item.allowedRoles.includes(userRole));
+  const enabledFeatures = user?.enabledFeatures || [];
+  const allowedNavItems = NAVIGATION_CONFIG.filter((item) => {
+    if (!item.allowedRoles.includes(userRole)) return false;
+    if (['SUPER_OWNER', 'CO_OWNER'].includes(userRole)) return true;
+    if (item.featureKey && !enabledFeatures.includes(item.featureKey)) return false;
+    return true;
+  });
 
   const items = [
     { label: 'Home', path: '/dashboard', icon: Home, isAction: false },

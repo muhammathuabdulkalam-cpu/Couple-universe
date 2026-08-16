@@ -19,11 +19,7 @@ import { Badge } from '../ui/Badge.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { axiosClient } from '../../api/axiosClient.js';
-import { useAuthStore } from '../../store/authStore.js';
-import { ApiResponse } from '../../types/index.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
 
 interface RightContextPanelProps {
@@ -33,22 +29,8 @@ interface RightContextPanelProps {
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
-
-  // Fetch Partner Profile Details for floating partner avatar icon
-  const { data: profileData } = useQuery<any>({
-    queryKey: ['userProfile'],
-    queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<any>>('/profile');
-      return res.data.data;
-    },
-  });
-
-  const partner = profileData?.partner;
-  const partnerName = partner?.name || (user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal');
-  const partnerAvatar = partner?.avatar;
 
   const panelContent = (
     <div className="space-y-4">

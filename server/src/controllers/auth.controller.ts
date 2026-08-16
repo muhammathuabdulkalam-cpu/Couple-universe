@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { env } from '../config/env.config';
 import { logger } from '../config/logger.config';
 import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES, USER_STATUS, UserRole } from '../constants';
@@ -7,6 +8,7 @@ import { Invite } from '../models/invite.model';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
 import { InviteService } from '../services/invite.service';
+import { RelationshipService } from '../services/relationship.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
@@ -41,8 +43,7 @@ export const getSystemAuthStatus = catchAsync(async (_req: Request, res: Respons
 });
 
 /**
- * Register User
- * Controller strictly handles user creation and delegates invite/relationship binding to InviteService.consumeInvite()
+ * Register User (Atomic MongoDB Session Transaction + Zero-Trust Client Payload)
  */
 export const register = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, inviteCode } = req.body;
@@ -58,56 +59,92 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   }
 
   let assignedRole: UserRole = ROLES.INVITED_USER;
+  let derivedRelationshipId: mongoose.Types.ObjectId | undefined;
+  let derivedEnabledFeatures: string[] = [];
+  let onboardingCompletedState = false;
 
-  if (isFirstUser || cleanCode === 'MASTER2026' || cleanCode === 'AFZAL2026') {
-    // First user or master setup code automatically grants SUPER_OWNER
-    assignedRole = ROLES.SUPER_OWNER;
-    logger.info(`👑 Registration granted SUPER_OWNER role to: ${email}`);
-  } else {
-    // Requires valid invite code
-    if (!cleanCode) {
-      throw new AppError(
-        'Public registration is closed. A valid invitation code is required to register.',
-        HTTP_STATUS.FORBIDDEN
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  let registeredUser: any;
+
+  try {
+    if (isFirstUser || cleanCode === 'MASTER2026' || cleanCode === 'AFZAL2026') {
+      assignedRole = ROLES.SUPER_OWNER;
+      onboardingCompletedState = true;
+      logger.info(`👑 Master registration granted SUPER_OWNER role to: ${email}`);
+    } else {
+      if (!cleanCode) {
+        throw new AppError('A valid invitation code is required to register.', HTTP_STATUS.FORBIDDEN);
+      }
+
+      const { invite } = await InviteService.validateToken(cleanCode, session);
+
+      if (invite.email && invite.email !== email.toLowerCase()) {
+        throw new AppError(`This invitation code is reserved for ${invite.email}.`, HTTP_STATUS.FORBIDDEN);
+      }
+
+      // Derive permissions exclusively from validated invite stored in MongoDB (Zero-Trust)
+      assignedRole = invite.targetRole || ROLES.CO_OWNER;
+      derivedRelationshipId = invite.relationship ? invite.relationship._id || invite.relationship : undefined;
+      derivedEnabledFeatures = invite.enabledFeatures || [];
+      onboardingCompletedState = false; // Newly invited users always start with onboardingCompleted = false
+    }
+
+    const userDocs = await User.create(
+      [
+        {
+          name,
+          email: email.toLowerCase(),
+          password,
+          role: assignedRole,
+          relationshipId: derivedRelationshipId,
+          enabledFeatures: derivedEnabledFeatures,
+          onboardingCompleted: onboardingCompletedState,
+          status: USER_STATUS.ACTIVE,
+          isEmailVerified: true,
+          lastLoginAt: new Date(),
+        },
+      ],
+      { session }
+    );
+
+    registeredUser = userDocs[0];
+
+    // Auto-join user to relationship members inside transaction
+    if (derivedRelationshipId) {
+      await RelationshipService.addMember(
+        derivedRelationshipId.toString(),
+        registeredUser._id.toString(),
+        assignedRole,
+        session
       );
     }
 
-    const { invite } = await InviteService.validateToken(cleanCode);
-
-    if (invite.email && invite.email !== email.toLowerCase()) {
-      throw new AppError(`This invitation code is reserved for ${invite.email}.`, HTTP_STATUS.FORBIDDEN);
+    // Consume invite atomically inside transaction
+    if (cleanCode && cleanCode !== 'MASTER2026' && cleanCode !== 'AFZAL2026') {
+      await InviteService.consumeInviteAtomic(cleanCode, registeredUser._id.toString(), session);
     }
 
-    assignedRole = invite.targetRole;
-  }
-
-  // Create User Record
-  const user = await User.create({
-    name,
-    email: email.toLowerCase(),
-    password,
-    role: assignedRole,
-    status: USER_STATUS.ACTIVE,
-    isEmailVerified: true,
-    lastLoginAt: new Date(),
-  });
-
-  // Consume Invite & Auto-join Relationship via InviteService
-  if (cleanCode && cleanCode !== 'MASTER2026' && cleanCode !== 'AFZAL2026') {
-    await InviteService.consumeInvite(cleanCode, user._id.toString());
+    await session.commitTransaction();
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
   }
 
   // Create Session & Lifetime Tokens (100 Years)
   const userAgent = req.headers['user-agent'] || 'Unknown Browser';
   const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '0.0.0.0';
 
-  const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, role: user.role });
+  const refreshToken = generateRefreshToken({ userId: registeredUser._id.toString(), email: registeredUser.email, role: registeredUser.role });
   const refreshTokenHash = hashToken(refreshToken);
 
   const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
 
-  const session = await Session.create({
-    user: user._id,
+  const userSession = await Session.create({
+    user: registeredUser._id,
     refreshTokenHash,
     userAgent,
     ipAddress,
@@ -115,26 +152,29 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   });
 
   const accessToken = generateAccessToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role,
-    sessionId: session._id.toString(),
+    userId: registeredUser._id.toString(),
+    email: registeredUser.email,
+    role: registeredUser.role,
+    sessionId: userSession._id.toString(),
   });
 
   setRefreshTokenCookie(res, refreshToken);
 
-  logger.info(`👤 User registered successfully: [${user.role}] ${user.email}`);
+  logger.info(`👤 User registered successfully: [${registeredUser.role}] ${registeredUser.email}`);
 
   return ApiResponse.created(res, 'User registered successfully', {
     user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      avatar: user.avatar,
-      bio: user.bio,
-      birthday: (user as any).birthday,
+      id: registeredUser._id,
+      name: registeredUser.name,
+      email: registeredUser.email,
+      role: registeredUser.role,
+      status: registeredUser.status,
+      avatar: registeredUser.avatar,
+      bio: registeredUser.bio,
+      birthday: registeredUser.birthday,
+      relationshipId: registeredUser.relationshipId,
+      enabledFeatures: registeredUser.enabledFeatures,
+      onboardingCompleted: registeredUser.onboardingCompleted,
     },
     accessToken,
   });
@@ -201,7 +241,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       status: user.status,
       avatar: user.avatar,
       bio: user.bio,
-      birthday: (user as any).birthday,
+      birthday: user.birthday,
+      relationshipId: user.relationshipId,
+      enabledFeatures: user.enabledFeatures || [],
+      onboardingCompleted: user.onboardingCompleted ?? true,
       lastLoginAt: user.lastLoginAt,
     },
     accessToken,
@@ -278,7 +321,10 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
       status: user.status,
       avatar: user.avatar,
       bio: user.bio,
-      birthday: (user as any).birthday,
+      birthday: user.birthday,
+      relationshipId: user.relationshipId,
+      enabledFeatures: user.enabledFeatures || [],
+      onboardingCompleted: user.onboardingCompleted ?? true,
     },
   });
 });

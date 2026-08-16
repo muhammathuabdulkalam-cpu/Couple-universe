@@ -234,11 +234,16 @@ export interface MemberManagementPayload {
 
 export interface InviteValidationResult {
   code: string;
+  inviteDisplayName?: string;
   targetRole: string;
-  relationshipId: string;
+  relationshipId?: string;
   relationshipType: string;
   relationshipName: string;
+  enabledFeatures?: string[];
   expiresAt: string;
-  status: string;
+  maxUses?: number;
+  currentUses?: number;
+  remainingUses?: number;
+  status: 'ACTIVE' | 'EXPIRED' | 'FULLY_USED' | 'REVOKED' | string;
   email?: string;
 }

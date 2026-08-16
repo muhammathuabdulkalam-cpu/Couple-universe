@@ -99,12 +99,18 @@ export class RelationshipService {
     return rel;
   }
 
-  static async addMember(relationshipId: string, userId: string, role: string = 'MEMBER'): Promise<IRelationship> {
-    const rel = await Relationship.findOne({ _id: relationshipId, isDeleted: { $ne: true } });
+  static async addMember(relationshipId: string, userId: string, role: string = 'MEMBER', session?: mongoose.ClientSession): Promise<IRelationship> {
+    const relQuery = Relationship.findOne({ _id: relationshipId, isDeleted: { $ne: true } });
+    if (session) relQuery.session(session);
+    const rel = await relQuery.exec();
+
     if (!rel) {
       throw new AppError('Relationship record not found.', HTTP_STATUS.NOT_FOUND);
     }
-    const userExists = await User.exists({ _id: userId, isDeleted: { $ne: true } });
+    const userExistsQuery = User.exists({ _id: userId, isDeleted: { $ne: true } });
+    if (session) userExistsQuery.session(session);
+    const userExists = await userExistsQuery.exec();
+
     if (!userExists) {
       throw new AppError('Target user does not exist.', HTTP_STATUS.NOT_FOUND);
     }
@@ -116,7 +122,7 @@ export class RelationshipService {
         role,
         joinedAt: new Date(),
       });
-      await rel.save();
+      await rel.save({ session });
     }
     return rel;
   }

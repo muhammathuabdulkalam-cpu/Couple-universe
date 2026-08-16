@@ -22,7 +22,8 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState(pendingInvite?.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [inviteCode, setInviteCode] = useState(pendingInvite?.token || searchParams.get('inviteCode') || '');
+  const urlInvite = searchParams.get('invite') || searchParams.get('inviteCode') || '';
+  const [inviteCode, setInviteCode] = useState(pendingInvite?.token || urlInvite);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -32,11 +33,13 @@ export const RegisterPage: React.FC = () => {
   useEffect(() => {
     if (pendingInvite?.token) {
       setInviteCode(pendingInvite.token);
+    } else if (urlInvite) {
+      setInviteCode(urlInvite);
     }
     if (pendingInvite?.email) {
       setEmail(pendingInvite.email);
     }
-  }, [pendingInvite]);
+  }, [pendingInvite, urlInvite]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

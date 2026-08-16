@@ -14,6 +14,9 @@ export interface User {
   avatar?: string;
   bio?: string;
   birthday?: string;
+  relationshipId?: string;
+  enabledFeatures?: string[];
+  onboardingCompleted?: boolean;
   relationshipStartDate?: string;
   lastLoginAt?: string;
   createdAt?: string;

@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { UserRole } from '../types/index.js';
 
+import { FEATURES } from './features.js';
+
 export interface NavItem {
   key: string;
   label: string;
@@ -26,6 +28,7 @@ export interface NavItem {
   allowedRoles: UserRole[];
   badge?: string;
   isImplemented: boolean;
+  featureKey?: string;
 }
 
 // Alias for backwards compatibility
@@ -66,6 +69,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     section: 'memories',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
     isImplemented: true,
+    featureKey: FEATURES.GALLERY,
   },
   {
     key: 'timeline',
@@ -75,6 +79,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     section: 'memories',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
     isImplemented: true,
+    featureKey: FEATURES.TIMELINE,
   },
   {
     key: 'capsule',
@@ -98,6 +103,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     section: 'life',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
     isImplemented: true,
+    featureKey: FEATURES.CHAT,
   },
   {
     key: 'calendar',
@@ -107,6 +113,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     section: 'life',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
     isImplemented: true,
+    featureKey: FEATURES.CALENDAR,
   },
   {
     key: 'diary',
@@ -134,6 +141,7 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     section: 'life',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
     isImplemented: true,
+    featureKey: FEATURES.MUSIC,
   },
 
   // -------------------------------------------------------

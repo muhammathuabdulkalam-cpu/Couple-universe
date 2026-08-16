@@ -56,40 +56,47 @@ app.use(cookieParser());
 // HTTP Request Logger
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined', { stream: morganStream }));
 
+import { FEATURES } from './constants';
+import { authenticate } from './middlewares/auth.middleware';
+import { requireFeature } from './middlewares/featureGuard.middleware';
+import { requireOnboardingCompleted } from './middlewares/onboardingGuard.middleware';
+import inviteRoute from './routes/invite.route';
+import onboardingRoute from './routes/onboarding.route';
+
 const API = PLATFORM_CONSTANTS.API_PREFIX;
 
 // Mount Module 1-8 API Routes
 app.use(API, healthRoute);
 app.use(`${API}/auth`, authRoute);
-app.use(`${API}/users`, userRoute);
-app.use(`${API}/profile`, profileRoute);
-app.use(`${API}/media`, mediaRoute);
-app.use(`${API}/albums`, albumRoute);
-app.use(`${API}/timeline`, timelineEventRoute);
-app.use(`${API}/calendar`, calendarEventRoute);
-app.use(`${API}/chat`, chatRoute);
-app.use(`${API}/life-experience`, lifeExperienceRoute);
+app.use(`${API}/invites`, inviteRoute);
+app.use(`${API}/onboarding`, authenticate, onboardingRoute);
+
+app.use(`${API}/users`, authenticate, userRoute);
+app.use(`${API}/profile`, authenticate, profileRoute);
+app.use(`${API}/media`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.GALLERY), mediaRoute);
+app.use(`${API}/albums`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.GALLERY), albumRoute);
+app.use(`${API}/timeline`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.TIMELINE), timelineEventRoute);
+app.use(`${API}/calendar`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.CALENDAR), calendarEventRoute);
+app.use(`${API}/chat`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.CHAT), chatRoute);
+app.use(`${API}/life-experience`, authenticate, requireOnboardingCompleted, lifeExperienceRoute);
 
 // Mount Module 9: Social Engine API Routes
-app.use(`${API}/social`, socialRoute);
-app.use(`${API}/stories`, storyRoute);
-app.use(`${API}/reactions`, reactionRoute);
-app.use(`${API}/comments`, commentRoute);
-app.use(`${API}/feed`, activityRoute);
-app.use(`${API}/notifications`, notificationRoute);
-app.use(`${API}/reports`, reportRoute);
+app.use(`${API}/social`, authenticate, requireOnboardingCompleted, socialRoute);
+app.use(`${API}/stories`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.STORIES), storyRoute);
+app.use(`${API}/reactions`, authenticate, requireOnboardingCompleted, reactionRoute);
+app.use(`${API}/comments`, authenticate, requireOnboardingCompleted, commentRoute);
+app.use(`${API}/feed`, authenticate, requireOnboardingCompleted, activityRoute);
+app.use(`${API}/notifications`, authenticate, requireOnboardingCompleted, notificationRoute);
+app.use(`${API}/reports`, authenticate, requireOnboardingCompleted, reportRoute);
 
 // Mount Shared Music API Routes
-app.use(`${API}/music`, musicRoute);
+app.use(`${API}/music`, authenticate, requireOnboardingCompleted, requireFeature(FEATURES.MUSIC), musicRoute);
 
 // Mount Module X: Stealth Calculator Gateway API Routes
 app.use(`${API}/stealth`, stealthRoute);
 
-// Mount Enterprise Admin Portal API Routes
+// Mount Enterprise Admin Portal API Routes (Phase 1 Preserved 100%)
 app.use(`${API}/admin`, adminRoute);
-
-// Mount Public Invite Validation Routes
-app.use(`${API}/invites`, publicInviteRoute);
 
 // Welcome Root Route
 app.get('/', (_req, res) => {

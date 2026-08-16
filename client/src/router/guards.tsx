@@ -10,7 +10,7 @@ interface GuardProps {
 }
 
 export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -29,6 +29,11 @@ export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
       return <Navigate to={`/s/${stealthState.stealthToken}`} state={{ from: location }} replace />;
     }
     return <Navigate to="/welcome" state={{ from: location }} replace />;
+  }
+
+  // Onboarding Resumption Guard: If onboarding is incomplete and user is not on /onboarding page, redirect to /onboarding
+  if (user && user.onboardingCompleted === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;

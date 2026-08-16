@@ -9,7 +9,9 @@ export interface IInvite extends Document {
   email?: string;
   relationship?: mongoose.Types.ObjectId;
   relationshipType?: string;
+  inviteDisplayName?: string;
   targetRole: UserRole;
+  enabledFeatures?: string[];
   expiresAt: Date;
   maxUses: number;
   currentUses: number;
@@ -50,10 +52,18 @@ const inviteSchema = new Schema<IInvite>(
       type: String,
       default: 'Couple',
     },
+    inviteDisplayName: {
+      type: String,
+      default: '',
+    },
     targetRole: {
       type: String,
       enum: Object.values(ROLES),
       default: ROLES.CO_OWNER,
+    },
+    enabledFeatures: {
+      type: [String],
+      default: [],
     },
     expiresAt: {
       type: Date,

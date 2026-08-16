@@ -231,13 +231,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             )}
           </div>
 
-          {/* Create User Button */}
+          {/* Create Invitation Button */}
           {onCreateUser && (
             <button
               onClick={onCreateUser}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition shadow"
             >
-              <Plus className="w-3.5 h-3.5" /> New User
+              <Plus className="w-3.5 h-3.5" /> Create Invitation
             </button>
           )}
         </div>

@@ -34,7 +34,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
   const [showStoryCreator, setShowStoryCreator] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
 
-  const allowedNavItems = NAVIGATION_CONFIG.filter((item) => item.allowedRoles.includes(userRole));
+  const enabledFeatures = user?.enabledFeatures || [];
+  const allowedNavItems = NAVIGATION_CONFIG.filter((item) => {
+    if (!item.allowedRoles.includes(userRole)) return false;
+    if (['SUPER_OWNER', 'CO_OWNER'].includes(userRole)) return true;
+    if (item.featureKey && !enabledFeatures.includes(item.featureKey)) return false;
+    return true;
+  });
 
   const sections: Array<{ id: NavItem['section']; label: string }> = [
     { id: 'main', label: 'Main' },
