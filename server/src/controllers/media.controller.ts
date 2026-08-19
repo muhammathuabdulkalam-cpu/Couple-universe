@@ -375,10 +375,10 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   try {
     total = await Media.countDocuments(filter);
 
-    // Auto-sync Cloudinary gallery assets if DB has 0 items or if sync=true is requested
-    if (total === 0 || req.query.sync === 'true') {
+    // Auto-sync Cloudinary gallery assets if DB count is low or if sync=true is requested
+    if (total < 10 || req.query.sync === 'true') {
       const syncedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
-      if (syncedCount > 0 || total === 0) {
+      if (syncedCount > 0 || total < 10) {
         total = await Media.countDocuments(filter);
       }
     }

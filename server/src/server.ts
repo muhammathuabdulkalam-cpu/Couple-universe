@@ -65,6 +65,12 @@ const startServer = async (): Promise<void> => {
       logger.warn(`⚠️ Startup Cloudinary gallery sync non-fatal error: ${syncErr.message}`);
     });
 
+    // Background Cloudinary auto-sync every 5 minutes
+    setInterval(() => {
+      syncCloudinaryAudioToDb().catch(() => {});
+      syncCloudinaryGalleryToDb().catch(() => {});
+    }, 5 * 60 * 1000);
+
     // Start Express HTTP Server
     server = app.listen(env.PORT, () => {
       logger.info(`🚀 ${PLATFORM_CONSTANTS.APP_NAME} server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);

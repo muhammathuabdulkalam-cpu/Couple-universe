@@ -448,10 +448,10 @@ export const getUploadedSongs = catchAsync(async (req: Request, res: Response) =
     Song.countDocuments(filter),
   ]);
 
-  // Auto-sync Cloudinary audio files if DB has no songs or if sync=true is requested
-  if (total === 0 || req.query.sync === 'true') {
+  // Auto-sync Cloudinary audio files if DB count is below expected minimum or if sync=true is requested
+  if (total < 5 || req.query.sync === 'true') {
     const syncedCount = await syncCloudinaryAudioToDb();
-    if (syncedCount > 0 || total === 0) {
+    if (syncedCount > 0 || total < 5) {
       [songs, total] = await Promise.all([
         Song.find(filter)
           .select('-audioData')
