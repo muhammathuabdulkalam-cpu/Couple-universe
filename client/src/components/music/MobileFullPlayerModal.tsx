@@ -150,11 +150,6 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
                 className="w-full h-full object-cover rounded-full"
               />
               <div className="absolute inset-0 rounded-full border border-black/20 pointer-events-none" />
-
-              {/* Center Vinyl Center Hole Accent */}
-              <div className="absolute w-10 h-10 rounded-full bg-slate-950/80 border-2 border-white/20 backdrop-blur-md flex items-center justify-center shadow-inner pointer-events-none">
-                <div className="w-3.5 h-3.5 rounded-full bg-rose-500/80" />
-              </div>
             </div>
 
             {/* Small Animated Sound Equalizer */}

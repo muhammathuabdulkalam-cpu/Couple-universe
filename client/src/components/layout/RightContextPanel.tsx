@@ -21,6 +21,7 @@ import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
+import { useChatStore } from '../../store/chatStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
@@ -32,7 +33,8 @@ interface RightContextPanelProps {
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
-  const isChatPage = location.pathname.startsWith('/chat');
+  const { mobileView } = useChatStore();
+  const isInsideChatThread = location.pathname.startsWith('/chat') && mobileView === 'chat';
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -93,21 +95,21 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Draggable Circular Floating Trigger Buttons on Mobile Viewports */}
-      {(!isChatPage || isPlaying) && (
+      {/* Floating Trigger Buttons on Mobile Viewports */}
+      {(!isInsideChatThread || isPlaying) && (
         <motion.div
-          drag
+          drag={isInsideChatThread}
           dragMomentum={false}
-          className={`fixed right-3 z-40 md:hidden flex flex-col gap-3 items-center select-none touch-none ${
-            isChatPage ? 'top-16' : 'bottom-20'
+          className={`fixed right-3 z-40 md:hidden flex flex-col gap-3 items-center select-none ${
+            isInsideChatThread ? 'top-16 touch-none' : 'bottom-20'
           }`}
         >
-          {/* 1. Mobile Apps Launcher Grid Button (Hidden in Chat mode so only Music shows when playing) */}
-          {!isChatPage && (
+          {/* 1. Mobile Apps Launcher Grid Button (Hidden in Active Chat Thread) */}
+          {!isInsideChatThread && (
             <button
               type="button"
               onClick={() => setIsAppLauncherOpen(true)}
-              className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400 shadow-xl active:scale-95 transition-transform flex items-center justify-center relative group cursor-grab active:cursor-grabbing"
+              className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400 shadow-xl active:scale-95 transition-transform flex items-center justify-center relative group"
               aria-label="Universe Apps"
               title="Universe Apps"
             >
@@ -121,7 +123,9 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
-            className={`w-12 h-12 rounded-full p-[2px] shadow-2xl active:scale-95 transition-all duration-300 relative cursor-grab active:cursor-grabbing ${
+            className={`w-12 h-12 rounded-full p-[2px] shadow-2xl active:scale-95 transition-all duration-300 relative ${
+              isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
+            } ${
               isPlaying
                 ? 'bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 ring-2 ring-rose-500/60 shadow-rose-500/40 animate-pulse'
                 : 'bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400'
