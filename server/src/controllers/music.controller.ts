@@ -367,22 +367,26 @@ export async function syncCloudinaryAudioToDb(): Promise<number> {
       }
 
       // Fetch cover image from Cloudinary music/covers if available
-      let coverUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+      let coverUrl = 'https://res.cloudinary.com/ps3wxidk/image/upload/v1787071187/afrin-universe/music/covers/embedded_cover_pgsfyn.jpg';
       try {
         const coverAssets = await CloudinaryService.listGalleryAssets('afrin-universe/music/covers');
         if (coverAssets && coverAssets.length > 0) {
+          const fName = cleanedFilename.toLowerCase();
           const matchedCover = coverAssets.find((c: any) => {
             const cName = (c.public_id || '').toLowerCase();
-            const fName = cleanedFilename.toLowerCase();
             return (
               (fName.includes('extended') && cName.includes('pgsfyn')) ||
               (fName.includes('popstar') && cName.includes('wesjex')) ||
               (fName.includes('rose') && cName.includes('u8t4dn')) ||
+              ((fName.includes('kaattu') || fName.includes('chembakam')) && cName.includes('odgisd')) ||
+              ((fName.includes('onnaamkili') || fName.includes('ponnaan')) && cName.includes('oieunb')) ||
               cName.includes(withoutHash.toLowerCase())
             );
           });
           if (matchedCover) {
             coverUrl = matchedCover.secure_url;
+          } else if (coverAssets[0]) {
+            coverUrl = coverAssets[0].secure_url;
           }
         }
       } catch (_covErr) {}
