@@ -81,7 +81,10 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
   if (!currentTrack) return null;
 
-  const formatTime = (secs: number) => {
+  const formatTime = (secs?: number | null) => {
+    if (!secs || isNaN(secs) || !isFinite(secs) || secs < 0) {
+      return '0:00';
+    }
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -300,19 +303,27 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
               </div>
 
               {/* Time Slider */}
-              <div className="w-full flex items-center gap-2 text-[11px] text-slate-400">
-                <span className="w-8 text-right font-mono">{formatTime(currentTime)}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || 30}
-                  step={0.1}
-                  value={currentTime}
-                  onChange={(e) => seekTo(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
-                />
-                <span className="w-8 font-mono">{formatTime(duration || 30)}</span>
-              </div>
+              {(() => {
+                const safeDuration = (duration && isFinite(duration) && !isNaN(duration) && duration > 0)
+                  ? duration
+                  : (currentTrack?.duration && isFinite(currentTrack.duration) && currentTrack.duration > 0 ? currentTrack.duration : 180);
+
+                return (
+                  <div className="w-full flex items-center gap-2 text-[11px] text-slate-400">
+                    <span className="w-8 text-right font-mono">{formatTime(currentTime)}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={safeDuration}
+                      step={0.1}
+                      value={currentTime}
+                      onChange={(e) => seekTo(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                    />
+                    <span className="w-8 font-mono">{formatTime(safeDuration)}</span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Right: Volume, Lyrics & Extra Controls */}

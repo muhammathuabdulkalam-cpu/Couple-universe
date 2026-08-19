@@ -124,7 +124,14 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
     globalAudio.addEventListener('loadedmetadata', () => {
       if (globalAudio) {
-        set({ duration: globalAudio.duration || 30 });
+        const rawDur = globalAudio.duration;
+        if (rawDur && isFinite(rawDur) && !isNaN(rawDur) && rawDur > 0) {
+          set({ duration: rawDur });
+        } else if (get().currentTrack?.duration && isFinite(get().currentTrack!.duration) && get().currentTrack!.duration > 0) {
+          set({ duration: get().currentTrack!.duration });
+        } else {
+          set({ duration: 180 });
+        }
       }
     });
 

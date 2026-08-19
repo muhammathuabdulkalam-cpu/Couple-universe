@@ -4,6 +4,7 @@ import {
   ChevronRight,
   CloudSun,
   Heart,
+  LayoutGrid,
   Music,
   Plus,
   Sparkles,
@@ -14,6 +15,7 @@ import React, { useState } from 'react';
 import { AnniversaryCountdownWidget } from '../dashboard/AnniversaryCountdownWidget.js';
 import { BirthdayCountdown } from '../dashboard/BirthdayCountdown.js';
 import { TodaysMemoryWidget } from '../dashboard/TodaysMemoryWidget.js';
+import { MobileAppLauncherModal } from './MobileAppLauncherModal.js';
 import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
@@ -31,6 +33,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
 
   const panelContent = (
@@ -87,9 +90,22 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Gradient-Border Circular Floating Trigger Button on Mobile Viewports */}
+      {/* Gradient-Border Circular Floating Trigger Buttons on Mobile Viewports */}
       <div className="fixed right-3 bottom-20 z-40 md:hidden flex flex-col gap-3 items-center select-none">
-        {/* Activity Context Circular Button with Music Pulse Animation & Vinyl Cover Art */}
+        {/* 1. Mobile Apps Launcher Grid Button */}
+        <button
+          type="button"
+          onClick={() => setIsAppLauncherOpen(true)}
+          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400 shadow-xl active:scale-95 transition-transform flex items-center justify-center relative group"
+          aria-label="Universe Apps"
+          title="Universe Apps"
+        >
+          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amber-300 group-hover:text-white transition-colors">
+            <LayoutGrid className="w-5 h-5" />
+          </div>
+        </button>
+
+        {/* 2. Activity Context Circular Button with Music Pulse Animation & Cover Art */}
         <button
           type="button"
           onClick={() => setIsMobileDrawerOpen(true)}
@@ -131,6 +147,12 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           )}
         </button>
       </div>
+
+      {/* Mobile Apps Grid Launcher Modal */}
+      <MobileAppLauncherModal
+        isOpen={isAppLauncherOpen}
+        onClose={() => setIsAppLauncherOpen(false)}
+      />
 
       {/* Mobile Slide-Over Activity & Context Drawer */}
       <AnimatePresence>
