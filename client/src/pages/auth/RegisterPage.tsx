@@ -68,7 +68,7 @@ export const RegisterPage: React.FC = () => {
       clearPendingInvite();
       setAuth(user, accessToken);
       addToast('Registration Complete!', 'Account created successfully. Let\'s set up your profile.', 'success');
-      navigate('/onboarding');
+      navigate('/onboarding', { replace: true });
     } catch (err: any) {
       if (err?.response?.status === 409 || err?.message?.includes('already exists')) {
         addToast(
