@@ -19,7 +19,7 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!fullViewport);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const { accessToken } = useAuthStore();
   const { initSocketListeners, fetchUnreadCounts } = useNotificationStore();
