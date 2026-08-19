@@ -64,13 +64,11 @@ export const purgeUserAndAllData = async (userId: string) => {
   // 5. Delete all Sessions & Auth Tokens for this user
   await Session.deleteMany({ user: userObjId });
 
-  // 6. Deep Cascade delete across ALL user content & social MongoDB collections:
+  // 6. Deep Cascade delete across user content & social MongoDB collections (excluding shared platform media/songs):
   await Promise.all([
-    Media.deleteMany({ uploadedBy: userObjId }),
     TimelineEvent.deleteMany({ createdBy: userObjId }),
     Album.deleteMany({ createdBy: userObjId }),
     Story.deleteMany({ user: userObjId }),
-    Song.deleteMany({ uploadedBy: userObjId }),
     Activity.deleteMany({ $or: [{ userId: userObjId }, { actor: userObjId }] }),
     Block.deleteMany({ $or: [{ blocker: userObjId }, { blocked: userObjId }] }),
     CalendarEvent.deleteMany({ $or: [{ createdBy: userObjId }, { participants: userObjId }] }),
