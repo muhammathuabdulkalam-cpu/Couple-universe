@@ -42,9 +42,7 @@ export const LoginPage: React.FC = () => {
       setAuth(user, accessToken);
       addToast('Welcome Back!', `Logged in successfully as ${user.name}`, 'success');
 
-      if (user.role === 'ADMIN' || user.email === 'admin@gmail.com') {
-        navigate('/admin/dashboard', { replace: true });
-      } else if (user.onboardingCompleted === false) {
+      if (user.onboardingCompleted === false) {
         navigate('/onboarding', { replace: true });
       } else {
         navigate('/dashboard', { replace: true });

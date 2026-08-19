@@ -54,13 +54,9 @@ export const InviteRegistrationResolver: React.FC = () => {
       .then((data: InviteValidationResult) => {
         setInvite(data);
 
-        // 2. If invitation code is already fully used or expired:
+        // 2. If invitation code is already fully used, revoked or expired:
         if (data.status === 'FULLY_USED' || data.status === 'REVOKED' || data.remainingUses === 0) {
-          if (isAuthenticated) {
-            navigate('/dashboard', { replace: true });
-          } else {
-            navigate('/login', { replace: true });
-          }
+          navigate('/login', { replace: true });
           return;
         }
 
@@ -78,9 +74,8 @@ export const InviteRegistrationResolver: React.FC = () => {
 
         setStage('valid');
       })
-      .catch((err: any) => {
-        setErrorMsg(err?.response?.data?.message || 'This invitation link is invalid or has expired.');
-        setStage('invalid');
+      .catch((_err: any) => {
+        navigate('/login', { replace: true });
       });
   }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
 
