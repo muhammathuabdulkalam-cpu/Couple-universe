@@ -42,7 +42,6 @@ export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
 
 export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuthStore();
-  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -61,10 +60,7 @@ export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
       return <Navigate to="/admin/dashboard" replace />;
     }
 
-    const isInviteRegister = location.pathname === '/register' && location.search.includes('invite');
-    if (!isInviteRegister) {
-      return <Navigate to="/dashboard" replace />;
-    }
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

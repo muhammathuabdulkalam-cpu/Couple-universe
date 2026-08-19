@@ -38,12 +38,35 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
+    // 1. If user ALREADY has an active session (excluding System Admin), route directly to Dashboard or Onboarding
+    if (isAuthenticated) {
+      if (currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@gmail.com') {
+        // System Admin can inspect invitation link
+      } else if (currentUser?.onboardingCompleted === false) {
+        navigate('/onboarding', { replace: true });
+        return;
+      } else {
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+    }
+
     inviteApi
       .validateInvite(token)
       .then((data: InviteValidationResult) => {
         setInvite(data);
 
-        // Always store pending invite for registration context
+        // 2. If invitation code is already fully used or expired:
+        if (data.status === 'FULLY_USED' || data.status === 'REVOKED' || data.remainingUses === 0) {
+          if (isAuthenticated) {
+            navigate('/dashboard', { replace: true });
+          } else {
+            navigate('/login', { replace: true });
+          }
+          return;
+        }
+
+        // Store pending invite for first-time registration context
         setPendingInvite({
           token,
           relationshipId: data.relationshipId || '',
@@ -61,7 +84,7 @@ export const InviteRegistrationResolver: React.FC = () => {
         setErrorMsg(err?.response?.data?.message || 'This invitation link is invalid or has expired.');
         setStage('invalid');
       });
-  }, [token, setPendingInvite]);
+  }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
 
   const handleAcceptInvite = () => {
     if (!token) return;
