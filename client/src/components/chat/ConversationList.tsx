@@ -91,8 +91,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
       setConversations(mergedConvs);
 
-      // Auto-select first conversation ONLY on desktop screens (>= 1024px)
-      if (!activeConversation && mergedConvs.length > 0 && window.innerWidth >= 1024) {
+      // Auto-select first conversation when available
+      if (!activeConversation && mergedConvs.length > 0) {
         setActiveConversation(mergedConvs[0]);
       }
     }

@@ -117,66 +117,49 @@ export const createOrGetConversation = catchAsync(async (req: Request, res: Resp
 export const getUserConversations = catchAsync(async (req: Request, res: Response) => {
   const currentUser = req.user!;
 
-  // 1. Auto-initialize 1-on-1 private conversations between owners and their created invited users
+  // 1. Auto-initialize 1-on-1 private conversations between owners and invited users
   try {
-    const { Invite } = await import('../models/invite.model');
-
     if (currentUser.role === 'SUPER_OWNER' || currentUser.role === 'CO_OWNER') {
-      // Find all invited users created by or linked to this owner
-      const invites = await Invite.find({ createdBy: currentUser._id, usedBy: { $exists: true, $ne: null } }).select('usedBy');
-      const invitedUserIds: any[] = invites.map((inv) => inv.usedBy).filter(Boolean);
+      // Find all invited users in the system
+      const invitedUsers = await User.find({
+        role: 'INVITED_USER',
+        _id: { $ne: currentUser._id },
+        isDeleted: false,
+      }).select('_id');
 
-      // Also find all users in relationships where currentUser is a member
-      if (currentUser.relationshipId) {
-        const relUsers = await User.find({
-          relationshipId: currentUser.relationshipId,
-          _id: { $ne: currentUser._id },
-          role: { $ne: 'ADMIN' },
-        }).select('_id');
-        relUsers.forEach((u) => {
-          if (!invitedUserIds.some((id) => id.toString() === u._id.toString())) {
-            invitedUserIds.push(u._id);
-          }
-        });
-      }
-
-      // Ensure 1-on-1 private conversation exists for each invited user created under this owner
-      for (const targetUserId of invitedUserIds) {
+      for (const invUser of invitedUsers) {
         const exists = await Conversation.findOne({
           type: 'PRIVATE',
-          participants: { $all: [currentUser._id, targetUserId] },
+          participants: { $all: [currentUser._id, invUser._id] },
           isDeleted: false,
         });
         if (!exists) {
           await Conversation.create({
             type: 'PRIVATE',
-            participants: [currentUser._id, targetUserId],
+            participants: [currentUser._id, invUser._id],
             createdBy: currentUser._id,
           });
         }
       }
     } else {
-      // Invited User / Member role: find the owner who created their invitation
-      const invite = await Invite.findOne({ usedBy: currentUser._id }).select('createdBy');
-      let inviterId = invite ? invite.createdBy : null;
+      // Invited User / Member role: Auto-ensure 1-on-1 private chat with Super Owner & Co-Owner
+      const owners = await User.find({
+        role: { $in: ['SUPER_OWNER', 'CO_OWNER'] },
+        _id: { $ne: currentUser._id },
+        isDeleted: false,
+      }).select('_id');
 
-      // Fallback: if no specific invite record, find the platform Super Owner
-      if (!inviterId) {
-        const superOwner = await User.findOne({ role: 'SUPER_OWNER' }).select('_id');
-        if (superOwner) inviterId = superOwner._id;
-      }
-
-      if (inviterId && inviterId.toString() !== currentUser._id.toString()) {
+      for (const owner of owners) {
         const exists = await Conversation.findOne({
           type: 'PRIVATE',
-          participants: { $all: [currentUser._id, inviterId] },
+          participants: { $all: [currentUser._id, owner._id] },
           isDeleted: false,
         });
         if (!exists) {
           await Conversation.create({
             type: 'PRIVATE',
-            participants: [currentUser._id, inviterId],
-            createdBy: currentUser._id,
+            participants: [currentUser._id, owner._id],
+            createdBy: owner._id,
           });
         }
       }
