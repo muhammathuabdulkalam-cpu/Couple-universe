@@ -38,11 +38,9 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
-    // 1. If user ALREADY has an active session (excluding System Admin), route directly to Dashboard or Onboarding
+    // 1. If user ALREADY has an active session, route directly to Dashboard or Onboarding
     if (isAuthenticated) {
-      if (currentUser?.role === 'ADMIN' || currentUser?.email === 'admin@gmail.com') {
-        // System Admin can inspect invitation link
-      } else if (currentUser?.onboardingCompleted === false) {
+      if (currentUser?.onboardingCompleted === false) {
         navigate('/onboarding', { replace: true });
         return;
       } else {
@@ -316,15 +314,6 @@ export const InviteRegistrationResolver: React.FC = () => {
 
         {/* PRIMARY CTA */}
         <div className="space-y-3 pt-2">
-          {isAuthenticated && (
-            <button
-              onClick={() => navigate(currentUser?.onboardingCompleted ? '/dashboard' : '/onboarding')}
-              className="w-full py-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-extrabold text-xs flex items-center justify-center gap-2 transition"
-            >
-              <span>Logged in as {currentUser?.name || currentUser?.email}. Return to App →</span>
-            </button>
-          )}
-
           <button
             onClick={handleAcceptInvite}
             disabled={!isActive}
@@ -334,7 +323,7 @@ export const InviteRegistrationResolver: React.FC = () => {
                 : 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed opacity-50'
             }`}
           >
-            <span>{isAuthenticated ? 'REGISTER NEW ACCOUNT WITH TOKEN' : 'ACCEPT INVITATION'}</span>
+            <span>ACCEPT INVITATION</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
