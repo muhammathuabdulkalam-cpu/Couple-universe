@@ -150,16 +150,16 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               )}
             </button>
 
-            {/* Top-Right Micro Live Audio Equalizer Spectrum Bubble Badge while Playing */}
+            {/* Top-Right Micro Stationary Live Audio Equalizer Spectrum Bubble Badge */}
             {isPlaying && (
               <div
-                className="absolute -top-1 -right-1 z-20 px-1.5 py-1 rounded-full bg-obsidian-950/95 backdrop-blur-md border border-amrin-glow/60 shadow-md shadow-rose-500/40 flex items-end gap-[1.5px] pointer-events-none"
+                className="absolute -top-1 -right-1 z-20 w-6 h-4.5 rounded-full bg-slate-950/95 backdrop-blur-md border border-amrin-glow/70 shadow-md shadow-rose-500/50 flex items-end justify-center gap-[2px] pb-[2px] pointer-events-none overflow-hidden"
                 title="Audio Equalizer Active"
               >
-                <span className="w-[1.5px] bg-gradient-to-t from-afzal to-amrin-glow rounded-full animate-[bounce_0.5s_ease-in-out_infinite_100ms] h-2.5" />
-                <span className="w-[1.5px] bg-gradient-to-t from-pink-500 to-rose-400 rounded-full animate-[bounce_0.7s_ease-in-out_infinite_300ms] h-1.5" />
-                <span className="w-[1.5px] bg-gradient-to-t from-purple-500 to-indigo-400 rounded-full animate-[bounce_0.4s_ease-in-out_infinite_200ms] h-3" />
-                <span className="w-[1.5px] bg-gradient-to-t from-rose-400 to-amber-300 rounded-full animate-[bounce_0.6s_ease-in-out_infinite_400ms] h-2" />
+                <span className="w-[2px] bg-rose-400 rounded-full animate-eq-bar-1 shrink-0" />
+                <span className="w-[2px] bg-pink-400 rounded-full animate-eq-bar-2 shrink-0" />
+                <span className="w-[2px] bg-amber-300 rounded-full animate-eq-bar-3 shrink-0" />
+                <span className="w-[2px] bg-cyan-400 rounded-full animate-eq-bar-4 shrink-0" />
               </div>
             )}
           </div>

@@ -91,13 +91,23 @@ export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
  * Safely format and normalize cover image URLs for web browser display
  */
 export function getNormalizedCoverUrl(coverUrl?: string): string {
-  if (!coverUrl || coverUrl.trim() === '') {
+  if (!coverUrl || typeof coverUrl !== 'string' || coverUrl.trim() === '' || coverUrl === 'null' || coverUrl === 'undefined') {
     return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
   }
   let url = coverUrl.trim();
+
+  // Force HTTPS for all Deezer and external CDN images to prevent Mixed Content / CORS blocks
+  if (url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
+
+  // Deezer artwork resolution upgrades (convert low-res 56x56 or 250x250 to crisp 500x500)
+  if (url.includes('dzcdn.net') || url.includes('deezer.com')) {
+    url = url.replace(/\/\d+x\d+-000000-80-0-0\.jpg/gi, '/500x500-000000-80-0-0.jpg');
+  }
+
   if (url.includes('cloudinary.com')) {
     try {
-      // Fix double percent encoding (%25C3%25A2 -> %C3%A2)
       while (url.includes('%25')) {
         url = url.replace(/%25/g, '%');
       }
