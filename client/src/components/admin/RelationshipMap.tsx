@@ -346,10 +346,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
     ) {
       try {
         if (friend.id && !friend.id.startsWith('rel-pending-')) {
-          await adminApi.suspendUser(friend.id).catch(() => {});
-        }
-        if (friend.relationshipId) {
-          await adminApi.deleteRelationship(friend.relationshipId).catch(() => ({}));
+          await adminApi.suspendUser(friend.id);
         }
         if (onRefresh) {
           await onRefresh();

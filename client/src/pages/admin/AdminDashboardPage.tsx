@@ -427,7 +427,9 @@ export const AdminDashboardPage: React.FC = () => {
               <RelationshipMap
                 users={allUsersList.length > 0 ? allUsersList : usersList}
                 relationships={relationships}
-                onRefresh={() => fetchAll()}
+                onRefresh={async () => {
+                  await Promise.all([fetchAll(), fetchUsers(pagination.page)]);
+                }}
                 onCreateInvite={() => setInviteModalConfig({ isOpen: true, branchTitle: 'Create Invitation Token' })}
                 onCreateInviteForBranch={(config) => setInviteModalConfig({ isOpen: true, ...config })}
               />
