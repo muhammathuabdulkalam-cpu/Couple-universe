@@ -8,9 +8,6 @@ import {
   Minimize2,
   Pause,
   Play,
-  Repeat,
-  Repeat1,
-  Shuffle,
   SkipBack,
   SkipForward,
   Volume2,
@@ -36,8 +33,6 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
   const duration = useMusicPlayerStore((s) => s.duration);
   const volume = useMusicPlayerStore((s) => s.volume);
   const isMuted = useMusicPlayerStore((s) => s.isMuted);
-  const isShuffle = useMusicPlayerStore((s) => s.isShuffle);
-  const repeatMode = useMusicPlayerStore((s) => s.repeatMode);
   const queue = useMusicPlayerStore((s) => s.queue);
   const isQueueDrawerOpen = useMusicPlayerStore((s) => s.isQueueDrawerOpen);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
@@ -46,8 +41,6 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
   const seekTo = useMusicPlayerStore((s) => s.seekTo);
   const setVolume = useMusicPlayerStore((s) => s.setVolume);
   const toggleMute = useMusicPlayerStore((s) => s.toggleMute);
-  const toggleShuffle = useMusicPlayerStore((s) => s.toggleShuffle);
-  const cycleRepeatMode = useMusicPlayerStore((s) => s.cycleRepeatMode);
   const toggleQueueDrawer = useMusicPlayerStore((s) => s.toggleQueueDrawer);
   const toggleLyricsModal = useMusicPlayerStore((s) => s.toggleLyricsModal);
   const toggleMobileFullPlayer = useMusicPlayerStore((s) => s.toggleMobileFullPlayer);
@@ -234,28 +227,20 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                 </h4>
                 <p className="text-xs text-slate-400 truncate">{currentTrack.artist}</p>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleFavorite();
-                }}
-                className="p-1.5 rounded-full hover:bg-white/10 transition text-slate-400 hover:text-rose-400 ml-1 shrink-0"
-                title="Toggle Favorite"
-              >
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
-              </button>
             </div>
 
             {/* Middle: Controls & Main Seek Bar */}
             <div className="flex-1 max-w-md flex flex-col items-center gap-1">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => toggleShuffle()}
-                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${isShuffle ? 'text-rose-400' : 'text-slate-400'
-                    }`}
-                  title="Shuffle"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleFavorite();
+                  }}
+                  className="p-1.5 rounded-full hover:bg-white/10 transition text-slate-300 hover:text-rose-400 shrink-0"
+                  title="Favorite Track"
                 >
-                  <Shuffle className="w-4 h-4" />
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
                 </button>
 
                 <button
@@ -269,10 +254,11 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                 <button
                   onClick={() => togglePlay()}
                   disabled={!currentTrack.previewUrl}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${currentTrack.previewUrl
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${
+                    currentTrack.previewUrl
                       ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:scale-105 active:scale-95'
                       : 'bg-slate-700 opacity-50 cursor-not-allowed'
-                    }`}
+                  }`}
                   title={!currentTrack.previewUrl ? 'Preview unavailable.' : isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
                 >
                   {isLoading ? (
@@ -290,15 +276,6 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                   title="Next"
                 >
                   <SkipForward className="w-5 h-5" />
-                </button>
-
-                <button
-                  onClick={() => cycleRepeatMode()}
-                  className={`p-1.5 rounded-full hover:bg-white/10 transition ${repeatMode !== 'none' ? 'text-rose-400' : 'text-slate-400'
-                    }`}
-                  title={`Repeat: ${repeatMode}`}
-                >
-                  {repeatMode === 'one' ? <Repeat1 className="w-4 h-4" /> : <Repeat className="w-4 h-4" />}
                 </button>
               </div>
 
