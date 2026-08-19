@@ -9,7 +9,7 @@ export const AdminLoginPage: React.FC = () => {
   const { setAdminAuth } = useAdminAuthStore();
 
   const [email, setEmail] = useState('admin@gmail.com');
-  const [password, setPassword] = useState('Afzal@1234');
+  const [password, setPassword] = useState('Admin@1234');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
