@@ -78,8 +78,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
             fullViewport
               ? 'p-0 m-0 border-0 rounded-none overflow-hidden'
               : isChatRoute
-              ? 'p-0 pb-0 m-0 border-0 rounded-none lg:p-6 lg:pb-6 overflow-hidden'
-              : 'p-3 sm:p-4 lg:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden'
+              ? 'p-0 pb-0 m-0 border-0 rounded-none lg:px-6 lg:pt-3 lg:pb-6 overflow-hidden'
+              : 'p-3 sm:p-4 lg:px-6 lg:pt-3 lg:pb-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden'
           }`}
         >
           {!fullViewport && !isChatRoute && <Breadcrumb />}
