@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Heart, Power, Radio } from 'lucide-react';
+import { Heart, Power } from 'lucide-react';
 import { fetchPartnerProfile, useListenTogetherStore } from '../../store/listenTogetherStore';
 
 export const ListenTogetherBadge: React.FC = React.memo(() => {
@@ -7,7 +7,6 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
   const partnerConnected = useListenTogetherStore((s) => s.partnerConnected);
   const partnerName = useListenTogetherStore((s) => s.partnerName);
   const partnerAvatar = useListenTogetherStore((s) => s.partnerAvatar);
-  const sendInvite = useListenTogetherStore((s) => s.sendInvite);
   const endSession = useListenTogetherStore((s) => s.endSession);
 
   useEffect(() => {
@@ -17,15 +16,7 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
   }, [isSessionActive, partnerName, partnerAvatar]);
 
   if (!isSessionActive) {
-    return (
-      <button
-        onClick={sendInvite}
-        className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-rose-500/20 hover:scale-105 active:scale-95 transition shrink-0"
-      >
-        <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse" />
-        <span>Listen Together</span>
-      </button>
-    );
+    return null;
   }
 
   return (

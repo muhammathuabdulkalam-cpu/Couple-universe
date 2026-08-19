@@ -109,13 +109,11 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             <button
               type="button"
               onClick={() => setIsAppLauncherOpen(true)}
-              className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400 shadow-xl active:scale-95 transition-transform flex items-center justify-center relative group"
+              className="w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border border-white/15 shadow-xl active:scale-95 transition-all flex items-center justify-center text-slate-300 hover:text-white hover:border-amrin-glow/50 group"
               aria-label="Universe Apps"
               title="Universe Apps"
             >
-              <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amber-300 group-hover:text-white transition-colors">
-                <LayoutGrid className="w-5 h-5" />
-              </div>
+              <LayoutGrid className="w-5 h-5 group-hover:text-amrin-glow transition-colors" />
             </button>
           )}
 
@@ -123,42 +121,37 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(true)}
-            className={`w-12 h-12 rounded-full p-[2px] shadow-2xl active:scale-95 transition-all duration-300 relative ${
+            className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
               isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
             } ${
               isPlaying
-                ? 'bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 ring-2 ring-rose-500/60 shadow-rose-500/40 animate-pulse'
-                : 'bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400'
+                ? 'border-amrin-glow ring-2 ring-amrin/40 shadow-amrin/30'
+                : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
             }`}
             aria-label="Open Activity Bar"
             title={isPlaying ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
           >
-            <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center relative overflow-hidden">
-              {isPlaying && currentTrack ? (
-                <img
-                  src={getNormalizedCoverUrl(currentTrack.coverUrl)}
-                  alt={currentTrack.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    if (!e.currentTarget.src.includes('unsplash.com')) {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                    }
-                  }}
-                />
-              ) : isPlaying ? (
-                <>
-                  <Music className="w-5 h-5 text-rose-400 animate-bounce" />
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                </>
-              ) : (
-                <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
-              )}
-            </div>
+            {isPlaying && currentTrack ? (
+              <img
+                src={getNormalizedCoverUrl(currentTrack.coverUrl)}
+                alt={currentTrack.title}
+                className="w-full h-full object-cover rounded-full"
+                onError={(e) => {
+                  if (!e.currentTarget.src.includes('unsplash.com')) {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+                  }
+                }}
+              />
+            ) : isPlaying ? (
+              <Music className="w-5 h-5 text-amrin-glow animate-bounce" />
+            ) : (
+              <Sparkles className="w-5 h-5 text-amber-300" />
+            )}
 
             {/* Floating Bouncing Music Badge when playing */}
             {isPlaying && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-tr from-rose-500 to-pink-500 border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-10">
-                <Music className="w-2.5 h-2.5 text-white" />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-10">
+                <Music className="w-2 h-2 text-white" />
               </span>
             )}
           </button>

@@ -8,7 +8,6 @@ import {
   MoreVertical,
   Pause,
   Play,
-  Radio,
   Repeat,
   Repeat1,
   Shuffle,
@@ -45,7 +44,6 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
     isSessionActive,
     partnerName,
     partnerAvatar,
-    sendInvite,
   } = useListenTogetherStore();
 
   const { addToast } = useUIStore();
@@ -120,9 +118,9 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
             </button>
           </div>
 
-          {/* Listen Together Mobile Pill Indicator */}
-          <div className="flex justify-center my-2">
-            {isSessionActive ? (
+          {/* Listen Together Mobile Pill Indicator (ONLY when Synced) */}
+          {isSessionActive && (
+            <div className="flex justify-center my-2">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold shadow-lg">
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
                 {partnerAvatar && (
@@ -130,16 +128,8 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
                 )}
                 <span>Synced with {partnerName || 'Partner'} ❤️</span>
               </div>
-            ) : (
-              <button
-                onClick={sendInvite}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-semibold hover:bg-rose-500/30 transition"
-              >
-                <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                <span>Listen Together</span>
-              </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Centered Fixed Circular Album Artwork + Small Equalizer */}
           <div className="flex-1 flex flex-col items-center justify-center my-3 relative">
