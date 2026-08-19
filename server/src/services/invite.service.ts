@@ -44,11 +44,13 @@ export class InviteService {
     const rel = await relQuery.exec();
 
     if (!rel) {
-      throw new AppError('Relationship not found or archived.', HTTP_STATUS.NOT_FOUND);
+      throw new AppError('Relationship not found.', HTTP_STATUS.NOT_FOUND);
     }
 
-    if (rel.status === 'ARCHIVED') {
-      throw new AppError('Cannot generate invite for an archived relationship. Please restore it first.', HTTP_STATUS.BAD_REQUEST);
+    if (rel.status === 'ARCHIVED' || rel.isDeleted) {
+      rel.status = 'ACTIVE';
+      rel.isDeleted = false;
+      await rel.save(session ? { session } : {});
     }
 
     const code = crypto.randomBytes(16).toString('hex').toUpperCase();
@@ -118,11 +120,11 @@ export class InviteService {
       if (!session && invite.status !== 'EXPIRED') {
         await Invite.findByIdAndUpdate(invite._id, { status: 'EXPIRED' });
       }
-    } else if (invite.currentUses >= invite.maxUses || invite.status === 'USED') {
+    } else if (invite.maxUses < 999 && (invite.currentUses >= invite.maxUses || invite.status === 'USED')) {
       status = 'FULLY_USED';
     }
 
-    const remainingUses = Math.max(0, invite.maxUses - invite.currentUses);
+    const remainingUses = Math.max(0, (invite.maxUses || 999) - invite.currentUses);
 
     if (status === 'REVOKED') {
       throw new AppError('This invitation token has been revoked.', 410);
@@ -164,12 +166,12 @@ export class InviteService {
       computedStatus = 'REVOKED';
     } else if (new Date() > invite.expiresAt || invite.status === 'EXPIRED') {
       computedStatus = 'EXPIRED';
-    } else if (invite.currentUses >= invite.maxUses || invite.status === 'USED') {
+    } else if (invite.maxUses < 999 && (invite.currentUses >= invite.maxUses || invite.status === 'USED')) {
       computedStatus = 'FULLY_USED';
     }
 
     const rel: any = invite.relationship;
-    const remainingUses = Math.max(0, invite.maxUses - invite.currentUses);
+    const remainingUses = Math.max(0, (invite.maxUses || 999) - invite.currentUses);
 
     return {
       code: invite.code,
@@ -180,7 +182,7 @@ export class InviteService {
       enabledFeatures: invite.enabledFeatures || [],
       email: invite.email,
       expiresAt: invite.expiresAt,
-      maxUses: invite.maxUses,
+      maxUses: invite.maxUses || 999,
       currentUses: invite.currentUses,
       remainingUses,
       status: computedStatus,
@@ -199,7 +201,6 @@ export class InviteService {
         code: cleanCode,
         isRevoked: false,
         expiresAt: { $gt: new Date() },
-        $expr: { $lt: ['$currentUses', '$maxUses'] },
       },
       {
         $inc: { currentUses: 1 },
@@ -212,11 +213,11 @@ export class InviteService {
     );
 
     if (!updatedInvite) {
-      throw new AppError('Invite token is invalid, expired, revoked, or fully consumed.', HTTP_STATUS.BAD_REQUEST);
+      throw new AppError('Invite token is invalid, expired, or revoked.', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Transition status to USED only if maxUses reached
-    if (updatedInvite.currentUses >= updatedInvite.maxUses) {
+    // Transition status to USED only if maxUses reached and maxUses < 999
+    if (updatedInvite.maxUses < 999 && updatedInvite.currentUses >= updatedInvite.maxUses) {
       updatedInvite.status = 'USED';
       updatedInvite.isUsed = true;
       await updatedInvite.save({ session });

@@ -18,6 +18,7 @@ export interface ISong extends Document {
   addedBy?: mongoose.Types.ObjectId;
   isDeleted?: boolean;
   audioData?: string;
+  isUploaded?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +39,7 @@ const songSchema = new Schema<ISong>(
     addedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     isDeleted: { type: Boolean, default: false },
     audioData: { type: String, select: false, default: '' },
+    isUploaded: { type: Boolean, default: false },
   },
   {
     timestamps: true,

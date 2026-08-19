@@ -12,7 +12,6 @@ import {
   Trash2,
   Download,
   RotateCcw,
-  FileSpreadsheet,
   FileText,
 } from 'lucide-react';
 import { AdminUserListItem } from '../../types/admin.types';
@@ -129,12 +128,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   };
 
   return (
-    <div className="space-y-4 bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl">
+    <div className="space-y-4 bg-[#16161E] border border-white/5 rounded-3xl p-6 shadow-2xl">
       {/* Header Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/5">
         <div>
           <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
-            <UserIcon className="w-5 h-5 text-rose-400" />
+            <UserIcon className="w-5 h-5 text-indigo-400" />
             <span>Platform User Directory ({pagination.total})</span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -145,14 +144,14 @@ export const UsersTable: React.FC<UsersTableProps> = ({
         {/* Filters & Export Bar */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Search Input */}
-          <div className="relative w-full sm:w-60">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search user / email / phone..."
-              className="w-full bg-slate-800 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-rose-500"
+              className="w-full bg-[#1E1E28] border border-white/10 rounded-full pl-10 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
             />
           </div>
 
@@ -160,7 +159,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="bg-slate-800 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500"
+            className="bg-[#1E1E28] border border-white/10 rounded-full px-4 py-2 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           >
             <option value="">All Roles</option>
             <option value="SUPER_OWNER">SUPER_OWNER</option>
@@ -173,7 +172,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-800 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500"
+            className="bg-[#1E1E28] border border-white/10 rounded-full px-4 py-2 text-xs text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">ACTIVE</option>
@@ -185,13 +184,13 @@ export const UsersTable: React.FC<UsersTableProps> = ({
           <div className="relative">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 text-xs font-semibold transition"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1E1E28] hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-bold transition"
             >
-              <Download className="w-4 h-4 text-emerald-400" /> Export
+              <Download className="w-4 h-4 text-indigo-400" /> Export
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-white/10 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-xs">
+              <div className="absolute right-0 mt-2 w-48 bg-[#1E1E28] border border-white/10 rounded-2xl p-2 shadow-2xl z-20 space-y-1 text-xs">
                 <button
                   onClick={() => {
                     handleExportCSV();
@@ -199,45 +198,21 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   }}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-xl hover:bg-white/5 text-slate-200 text-left transition"
                 >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-3.5 h-3.5 text-emerald-400" /> CSV Export
-                  </span>
-                </button>
-
-                <button
-                  disabled
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-500 text-left cursor-not-allowed opacity-60"
-                >
-                  <span className="flex items-center gap-2">
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" /> Excel
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">
-                    Coming Soon
-                  </span>
-                </button>
-
-                <button
-                  disabled
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-500 text-left cursor-not-allowed opacity-60"
-                >
-                  <span className="flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5 text-rose-600" /> PDF
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 text-[9px] font-bold">
-                    Coming Soon
+                  <span className="flex items-center gap-2 font-semibold">
+                    <FileText className="w-3.5 h-3.5 text-indigo-400" /> Export CSV
                   </span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Create Invitation Button */}
+          {/* Create User Button */}
           {onCreateUser && (
             <button
               onClick={onCreateUser}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition shadow"
+              className="px-4 py-2 rounded-full bg-white hover:bg-slate-200 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5" /> Create Invitation
+              <Plus className="w-4 h-4" /> Create Invite Token
             </button>
           )}
         </div>

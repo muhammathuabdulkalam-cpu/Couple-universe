@@ -78,13 +78,6 @@ function writeString(view: DataView, offset: number, string: string) {
 export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
   if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) return cloudinaryUrl;
 
-  // If already an MP3 file, return direct secure URL without forcing re-transcoding overhead
-  const cleanPath = cloudinaryUrl.split('?')[0];
-  if (/\.mp3$/i.test(cleanPath)) {
-    return cloudinaryUrl;
-  }
-
-  // Replace audio/video extensions with .mp3 or insert /f_mp3/ transformation flag
   let mp3Url = cloudinaryUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
 
   if (!mp3Url.includes('/f_mp3') && mp3Url.includes('/upload/')) {
@@ -92,6 +85,28 @@ export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
   }
 
   return mp3Url;
+}
+
+/**
+ * Safely format and normalize cover image URLs for web browser display
+ */
+export function getNormalizedCoverUrl(coverUrl?: string): string {
+  if (!coverUrl || coverUrl.trim() === '') {
+    return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+  }
+  let url = coverUrl.trim();
+  if (url.includes('cloudinary.com')) {
+    try {
+      // Fix double percent encoding (%25C3%25A2 -> %C3%A2)
+      while (url.includes('%25')) {
+        url = url.replace(/%25/g, '%');
+      }
+      return encodeURI(decodeURI(url));
+    } catch {
+      return url;
+    }
+  }
+  return url;
 }
 
 /**

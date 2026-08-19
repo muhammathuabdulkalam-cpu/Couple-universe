@@ -424,7 +424,17 @@ export const GalleryPage: React.FC = () => {
       {/* 4. Media Display / 3D Museum Display */}
       {viewMode === '3d' ? (
         <MemoryMuseum3D
-          mediaItems={displayItems.filter((i) => Boolean(i.secureUrl || (i as any).url || i.thumbnailUrl || i.optimizedUrl))}
+          mediaItems={displayItems.filter((i) => {
+            const hasUrl = Boolean(i.secureUrl || (i as any).url || i.thumbnailUrl || i.optimizedUrl);
+            const isCoverOrProfile =
+              i.tags?.includes('cover') ||
+              i.tags?.includes('profile') ||
+              i.cloudinaryPublicId?.includes('covers') ||
+              i.cloudinaryPublicId?.includes('profile') ||
+              i.title?.toLowerCase().includes('cover') ||
+              i.title?.toLowerCase().includes('profile');
+            return hasUrl && !isCoverOrProfile;
+          })}
           albums={albumsList}
         />
       ) : isMediaLoading ? (

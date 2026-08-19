@@ -6,6 +6,7 @@ export interface PendingInviteData {
   relationshipName?: string;
   relationshipType?: string;
   targetRole?: string;
+  enabledFeatures?: string[];
   email?: string;
   expiresAt?: string;
 }

@@ -7,6 +7,8 @@ import { env } from './config/env.config';
 import { logger } from './config/logger.config';
 import { PLATFORM_CONSTANTS } from './constants';
 import { socketService } from './services/socket.service';
+import { syncCloudinaryAudioToDb } from './controllers/music.controller';
+import { syncCloudinaryGalleryToDb } from './controllers/media.controller';
 
 let server: any;
 
@@ -14,6 +16,14 @@ const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB Database
     await connectDatabase();
+
+    // Auto-sync Cloudinary audio & gallery libraries asynchronously on startup
+    syncCloudinaryAudioToDb().catch((syncErr) => {
+      logger.warn(`⚠️ Startup Cloudinary audio sync non-fatal error: ${syncErr.message}`);
+    });
+    syncCloudinaryGalleryToDb().catch((syncErr) => {
+      logger.warn(`⚠️ Startup Cloudinary gallery sync non-fatal error: ${syncErr.message}`);
+    });
 
     // Start Express HTTP Server
     server = app.listen(env.PORT, () => {

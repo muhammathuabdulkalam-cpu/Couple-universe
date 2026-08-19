@@ -5,7 +5,6 @@ import {
   CloudSun,
   Heart,
   Music,
-  Play,
   Plus,
   Sparkles,
   X,
@@ -15,11 +14,13 @@ import React, { useState } from 'react';
 import { AnniversaryCountdownWidget } from '../dashboard/AnniversaryCountdownWidget.js';
 import { BirthdayCountdown } from '../dashboard/BirthdayCountdown.js';
 import { TodaysMemoryWidget } from '../dashboard/TodaysMemoryWidget.js';
-import { Badge } from '../ui/Badge.js';
+import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
 import { useNavigate } from 'react-router-dom';
+import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
+import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
 
 interface RightContextPanelProps {
@@ -29,19 +30,24 @@ interface RightContextPanelProps {
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
   const navigate = useNavigate();
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
 
   const panelContent = (
     <div className="space-y-4">
-      {/* Widget 1: Partner Birthday Live Countdown (Compact 100% vertical layout for 300px sidebar) */}
+      {/* Widget 1: Real-time Shared Music Player (Top Priority) */}
+      <RightSidebarMusicWidget />
+
+      {/* Widget 2: Partner Birthday Live Countdown (Compact 100% vertical layout for 300px sidebar) */}
       <BirthdayCountdown variant="compact" />
 
-      {/* Widget 2: Today's Memory & Anniversary */}
+      {/* Widget 3: Today's Memory & Anniversary */}
       <TodaysMemoryWidget />
       <AnniversaryCountdownWidget />
 
-      {/* Widget 3: Quick Actions */}
+      {/* Widget 4: Quick Actions */}
       <Card variant="glass" className="p-4 space-y-3 border-white/10">
         <div className="flex items-center justify-between text-xs font-bold text-slate-200">
           <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-afzal" /> Quick Actions</span>
@@ -53,23 +59,6 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <Button variant="glass" size="sm" className="text-xs py-2 justify-start" leftIcon={<Heart className="w-3.5 h-3.5 text-heart" />}>
             Write Diary
           </Button>
-        </div>
-      </Card>
-
-      {/* Widget 4: Shared Music Player */}
-      <Card variant="glass" className="p-4 space-y-3 border-amrin/20">
-        <div className="flex items-center justify-between text-xs font-bold text-white">
-          <span className="flex items-center gap-1.5"><Music className="w-3.5 h-3.5 text-amrin-glow" /> Shared Melody</span>
-          <Badge variant="violet" size="sm">Active</Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center text-white shrink-0">
-            <Play className="w-4 h-4 fill-white ml-0.5" />
-          </div>
-          <div className="overflow-hidden">
-            <h4 className="text-xs font-semibold text-white truncate">Perfect Together</h4>
-            <p className="text-[11px] text-slate-400 truncate">Afzal & Amrin Playlist</p>
-          </div>
         </div>
       </Card>
 
@@ -100,35 +89,49 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Gradient-Border Circular Floating Trigger Buttons on Mobile Viewports */}
+      {/* Gradient-Border Circular Floating Trigger Button on Mobile Viewports */}
       <div className="fixed right-3 bottom-20 z-40 md:hidden flex flex-col gap-3 items-center select-none">
-        
-        {/* 1. Shared Music Floating Circle Button */}
-        <button
-          type="button"
-          onClick={() => navigate('/shared-music')}
-          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 shadow-2xl active:scale-95 transition-transform group flex items-center justify-center relative"
-          aria-label="Shared Music"
-          title="Shared Music"
-        >
-          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-rose-400">
-            <Music className="w-5 h-5 group-hover:scale-110 transition-transform text-amrin-glow" />
-          </div>
-        </button>
-
-        {/* 2. Activity Context Circular Button with Radiant Gradient Border */}
+        {/* Activity Context Circular Button with Music Pulse Animation & Vinyl Cover Art */}
         <button
           type="button"
           onClick={() => setIsMobileDrawerOpen(true)}
-          className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400 shadow-2xl active:scale-95 transition-transform"
+          className={`w-12 h-12 rounded-full p-[2px] shadow-2xl active:scale-95 transition-all duration-300 relative ${
+            isPlaying
+              ? 'bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 ring-2 ring-rose-500/60 shadow-rose-500/40 animate-pulse'
+              : 'bg-gradient-to-tr from-violet-500 via-rose-500 to-amber-400'
+          }`}
           aria-label="Open Activity Bar"
-          title="Open Activity Bar"
+          title={isPlaying ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
         >
-          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amber-300">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+          <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center relative overflow-hidden">
+            {isPlaying && currentTrack ? (
+              <img
+                src={getNormalizedCoverUrl(currentTrack.coverUrl)}
+                alt={currentTrack.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  if (!e.currentTarget.src.includes('unsplash.com')) {
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+                  }
+                }}
+              />
+            ) : isPlaying ? (
+              <>
+                <Music className="w-5 h-5 text-rose-400 animate-bounce" />
+                <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+              </>
+            ) : (
+              <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            )}
           </div>
-        </button>
 
+          {/* Floating Bouncing Music Badge when playing */}
+          {isPlaying && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-tr from-rose-500 to-pink-500 border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-10">
+              <Music className="w-2.5 h-2.5 text-white" />
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Mobile Slide-Over Activity & Context Drawer */}

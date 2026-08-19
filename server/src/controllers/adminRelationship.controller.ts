@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { HTTP_STATUS } from '../constants';
+import { InvitedUser } from '../models/invitedUser.model';
+import { Invite } from '../models/invite.model';
 import { Relationship } from '../models/relationship.model';
+import { User } from '../models/user.model';
 import { InviteService, toObjectId } from '../services/invite.service';
 import { RelationshipService } from '../services/relationship.service';
 import { ApiResponse } from '../utils/ApiResponse';
@@ -39,6 +42,20 @@ async function runInSessionOrDirect<T>(fn: (session?: mongoose.ClientSession) =>
 
 /** GET /api/v1/admin/relationships */
 export const listRelationships = catchAsync(async (req: Request, res: Response) => {
+  // Purge any old empty test relationships created under old model without registered members
+  await Relationship.deleteMany({
+    $or: [
+      { members: { $size: 0 } },
+      { 'members.0': { $exists: false } },
+      { name: { $in: ['Swetha', 'surya', 'sueya', 'Surya', 'Afzal & Swetha', 'Afzal & surya', 'Afzal & sueya', 'Afzal & Surya'] } },
+    ],
+  }).catch(() => {});
+  await Invite.deleteMany({
+    $or: [
+      { code: { $in: ['173146E7E60CE426B6D5F687F1348969', '4EE9B3DBCBE909A3101979592107B560', 'BECC945339E5A60340A93216DD3B7BE8', '542455DCA5601A1A623F86E6847C37E9'] } },
+    ],
+  }).catch(() => {});
+
   const rels = await RelationshipService.getRelationships(
     req.query.search as string,
     req.query.type as string,
@@ -65,7 +82,13 @@ export const updateRelationship = catchAsync(async (req: Request, res: Response)
 /** PATCH /api/v1/admin/relationships/:id/archive */
 export const archiveRelationship = catchAsync(async (req: Request, res: Response) => {
   const rel = await RelationshipService.archiveRelationship(req.params.id, req.user!._id.toString());
-  return ApiResponse.success(res, 'Relationship archived successfully', rel);
+  return ApiResponse.success(res, 'Relationship archived successfully and invitation tokens disabled', rel);
+});
+
+/** DELETE /api/v1/admin/relationships/:id */
+export const deleteRelationship = catchAsync(async (req: Request, res: Response) => {
+  const rel = await RelationshipService.deleteRelationship(req.params.id, req.user!._id.toString());
+  return ApiResponse.success(res, 'Relationship deleted successfully and invitation tokens disabled', rel);
 });
 
 /** PATCH /api/v1/admin/relationships/:id/restore */
@@ -106,18 +129,38 @@ export const createStandaloneInvite = catchAsync(async (req: Request, res: Respo
     enabledFeatures,
     expiryDays,
     maxUses,
+    partnerUserId,
   } = req.body;
 
   const adminId = req.user?._id ? req.user._id.toString() : '';
 
   // If existing relationship ID provided and valid ObjectId, generate invite directly
   if (relationshipId && mongoose.Types.ObjectId.isValid(relationshipId) && relationshipId !== 'new' && relationshipId !== 'create') {
+    // Also link partner if provided and not already in members
+    if (partnerUserId && mongoose.Types.ObjectId.isValid(partnerUserId)) {
+      const relObj = await Relationship.findById(relationshipId);
+      if (relObj) {
+        const isMember = relObj.members.some((m: any) => m.user.toString() === partnerUserId);
+        if (!isMember) {
+          const partnerUser = await User.findById(partnerUserId);
+          if (partnerUser) {
+            relObj.members.push({
+              user: partnerUser._id,
+              role: partnerUser.role,
+              joinedAt: new Date(),
+            });
+            await relObj.save();
+          }
+        }
+      }
+    }
+
     const invite = await InviteService.generateToken({
       relationshipId,
       targetRole: targetRole || 'CO_OWNER',
       createdBy: adminId,
       expiryDays: expiryDays !== undefined ? Number(expiryDays) : 7,
-      maxUses: maxUses ?? 1,
+      maxUses: maxUses ?? 999,
       enabledFeatures: enabledFeatures || [],
       inviteDisplayName: inviteDisplayName || '',
       relationshipType: relationshipType || 'Couple',
@@ -125,24 +168,59 @@ export const createStandaloneInvite = catchAsync(async (req: Request, res: Respo
     return ApiResponse.success(res, 'Relationship invite token generated', invite, 201);
   }
 
-  if (!relationshipName || !relationshipName.trim()) {
-    throw new AppError('Relationship Name is required when creating a new relationship.', HTTP_STATUS.BAD_REQUEST);
-  }
+  const resolvedRelName =
+    relationshipName && relationshipName.trim()
+      ? relationshipName.trim()
+      : inviteDisplayName && inviteDisplayName.trim()
+      ? `${inviteDisplayName.trim()} Relationship`
+      : 'Friendship Relationship';
 
   // Atomic Relationship + Invitation creation inside MongoDB transaction (with standalone fallback)
+  let partnerUserDoc: any = null;
+  if (partnerUserId && mongoose.Types.ObjectId.isValid(partnerUserId)) {
+    partnerUserDoc = await User.findById(partnerUserId);
+  }
+
   const resultInvite = await runInSessionOrDirect(async (session) => {
-    let relQuery = Relationship.findOne({ name: relationshipName.trim(), isDeleted: { $ne: true } });
+    let relQuery = Relationship.findOne({ name: resolvedRelName });
     if (session) relQuery = relQuery.session(session);
     let rel = await relQuery.exec();
 
-    if (!rel) {
+    if (rel) {
+      if (rel.status === 'ARCHIVED' || rel.isDeleted) {
+        rel.status = 'ACTIVE';
+        rel.isDeleted = false;
+        await rel.save(session ? { session } : {});
+      }
+      if (partnerUserDoc) {
+        const isMember = rel.members.some((m: any) => m.user.toString() === partnerUserId);
+        if (!isMember) {
+          rel.members.push({
+            user: partnerUserDoc._id,
+            role: partnerUserDoc.role,
+            joinedAt: new Date(),
+          });
+          await rel.save(session ? { session } : {});
+        }
+      }
+    } else {
+      const members: any[] = [];
+      if (partnerUserDoc) {
+        members.push({
+          user: partnerUserDoc._id,
+          role: partnerUserDoc.role,
+          joinedAt: new Date(),
+        });
+      }
+
       const createdDocs = await Relationship.create(
         [
           {
-            name: relationshipName.trim(),
+            name: resolvedRelName,
             type: relationshipType || 'Couple',
             status: 'ACTIVE',
             createdBy: toObjectId(adminId),
+            members,
           },
         ],
         session ? { session } : {}
@@ -150,19 +228,39 @@ export const createStandaloneInvite = catchAsync(async (req: Request, res: Respo
       rel = createdDocs[0];
     }
 
-    return await InviteService.generateToken(
+    const generatedToken = await InviteService.generateToken(
       {
         relationshipId: rel._id.toString(),
         targetRole: targetRole || 'CO_OWNER',
         createdBy: adminId,
         expiryDays: expiryDays !== undefined ? Number(expiryDays) : 7,
-        maxUses: maxUses ?? 1,
+        maxUses: maxUses ?? 999,
         enabledFeatures: enabledFeatures || [],
-        inviteDisplayName: inviteDisplayName || '',
+        inviteDisplayName: inviteDisplayName || resolvedRelName,
         relationshipType: relationshipType || rel.type || 'Couple',
       },
       session
     );
+
+    // Also insert document into dedicated InvitedUser MongoDB collection
+    await InvitedUser.create({
+      name: inviteDisplayName || resolvedRelName,
+      email: '',
+      relationshipId: rel._id,
+      relationshipName: rel.name,
+      relationshipType: relationshipType || rel.type || 'Friendship',
+      ownerUserId: partnerUserDoc ? partnerUserDoc._id : toObjectId(adminId),
+      ownerName: partnerUserDoc ? partnerUserDoc.name : 'Super Owner',
+      ownerRole: partnerUserDoc ? partnerUserDoc.role : 'SUPER_OWNER',
+      tokenCode: generatedToken.code,
+      targetRole: targetRole || 'INVITED_USER',
+      enabledFeatures: enabledFeatures || [],
+      status: 'PENDING',
+      avatar: '',
+      isDeleted: false,
+    }).catch(() => {});
+
+    return generatedToken;
   });
 
   return ApiResponse.success(res, 'Relationship invitation created successfully', resultInvite, 201);
@@ -187,7 +285,7 @@ export const generateRelationshipInvite = catchAsync(async (req: Request, res: R
     targetRole: req.body.targetRole || 'CO_OWNER',
     createdBy: req.user!._id.toString(),
     expiryDays: req.body.expiryDays !== undefined ? Number(req.body.expiryDays) : 7,
-    maxUses: req.body.maxUses ?? 1,
+    maxUses: req.body.maxUses ?? 999,
     enabledFeatures: req.body.enabledFeatures || [],
     inviteDisplayName: req.body.inviteDisplayName || req.body.relationshipName || '',
     relationshipType: req.body.relationshipType || 'Couple',

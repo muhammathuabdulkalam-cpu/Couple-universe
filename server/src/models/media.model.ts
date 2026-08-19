@@ -24,6 +24,7 @@ export interface IMedia extends Document {
   memoryDate: Date;
   cloudinaryPublicId: string;
   cloudinaryFolder: string;
+  url?: string;
   secureUrl: string;
   optimizedUrl: string;
   thumbnailUrl: string;
@@ -128,6 +129,9 @@ const mediaSchema = new Schema<IMedia>(
     cloudinaryFolder: {
       type: String,
       default: 'afrin-universe/gallery',
+    },
+    url: {
+      type: String,
     },
     secureUrl: {
       type: String,

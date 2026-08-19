@@ -1,4 +1,4 @@
-import { axiosClient } from './axiosClient';
+import { axiosClient, getMemoryAccessToken } from './axiosClient';
 import {
   DashboardMusicSummary,
   ListeningSession,
@@ -22,13 +22,37 @@ export const musicApi = {
     return res.data.data as NormalizedSong;
   },
 
-  getUploadedSongs: async (page: number = 1, limit: number = 50) => {
-    const res = await axiosClient.get('/music/uploaded', { params: { page, limit } });
+  importSong: async (song: NormalizedSong) => {
+    const res = await axiosClient.post('/music/uploaded/import', song);
+    return res.data.data as NormalizedSong;
+  },
+
+  syncCloudinarySongs: async () => {
+    const res = await axiosClient.post('/music/uploaded/sync');
+    return res.data.data as { addedCount: number; total: number };
+  },
+
+  getUploadedSongs: async (page: number = 1, limit: number = 500) => {
+    const adminToken = localStorage.getItem('admin_access_token');
+    const userToken = localStorage.getItem('access_token') || getMemoryAccessToken();
+    const token = (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && adminToken)
+      ? adminToken
+      : (userToken || adminToken);
+    
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await axiosClient.get('/music/uploaded', { params: { page, limit }, headers });
     return res.data.data as { songs: NormalizedSong[]; total: number; page: number; limit: number };
   },
 
   deleteUploadedSong: async (providerSongId: string) => {
-    const res = await axiosClient.delete(`/music/uploaded/${providerSongId}`);
+    const adminToken = localStorage.getItem('admin_access_token');
+    const userToken = localStorage.getItem('access_token') || getMemoryAccessToken();
+    const token = (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') && adminToken)
+      ? adminToken
+      : (userToken || adminToken);
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await axiosClient.delete(`/music/uploaded/${encodeURIComponent(providerSongId)}`, { headers });
     return res.data;
   },
 

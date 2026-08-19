@@ -1,6 +1,7 @@
 import { parseBuffer } from 'music-metadata';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import https from 'https';
 import { logger } from '../config/logger.config';
 import { HTTP_STATUS } from '../constants';
 import { FavoriteSong } from '../models/favoriteSong.model';
@@ -98,6 +99,12 @@ export function cleanMetadataString(str: string): string {
 export const uploadSong = catchAsync(async (req: Request, res: Response) => {
   logger.info('✓ Route reached & Controller entered: uploadSong');
   const user = req.user!;
+  
+  // Permission guard: Only Super Owner, Co-Owner, and Admin can upload custom songs
+  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER' && user.role !== 'ADMIN') {
+    throw new AppError('Only Super Owner, Co-Owner, and Admin can upload songs', HTTP_STATUS.FORBIDDEN);
+  }
+
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
   logger.info('✓ Multer success: Multipart files parsed');
@@ -173,29 +180,27 @@ export const uploadSong = catchAsync(async (req: Request, res: Response) => {
     }
     audioUploadUrl = rawUrl;
     cloudinaryDuration = Math.round(audioUpload.duration || 0);
-    logger.info('✓ Cloudinary Upload success (MP3 transcoded):', audioUploadUrl);
-  } catch (err: any) {
-    logger.error('❌ Cloudinary audio upload failed:', err.message);
-    // If file buffer size exceeds 11MB, converting to base64 will exceed MongoDB's 16MB BSON limit
-    if (audioFile.buffer.length > 11 * 1024 * 1024) {
-      throw new AppError(
-        `Cloudinary storage error: ${err.message || 'Failed to upload audio to cloud'}. File is too large for local fallback.`,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR
-      );
-    }
-    const base64Audio = audioFile.buffer.toString('base64');
-    audioUploadUrl = `data:${audioFile.mimetype || 'audio/mpeg'};base64,${base64Audio}`;
+  } catch (cloudErr: any) {
+    logger.error('❌ Cloudinary Upload Failed:', cloudErr.message);
+    // Graceful fallback to Data URI
+    const b64 = audioFile.buffer.toString('base64');
+    const mime = audioFile.mimetype || 'audio/mpeg';
+    audioUploadUrl = `data:${mime};base64,${b64}`;
+    logger.warn('⚠️ Fallback to Data URI string for playback');
   }
 
-  // 3. Resolve Cover Artwork (Custom Upload > ID3 Embedded > Default Artwork)
+  // 3. Optional Custom Cover Image Upload to Cloudinary
   let coverUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
   if (files['cover'] && files['cover'].length > 0) {
     try {
-      const coverFile = files['cover'][0];
+      const coverFileObj = files['cover'][0];
+      const ext = (coverFileObj.originalname.split('.').pop() || 'jpg').replace(/[^a-z0-9]/gi, '');
+      const safeCoverFilename = `cover_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+      
       const coverUpload = await CloudinaryService.uploadBuffer(
-        coverFile.buffer,
+        coverFileObj.buffer,
         'afrin-universe/music/covers',
-        coverFile.originalname
+        safeCoverFilename
       );
       coverUrl = coverUpload.optimizedUrl || coverUpload.secureUrl;
     } catch (_cErr) { }
@@ -283,7 +288,12 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
     }
     : { provider: 'local', isDeleted: { $ne: true } };
 
-  const localSongs = await Song.find(localQuery).populate('addedBy', 'name avatar').sort({ _id: -1 }).limit(20);
+  const localSongs = await Song.find(localQuery)
+    .select('-audioData')
+    .populate('addedBy', 'name avatar')
+    .sort({ _id: -1 })
+    .allowDiskUse(true)
+    .limit(20);
 
   const localNormalized: NormalizedSong[] = localSongs.map((s: any) => ({
     provider: 'local',
@@ -306,31 +316,166 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
 });
 
 /**
- * Get All Custom Uploaded Songs from MongoDB
+ * Helper to sync Cloudinary audio folder assets into MongoDB Song records
+ */
+export async function syncCloudinaryAudioToDb(): Promise<number> {
+  try {
+    const assets = await CloudinaryService.listAudioAssets('afrin-universe/music/audio');
+    if (!assets || assets.length === 0) return 0;
+
+    const existingSongs = await Song.find({ provider: 'local' }).lean();
+    let addedCount = 0;
+
+    for (const item of assets) {
+      const secureUrl = item.secure_url;
+      let previewUrl = secureUrl;
+      if (previewUrl && previewUrl.includes('cloudinary.com')) {
+        if (item.resource_type === 'video') {
+          previewUrl = previewUrl.replace(/\.(m4a|flac|wav|ogg|aac|wma|opus|aiff)$/i, '.mp3');
+        }
+        if (!previewUrl.includes('/f_mp3') && previewUrl.includes('/upload/')) {
+          previewUrl = previewUrl.replace('/upload/', '/upload/f_mp3,ac_mp3/');
+        }
+      }
+
+      const exists = existingSongs.some(
+        (s: any) =>
+          s.previewUrl === previewUrl ||
+          s.previewUrl === secureUrl ||
+          s.externalUrl === secureUrl ||
+          (s.providerSongId && item.public_id.includes(s.providerSongId))
+      );
+
+      if (exists) continue;
+
+      // Extract filename fallback
+      const rawFilename = item.public_id.split('/').pop()?.replace(/\.[^/.]+$/, '') || '';
+      const withoutHash = rawFilename.replace(/_[a-z0-9]+$/i, '');
+      const cleanedFilename = cleanMetadataString(withoutHash);
+
+      let finalTitle = cleanedFilename;
+      let finalArtist = 'Afzal & Amrin';
+      let finalAlbum = '';
+
+      const parts = finalTitle.split(' - ');
+      if (parts.length > 1) {
+        finalArtist = parts[0].trim();
+        finalTitle = parts.slice(1).join(' - ').trim();
+      }
+
+      if (!finalTitle || finalTitle.length < 2) {
+        finalTitle = cleanedFilename || 'Untitled Song';
+      }
+
+      // Fetch cover image from Cloudinary music/covers if available
+      let coverUrl = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+      try {
+        const coverAssets = await CloudinaryService.listGalleryAssets('afrin-universe/music/covers');
+        if (coverAssets && coverAssets.length > 0) {
+          const matchedCover = coverAssets.find((c: any) => {
+            const cName = (c.public_id || '').toLowerCase();
+            const fName = cleanedFilename.toLowerCase();
+            return (
+              (fName.includes('extended') && cName.includes('pgsfyn')) ||
+              (fName.includes('popstar') && cName.includes('wesjex')) ||
+              (fName.includes('rose') && cName.includes('u8t4dn')) ||
+              cName.includes(withoutHash.toLowerCase())
+            );
+          });
+          if (matchedCover) {
+            coverUrl = matchedCover.secure_url;
+          }
+        }
+      } catch (_covErr) {}
+
+      const songId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await Song.create({
+        provider: 'local',
+        providerSongId: songId,
+        title: finalTitle,
+        artist: finalArtist,
+        album: finalAlbum,
+        coverUrl,
+        previewUrl,
+        duration: Math.round(item.duration || 180),
+        externalUrl: previewUrl,
+        isUploaded: true,
+      });
+
+      addedCount++;
+    }
+
+    if (addedCount > 0) {
+      logger.info(`✨ Auto-synced ${addedCount} new songs from Cloudinary to MongoDB!`);
+    }
+
+    return addedCount;
+  } catch (err: any) {
+    logger.error(`❌ Cloudinary auto-sync error: ${err.message}`);
+    return 0;
+  }
+}
+
+/**
+ * Trigger Cloudinary to MongoDB Sync Endpoint
+ */
+export const syncCloudinarySongs = catchAsync(async (_req: Request, res: Response) => {
+  const addedCount = await syncCloudinaryAudioToDb();
+  const total = await Song.countDocuments({ provider: 'local', isDeleted: { $ne: true } });
+  return ApiResponse.success(res, `Synced Cloudinary audio library successfully. Added ${addedCount} new song(s).`, {
+    addedCount,
+    total,
+  });
+});
+
+/**
+ * Get All Custom Uploaded Songs from MongoDB (Universally synced across all accounts)
  */
 export const getUploadedSongs = catchAsync(async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 100;
+  const limit = parseInt(req.query.limit as string, 10) || 500;
   const skip = (page - 1) * limit;
 
-  const [songs, total] = await Promise.all([
-    Song.find({ provider: 'local', isDeleted: { $ne: true } })
+  const filter = { provider: 'local', isDeleted: { $ne: true } };
+
+  let [songs, total] = await Promise.all([
+    Song.find(filter)
+      .select('-audioData')
       .populate('addedBy', 'name avatar role')
-      .sort({ createdAt: -1 })
+      .sort({ _id: -1 })
+      .allowDiskUse(true)
       .skip(skip)
       .limit(limit)
       .lean(),
-    Song.countDocuments({ provider: 'local', isDeleted: { $ne: true } }),
+    Song.countDocuments(filter),
   ]);
 
+  // Auto-sync Cloudinary audio files if DB has no songs or if sync=true is requested
+  if (total === 0 || req.query.sync === 'true') {
+    const syncedCount = await syncCloudinaryAudioToDb();
+    if (syncedCount > 0 || total === 0) {
+      [songs, total] = await Promise.all([
+        Song.find(filter)
+          .select('-audioData')
+          .populate('addedBy', 'name avatar role')
+          .sort({ _id: -1 })
+          .allowDiskUse(true)
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Song.countDocuments(filter),
+      ]);
+    }
+  }
+
   const normalized = songs.map((s: any) => ({
-    provider: 'local',
+    provider: s.provider || 'local',
     providerSongId: s.providerSongId,
     title: s.title,
     artist: s.artist,
     album: s.album || '',
     coverUrl: s.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
-    previewUrl: s.previewUrl || '',
+    previewUrl: s.previewUrl || s.externalUrl || '',
     duration: s.duration || 180,
     externalUrl: s.externalUrl || '',
     uploadedBy: s.addedBy ? { name: s.addedBy.name, avatar: s.addedBy.avatar, id: s.addedBy._id } : undefined,
@@ -346,25 +491,142 @@ export const getUploadedSongs = catchAsync(async (req: Request, res: Response) =
 });
 
 /**
- * Soft Delete Uploaded Song (Only Uploader or SUPER_OWNER)
+ * Import/Add an external Deezer song to custom Jukebox library (setting isUploaded: true)
+ */
+export const importSong = catchAsync(async (req: Request, res: Response) => {
+  const { provider, providerSongId, title, artist, album, coverUrl, previewUrl, duration } = req.body;
+
+  if (!provider || !providerSongId || !title || !artist) {
+    throw new AppError('Missing required song metadata for import.', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  let song = await Song.findOne({ provider, providerSongId });
+  if (song) {
+    song.isUploaded = true;
+    song.isDeleted = false;
+    await song.save();
+  } else {
+    song = await Song.create({
+      provider,
+      providerSongId,
+      title,
+      artist,
+      album: album || '',
+      coverUrl: coverUrl || '',
+      previewUrl: previewUrl || '',
+      duration: Number(duration) || 180,
+      isUploaded: true,
+      addedBy: req.user?._id,
+    });
+  }
+
+  const normalized = {
+    provider: song.provider,
+    providerSongId: song.providerSongId,
+    title: song.title,
+    artist: song.artist,
+    album: song.album || '',
+    coverUrl: song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+    previewUrl: song.previewUrl || song.externalUrl || '',
+    duration: song.duration || 180,
+    externalUrl: song.externalUrl || '',
+    uploadedBy: req.user ? { name: req.user.name, avatar: req.user.avatar, id: req.user._id } : undefined,
+    uploadedAt: song.createdAt,
+  };
+
+  return ApiResponse.success(res, 'Song added to Uploaded library successfully', normalized, 201);
+});
+
+/**
+ * Helper to extract Cloudinary Public ID and Resource Type from any Cloudinary URL
+ */
+export function extractCloudinaryPublicIdAndType(url: string): { publicId: string; resourceType: string } | null {
+  if (!url || !url.includes('cloudinary.com')) return null;
+  try {
+    const isRaw = url.includes('/raw/upload/');
+    const isVideo = url.includes('/video/upload/');
+    const resourceType = isRaw ? 'raw' : (isVideo ? 'video' : 'image');
+
+    const uploadIndex = url.indexOf('/upload/');
+    if (uploadIndex === -1) return null;
+
+    let path = url.substring(uploadIndex + 8);
+    const vMatch = path.match(/v\d+\/(.+)$/);
+    if (vMatch) {
+      path = vMatch[1];
+    } else {
+      const folderMatch = path.match(/(afrin-universe\/.+)$/);
+      if (folderMatch) {
+        path = folderMatch[1];
+      } else {
+        path = path.replace(/^[^/]*[=,][^/]*\//, '');
+      }
+    }
+
+    if (resourceType !== 'raw') {
+      path = path.replace(/\.[^/.]+$/, '');
+    }
+
+    return { publicId: decodeURIComponent(path), resourceType };
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Delete Uploaded Song (Deletes from Cloudinary storage + removes from MongoDB)
  */
 export const deleteUploadedSong = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
   const { providerSongId } = req.params;
 
-  const song = await Song.findOne({ providerSongId, provider: 'local', isDeleted: { $ne: true } });
+  const isObjId = mongoose.Types.ObjectId.isValid(providerSongId);
+  const song = await Song.findOne({
+    $or: [
+      { providerSongId },
+      ...(isObjId ? [{ _id: providerSongId }] : []),
+    ],
+    isDeleted: { $ne: true },
+  });
+
   if (!song) {
     throw new AppError('Song not found', HTTP_STATUS.NOT_FOUND);
   }
 
-  if (user.role !== 'SUPER_OWNER' && song.addedBy?.toString() !== user._id.toString()) {
-    throw new AppError('Permission denied. You can only delete songs you uploaded.', HTTP_STATUS.FORBIDDEN);
+  // Permission guard: Super Owner, Co-Owner, Admin, or original uploader can delete
+  const hasPermission =
+    user.role === 'SUPER_OWNER' ||
+    user.role === 'CO_OWNER' ||
+    user.role === 'ADMIN' ||
+    (song.addedBy && song.addedBy.toString() === user._id.toString());
+
+  if (!hasPermission) {
+    throw new AppError('Permission denied. You do not have permission to delete this song.', HTTP_STATUS.FORBIDDEN);
   }
 
-  song.isDeleted = true;
-  await song.save();
+  // 1. Delete Audio asset from Cloudinary storage
+  const targetUrl = song.previewUrl || song.externalUrl;
+  if (targetUrl) {
+    const assetInfo = extractCloudinaryPublicIdAndType(targetUrl);
+    if (assetInfo) {
+      logger.info(`🗑️ Destroying Cloudinary audio asset: [${assetInfo.publicId}] (${assetInfo.resourceType})`);
+      await CloudinaryService.deleteAsset(assetInfo.publicId, assetInfo.resourceType);
+    }
+  }
 
-  return ApiResponse.success(res, 'Song deleted successfully', { providerSongId });
+  // 2. Delete Cover image from Cloudinary storage if hosted on Cloudinary
+  if (song.coverUrl && song.coverUrl.includes('cloudinary.com')) {
+    const coverInfo = extractCloudinaryPublicIdAndType(song.coverUrl);
+    if (coverInfo) {
+      logger.info(`🗑️ Destroying Cloudinary cover asset: [${coverInfo.publicId}] (${coverInfo.resourceType})`);
+      await CloudinaryService.deleteAsset(coverInfo.publicId, coverInfo.resourceType);
+    }
+  }
+
+  // 3. Mark as deleted in MongoDB and remove document
+  await song.deleteOne();
+
+  return ApiResponse.success(res, 'Song deleted from library & Cloudinary storage successfully', { providerSongId });
 });
 
 /**

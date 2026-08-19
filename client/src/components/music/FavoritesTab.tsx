@@ -18,7 +18,8 @@ export const FavoritesTab: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await musicApi.getFavorites();
-      setFavorites(data || []);
+      const validData = (data || []).filter((s): s is NormalizedSong => Boolean(s && (s.providerSongId || (s as any)._id)));
+      setFavorites(validData);
     } catch (_err) {
       setFavorites([]);
     } finally {
@@ -31,17 +32,19 @@ export const FavoritesTab: React.FC = () => {
   }, []);
 
   const handleRemoveFavorite = async (song: NormalizedSong) => {
+    if (!song) return;
     try {
       await musicApi.toggleFavorite(song);
-      setFavorites((prev) => prev.filter((s) => s.providerSongId !== song.providerSongId));
+      setFavorites((prev) => prev.filter((s) => s && s.providerSongId !== song.providerSongId));
     } catch (_err) {
       // Handle gracefully
     }
   };
 
   const playAllFavorites = () => {
-    if (favorites.length === 0) return;
-    playTrack(favorites[0], favorites);
+    const validFavs = favorites.filter((s) => Boolean(s && s.providerSongId));
+    if (validFavs.length === 0) return;
+    playTrack(validFavs[0], validFavs);
   };
 
   return (
@@ -73,7 +76,7 @@ export const FavoritesTab: React.FC = () => {
             <div key={i} className="bg-slate-900/40 border border-white/5 rounded-2xl p-4 animate-pulse h-24" />
           ))}
         </div>
-      ) : favorites.length === 0 ? (
+      ) : favorites.filter((s) => Boolean(s && s.providerSongId)).length === 0 ? (
         <div className="text-center py-16 bg-slate-900/40 rounded-2xl border border-white/5 text-slate-400">
           <Music className="w-12 h-12 text-slate-600 mx-auto mb-3" />
           <h3 className="font-semibold text-lg text-white">No favorite songs yet.</h3>
@@ -83,7 +86,7 @@ export const FavoritesTab: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {favorites.map((song) => {
+          {favorites.filter((s) => Boolean(s && s.providerSongId)).map((song) => {
             const isCurrent = currentTrack?.providerSongId === song.providerSongId;
             const isSongPlaying = isCurrent && isPlaying;
 

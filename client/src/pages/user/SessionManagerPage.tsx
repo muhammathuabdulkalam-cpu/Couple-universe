@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse, InviteItem, SessionItem, User, UserRole } from '../../types/index.js';
 import { StealthSettings } from '../../components/stealth/StealthSettings.js';
+import { copyToClipboard } from '../../utils/clipboard.js';
 
 export const SessionManagerPage: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -142,8 +143,8 @@ export const SessionManagerPage: React.FC = () => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopyCode = async (text: string) => {
+    await copyToClipboard(text);
     addToast('Copied', 'Invite code copied to clipboard', 'info');
   };
 
@@ -364,7 +365,7 @@ export const SessionManagerPage: React.FC = () => {
                       </div>
                     </div>
                     {!inv.isUsed && (
-                      <Button variant="glass" size="sm" onClick={() => copyToClipboard(inv.code)} leftIcon={<Copy className="w-3.5 h-3.5" />}>
+                      <Button variant="glass" size="sm" onClick={() => handleCopyCode(inv.code)} leftIcon={<Copy className="w-3.5 h-3.5" />}>
                         Copy Code
                       </Button>
                     )}

@@ -41,7 +41,8 @@ export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
 
 
 export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -52,7 +53,14 @@ export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    if (user && user.onboardingCompleted === false) {
+      return <Navigate to="/onboarding" replace />;
+    }
+
+    const isInviteRegister = location.pathname === '/register' && location.search.includes('invite');
+    if (!isInviteRegister) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

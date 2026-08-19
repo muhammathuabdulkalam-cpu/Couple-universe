@@ -421,15 +421,32 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   },
 
   nextTrack: (skipSocketSync?: boolean) => {
-    const { queue, queueIndex, isShuffle, repeatMode } = get();
-    if (queue.length === 0) return;
+    let { queue, currentTrack, isShuffle, repeatMode } = get();
 
-    let nextIdx = queueIndex + 1;
+    // Auto-fetch library queue if current queue has <= 1 track
+    if (!queue || queue.length <= 1) {
+      musicApi.getUploadedSongs(1, 100).then((res) => {
+        if (res?.songs && res.songs.length > 0) {
+          set({ queue: res.songs });
+          const currId = get().currentTrack?.providerSongId;
+          const idx = res.songs.findIndex((t) => t.providerSongId === currId);
+          const nextIndex = idx >= 0 ? (idx + 1) % res.songs.length : 0;
+          const target = res.songs[nextIndex];
+          if (target) get().playTrack(target, res.songs, skipSocketSync);
+        }
+      }).catch(() => {});
+      if (!queue || queue.length === 0) return;
+    }
+
+    const currentIdx = queue.findIndex((t) => t.providerSongId === currentTrack?.providerSongId);
+    const baseIdx = currentIdx >= 0 ? currentIdx : 0;
+
+    let nextIdx = baseIdx + 1;
     if (isShuffle) {
       nextIdx = Math.floor(Math.random() * queue.length);
     } else if (nextIdx >= queue.length) {
-      if (repeatMode === 'all') {
-        nextIdx = 0;
+      if (repeatMode === 'all' || repeatMode === 'none' || queue.length > 1) {
+        nextIdx = 0; // Wrap around for continuous library playback
       } else {
         set({ isPlaying: false });
         return;
@@ -447,14 +464,32 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   },
 
   prevTrack: (skipSocketSync?: boolean) => {
-    const { queue, queueIndex, currentTime } = get();
+    let { queue, currentTrack, currentTime } = get();
+
     if (currentTime > 3) {
       get().seekTo(0, skipSocketSync);
       return;
     }
 
-    if (queue.length === 0) return;
-    const prevIdx = queueIndex > 0 ? queueIndex - 1 : queue.length - 1;
+    // Auto-fetch library queue if current queue has <= 1 track
+    if (!queue || queue.length <= 1) {
+      musicApi.getUploadedSongs(1, 100).then((res) => {
+        if (res?.songs && res.songs.length > 0) {
+          set({ queue: res.songs });
+          const currId = get().currentTrack?.providerSongId;
+          const idx = res.songs.findIndex((t) => t.providerSongId === currId);
+          const prevIndex = idx > 0 ? idx - 1 : res.songs.length - 1;
+          const target = res.songs[prevIndex];
+          if (target) get().playTrack(target, res.songs, skipSocketSync);
+        }
+      }).catch(() => {});
+      if (!queue || queue.length === 0) return;
+    }
+
+    const currentIdx = queue.findIndex((t) => t.providerSongId === currentTrack?.providerSongId);
+    const baseIdx = currentIdx >= 0 ? currentIdx : 0;
+
+    const prevIdx = baseIdx > 0 ? baseIdx - 1 : queue.length - 1;
     const prevTrackItem = queue[prevIdx];
     if (prevTrackItem) {
       get().playTrack(prevTrackItem, queue, skipSocketSync);

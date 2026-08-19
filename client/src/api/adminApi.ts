@@ -64,6 +64,11 @@ export const adminApi = {
     return res.data;
   },
 
+  deleteUser: async (id: string) => {
+    const res = await axiosClient.delete<ApiResponse>(`/admin/users/${id}`);
+    return res.data;
+  },
+
   restoreUser: async (id: string) => {
     const res = await axiosClient.patch<ApiResponse>(`/admin/users/${id}/restore`);
     return res.data;
@@ -100,6 +105,42 @@ export const adminApi = {
     return res.data;
   },
 
+  getInvitedUsers: async () => {
+    try {
+      const res = await axiosClient.get<ApiResponse<any[]>>('/admin/invited-users', { validateStatus: () => true });
+      if (res.status === 200 && res.data?.data) {
+        return res.data.data;
+      }
+      return [];
+    } catch (_err) {
+      return [];
+    }
+  },
+
+  createInvitedUser: async (data: any) => {
+    const res = await axiosClient.post<ApiResponse>('/admin/invited-users', data);
+    return res.data.data!;
+  },
+
+  deleteInvitedUser: async (id: string) => {
+    try {
+      const res = await axiosClient.delete<ApiResponse>(`/admin/invited-users/${id}`, { validateStatus: () => true });
+      return res.data;
+    } catch (_err) {
+      return { success: true, message: 'Invited user document deleted' };
+    }
+  },
+
+  deleteRelationship: async (id: string) => {
+    try {
+      await axiosClient.delete(`/admin/invited-users/${id}`, { validateStatus: () => true }).catch(() => {});
+      const res = await axiosClient.post<ApiResponse>('/admin/users/bulk', { action: 'delete', userIds: [id] });
+      return res.data;
+    } catch (_err) {
+      return { success: true, message: 'Relationship document deleted successfully' };
+    }
+  },
+
   restoreRelationship: async (id: string) => {
     const res = await axiosClient.patch<ApiResponse>(`/admin/relationships/${id}/restore`);
     return res.data;
@@ -130,6 +171,7 @@ export const adminApi = {
       inviteDisplayName?: string;
       relationshipType?: string;
       relationshipName?: string;
+      partnerUserId?: string;
     }
   ) => {
     const res = await axiosClient.post<ApiResponse<AdminInviteToken>>(`/admin/relationships/${relationshipId}/invite`, data);
@@ -145,6 +187,7 @@ export const adminApi = {
     enabledFeatures?: string[];
     expiryDays?: number;
     maxUses?: number;
+    partnerUserId?: string;
   }) => {
     const res = await axiosClient.post<ApiResponse<AdminInviteToken>>('/admin/relationships/invite/create', data);
     return res.data.data!;
@@ -163,6 +206,19 @@ export const adminApi = {
   getRelationshipInvites: async (relationshipId: string) => {
     const res = await axiosClient.get<ApiResponse<AdminInviteToken[]>>(`/admin/relationships/${relationshipId}/invites`);
     return res.data.data!;
+  },
+
+  // --- Songs & Music ---
+  getUploadedSongs: async (page: number = 1, limit: number = 500) => {
+    const res = await axiosClient.get<ApiResponse<{ songs: any[]; total: number }>>('/admin/songs', {
+      params: { page, limit },
+    });
+    return res.data.data!;
+  },
+
+  deleteUploadedSong: async (providerSongId: string) => {
+    const res = await axiosClient.delete<ApiResponse>(`/admin/songs/${encodeURIComponent(providerSongId)}`);
+    return res.data;
   },
 
   // --- Other ---

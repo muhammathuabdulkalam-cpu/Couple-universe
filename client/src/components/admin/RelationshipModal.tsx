@@ -18,12 +18,18 @@ interface Props {
   } | null;
 }
 
+import { AdminUserListItem } from '../../types/admin.types';
+
 const STATUSES = ['ACTIVE', 'ARCHIVED'];
 
 const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editingRelationship }) => {
   const isEditing = !!editingRelationship;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [existingUsers, setExistingUsers] = useState<AdminUserListItem[]>([]);
+  const [user1Id, setUser1Id] = useState('');
+  const [user2Id, setUser2Id] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -36,6 +42,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
 
   useEffect(() => {
     if (isOpen) {
+      loadUsers();
       if (editingRelationship) {
         setForm({
           name: editingRelationship.name || '',
@@ -47,10 +54,26 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
         });
       } else {
         setForm({ name: '', type: 'Couple', coverImage: '', startDate: '', description: '', status: 'ACTIVE' });
+        setUser1Id('');
+        setUser2Id('');
       }
       setError('');
     }
   }, [isOpen, editingRelationship]);
+
+  const loadUsers = async () => {
+    try {
+      const res = await adminApi.getUsers({ limit: 100 });
+      // MINGLE PROTECTION: Filter out SUPER_OWNER and CO_OWNER
+      // Super Owner & Co Owner are strictly preserved as their own exclusive Primary Couple
+      const allowed = (res.users || []).filter(
+        (u) => u.role !== 'SUPER_OWNER' && u.role !== 'CO_OWNER'
+      );
+      setExistingUsers(allowed);
+    } catch (err) {
+      console.error('Failed to load users for relationship creation:', err);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -74,6 +97,10 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
         };
         await adminApi.updateRelationship(editingRelationship!.id, data);
       } else {
+        const membersPayload: Array<{ userId: string; role?: string }> = [];
+        if (user1Id) membersPayload.push({ userId: user1Id, role: 'MEMBER' });
+        if (user2Id) membersPayload.push({ userId: user2Id, role: 'MEMBER' });
+
         const data: CreateRelationshipFormData = {
           name: form.name,
           type: form.type,
@@ -81,6 +108,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
           startDate: form.startDate || undefined,
           description: form.description || undefined,
           status: form.status as any,
+          members: membersPayload.length > 0 ? membersPayload : undefined,
         };
         await adminApi.createRelationship(data);
       }
@@ -93,9 +121,25 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
     }
   };
 
+  const handleUserSelect = (target: 'user1' | 'user2', userId: string) => {
+    let u1 = target === 'user1' ? userId : user1Id;
+    let u2 = target === 'user2' ? userId : user2Id;
+    if (target === 'user1') setUser1Id(userId);
+    if (target === 'user2') setUser2Id(userId);
+
+    const user1Obj = existingUsers.find((u) => u.id === u1);
+    const user2Obj = existingUsers.find((u) => u.id === u2);
+
+    if (user1Obj && user2Obj) {
+      setForm((prev) => ({ ...prev, name: `${user1Obj.name} & ${user2Obj.name}` }));
+    } else if (user1Obj) {
+      setForm((prev) => ({ ...prev, name: `${user1Obj.name} & Partner` }));
+    }
+  };
+
   return (
     <div className="admin-modal-overlay" onClick={onClose}>
-      <div className="admin-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+      <div className="admin-modal-container" onClick={e => e.stopPropagation()} style={{ maxWidth: 540 }}>
         <div className="admin-modal-header">
           <div className="admin-modal-icon" style={{ background: 'linear-gradient(135deg, #EC4899, #F43F5E)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 20, height: 20 }}>
@@ -104,7 +148,7 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
           </div>
           <div>
             <h2 className="admin-modal-title">{isEditing ? 'Edit Relationship' : 'Create Relationship'}</h2>
-            <p className="admin-modal-subtitle">{isEditing ? `Editing "${editingRelationship?.name}"` : 'Create a new relationship'}</p>
+            <p className="admin-modal-subtitle">{isEditing ? `Editing "${editingRelationship?.name}"` : 'Select 2 users to create a relationship'}</p>
           </div>
           <button className="admin-modal-close" onClick={onClose}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 16, height: 16 }}>
@@ -115,6 +159,51 @@ const RelationshipModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editin
 
         <form className="admin-modal-body" onSubmit={handleSubmit}>
           {error && <div className="admin-modal-error">{error}</div>}
+
+          {!isEditing && (
+            <div className="p-3.5 rounded-2xl bg-slate-900 border border-white/10 space-y-3 mb-2">
+              <p className="text-xs font-bold text-rose-300">SELECT BOTH USERS FOR RELATIONSHIP</p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="admin-form-label">User 1 (Partner A) *</label>
+                  <select
+                    className="admin-form-input text-xs"
+                    value={user1Id}
+                    onChange={(e) => handleUserSelect('user1', e.target.value)}
+                  >
+                    <option value="">-- Select Member / User A --</option>
+                    {existingUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="admin-form-label">User 2 (Partner B) *</label>
+                  <select
+                    className="admin-form-input text-xs"
+                    value={user2Id}
+                    onChange={(e) => handleUserSelect('user2', e.target.value)}
+                  >
+                    <option value="">-- Select Member / User B --</option>
+                    {existingUsers
+                      .filter((u) => u.id !== user1Id)
+                      .map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} ({u.email})
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                🔒 Super Owner (Afzal) & Co Owner (Amrin) are protected and cannot be selected to mingle with third-party invited users.
+              </p>
+            </div>
+          )}
 
           <div className="admin-form-grid">
             <div className="admin-form-group full-width">

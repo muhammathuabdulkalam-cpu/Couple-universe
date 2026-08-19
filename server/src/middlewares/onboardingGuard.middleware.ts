@@ -8,8 +8,8 @@ export const requireOnboardingCompleted = (req: Request, _res: Response, next: N
     throw new AppError('Authentication required.', HTTP_STATUS.UNAUTHORIZED);
   }
 
-  // SUPER_OWNER and CO_OWNER always bypass onboarding check
-  if (['SUPER_OWNER', 'CO_OWNER'].includes(user.role)) {
+  // SUPER_OWNER, CO_OWNER, and ADMIN always bypass onboarding check
+  if (['SUPER_OWNER', 'CO_OWNER', 'ADMIN'].includes(user.role)) {
     return next();
   }
 

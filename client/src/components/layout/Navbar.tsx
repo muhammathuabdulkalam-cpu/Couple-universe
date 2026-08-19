@@ -7,7 +7,6 @@ import {
   MessageCircle,
   Moon,
   Search,
-  Settings,
   Shield,
   Sun,
   User,
@@ -291,29 +290,13 @@ export const Navbar: React.FC = () => {
                         <User className="w-4 h-4 text-afzal" /> Profile
                       </Link>
 
-                      <Link
-                        to="/session-manager"
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <Shield className="w-4 h-4 text-amrin-glow" /> Sessions & Security
-                      </Link>
-
-                      <Link
-                        to="/settings"
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <Settings className="w-4 h-4 text-slate-400" /> Settings
-                      </Link>
-
                       {user.role === 'SUPER_OWNER' && (
                         <Link
-                          to="/admin"
+                          to="/admin/dashboard"
                           onClick={() => setIsDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-emerald-400 hover:bg-emerald-950/30 transition-colors"
                         >
-                          <Shield className="w-4 h-4 text-emerald-400" /> Admin Hub
+                          <Shield className="w-4 h-4 text-emerald-400" /> Admin Console
                         </Link>
                       )}
 

@@ -16,6 +16,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { useUIStore } from '../../store/uiStore';
 import { NormalizedSong, Playlist } from '../../types/music.types';
+import { getNormalizedCoverUrl } from '../../utils/audioDecoder';
 import { UploadSongModal } from './UploadSongModal';
 
 export const UploadedSongsTab: React.FC = () => {
@@ -73,6 +74,18 @@ export const UploadedSongsTab: React.FC = () => {
     },
   });
 
+  // 3. Cloudinary Sync Mutation (disabled for UI clean display)
+  // const syncMutation = useMutation({
+  //   mutationFn: () => musicApi.syncCloudinarySongs(),
+  //   onSuccess: (res) => {
+  //     queryClient.invalidateQueries({ queryKey: ['uploadedSongs'] });
+  //     addToast('Cloudinary Synced ✨', `Library updated! ${res.addedCount > 0 ? `Added ${res.addedCount} new song(s).` : 'All 38 assets up to date.'}`, 'success');
+  //   },
+  //   onError: () => {
+  //     addToast('Sync Error', 'Failed to sync with Cloudinary', 'error');
+  //   },
+  // });
+
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
@@ -124,14 +137,26 @@ export const UploadedSongsTab: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="px-3.5 py-2 sm:px-5 sm:py-3 rounded-full sm:rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg hover:scale-105 active:scale-95 transition shrink-0"
-        >
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
-          <span className="hidden sm:inline">Upload Song</span>
-          <span className="sm:hidden">Upload</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* <button
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className="px-3 py-2 sm:px-4 sm:py-3 rounded-full sm:rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 border border-white/10 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition disabled:opacity-50"
+            title="Sync audio files from Cloudinary storage"
+          >
+            <RefreshCw className={`w-4 h-4 text-rose-400 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Sync Cloudinary</span>
+          </button> */}
+
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="px-3.5 py-2 sm:px-5 sm:py-3 rounded-full sm:rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg hover:scale-105 active:scale-95 transition shrink-0"
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+            <span className="hidden sm:inline">Upload Song</span>
+            <span className="sm:hidden">Upload</span>
+          </button>
+        </div>
       </div>
 
       {/* Upload Song Modal Component */}
@@ -168,7 +193,11 @@ export const UploadedSongsTab: React.FC = () => {
           {songs.map((song: NormalizedSong, idx: number) => {
             const isCurrent = currentTrack?.providerSongId === song.providerSongId;
             const isFav = Boolean(favoritesMap[song.providerSongId]);
-            const isOwner = currentUser?.role === 'SUPER_OWNER' || song.uploadedBy?.name === currentUser?.name;
+            const isOwner =
+              currentUser?.role === 'SUPER_OWNER' ||
+              currentUser?.role === 'CO_OWNER' ||
+              song.uploadedBy?.name === currentUser?.name ||
+              song.uploadedBy?.id === currentUser?.id;
 
             return (
               <div
@@ -189,9 +218,14 @@ export const UploadedSongsTab: React.FC = () => {
                     className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 cursor-pointer shadow-md group/img"
                   >
                     <img
-                      src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                      src={getNormalizedCoverUrl(song.coverUrl)}
                       alt={song.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        if (!e.currentTarget.src.includes('unsplash.com')) {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+                        }
+                      }}
                     />
                     <div
                       className={`absolute inset-0 flex items-center justify-center bg-black/50 transition ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'

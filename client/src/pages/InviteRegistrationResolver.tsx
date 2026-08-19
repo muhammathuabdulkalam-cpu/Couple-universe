@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { inviteApi } from '../api/inviteApi';
 import { ALL_FEATURES_CONFIG } from '../config/features';
+import { useAuthStore } from '../store/authStore';
 import { useInviteRegistrationStore } from '../store/inviteRegistrationStore';
 import { InviteValidationResult } from '../types/admin.types';
 
@@ -23,6 +24,8 @@ export const InviteRegistrationResolver: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const setPendingInvite = useInviteRegistrationStore((state) => state.setPendingInvite);
+  const currentUser = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [stage, setStage] = useState<Stage>('loading');
   const [invite, setInvite] = useState<InviteValidationResult | null>(null);
@@ -35,10 +38,27 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
+    // If user is already authenticated and onboarded, redirect directly to dashboard
+    if (isAuthenticated) {
+      if (currentUser?.onboardingCompleted !== false) {
+        navigate('/dashboard', { replace: true });
+        return;
+      } else {
+        navigate('/onboarding', { replace: true });
+        return;
+      }
+    }
+
     inviteApi
       .validateInvite(token)
       .then((data: InviteValidationResult) => {
         setInvite(data);
+
+        // If the invite has already been accepted/used, go directly to login for unauthenticated visitors
+        if (data.status === 'FULLY_USED' || data.remainingUses === 0) {
+          navigate('/login', { replace: true });
+          return;
+        }
 
         // Always store pending invite for registration context
         setPendingInvite({
@@ -47,6 +67,7 @@ export const InviteRegistrationResolver: React.FC = () => {
           relationshipName: data.relationshipName || 'Couple Universe',
           relationshipType: data.relationshipType || 'Couple',
           targetRole: data.targetRole || 'MEMBER',
+          enabledFeatures: data.enabledFeatures || [],
           email: data.email,
           expiresAt: data.expiresAt,
         });
@@ -57,7 +78,7 @@ export const InviteRegistrationResolver: React.FC = () => {
         setErrorMsg(err?.response?.data?.message || 'This invitation link is invalid or has expired.');
         setStage('invalid');
       });
-  }, [token, setPendingInvite]);
+  }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
 
   const handleAcceptInvite = () => {
     if (!token) return;
@@ -285,6 +306,15 @@ export const InviteRegistrationResolver: React.FC = () => {
 
         {/* PRIMARY CTA */}
         <div className="space-y-3 pt-2">
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate(currentUser?.onboardingCompleted ? '/dashboard' : '/onboarding')}
+              className="w-full py-3 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-extrabold text-xs flex items-center justify-center gap-2 transition"
+            >
+              <span>Logged in as {currentUser?.name || currentUser?.email}. Return to App →</span>
+            </button>
+          )}
+
           <button
             onClick={handleAcceptInvite}
             disabled={!isActive}
@@ -294,7 +324,7 @@ export const InviteRegistrationResolver: React.FC = () => {
                 : 'bg-slate-800 text-slate-500 border border-white/5 cursor-not-allowed opacity-50'
             }`}
           >
-            <span>ACCEPT INVITATION</span>
+            <span>{isAuthenticated ? 'REGISTER NEW ACCOUNT WITH TOKEN' : 'ACCEPT INVITATION'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 

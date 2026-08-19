@@ -1,14 +1,98 @@
 import mongoose from 'mongoose';
 import { HTTP_STATUS } from '../constants';
+import { Activity } from '../models/activity.model';
 import { Album } from '../models/album.model';
+import { Block } from '../models/block.model';
+import { CalendarEvent } from '../models/calendarEvent.model';
+import { Comment } from '../models/comment.model';
+import { Conversation } from '../models/conversation.model';
+import { DiaryEntry } from '../models/diary.model';
+import { FavoriteSong } from '../models/favoriteSong.model';
+import { Follow } from '../models/follow.model';
+import { Invite } from '../models/invite.model';
+import { BucketItem, Countdown, Goal, MemoryCapsule, MoodEntry, Note, WishlistItem } from '../models/lifeExperience.model';
+import { ListeningSession } from '../models/listeningSession.model';
 import { Media } from '../models/media.model';
+import { Message } from '../models/message.model';
+import { MusicActivity } from '../models/musicActivity.model';
+import { Notification } from '../models/notification.model';
+import { Playlist } from '../models/playlist.model';
+import { PlaylistSong } from '../models/playlistSong.model';
+import { Reaction } from '../models/reaction.model';
+import { RecentlyPlayed } from '../models/recentlyPlayed.model';
 import { Relationship, IRelationship } from '../models/relationship.model';
+import { Report } from '../models/report.model';
+import { Session } from '../models/session.model';
 import { Song } from '../models/song.model';
+import { SongDedication } from '../models/songDedication.model';
+import { StealthConfig } from '../models/stealthConfig.model';
 import { Story } from '../models/story.model';
 import { TimelineEvent } from '../models/timelineEvent.model';
 import { User } from '../models/user.model';
 import { AppError } from '../utils/AppError';
 import { AuditLogService } from './auditLog.service';
+
+export const purgeUserAndAllData = async (userId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return;
+  const userObjId = new mongoose.Types.ObjectId(userId);
+
+  // 1. Permanently delete user document from User collection
+  await User.findByIdAndDelete(userId);
+
+  // 2. Remove user from all Relationship members arrays
+  await Relationship.updateMany(
+    { 'members.user': userObjId },
+    { $pull: { members: { user: userObjId } } }
+  );
+
+  // 3. Delete any relationships created by this user or that have no members left
+  await Relationship.deleteMany({
+    $or: [{ createdBy: userObjId }, { members: { $size: 0 } }],
+  });
+
+  // 4. Delete all Invites created by or used by this user
+  await Invite.deleteMany({
+    $or: [{ usedBy: userObjId }, { createdBy: userObjId }],
+  });
+
+  // 5. Delete all Sessions & Auth Tokens for this user
+  await Session.deleteMany({ user: userObjId });
+
+  // 6. Deep Cascade delete across ALL user content & social MongoDB collections:
+  await Promise.all([
+    Media.deleteMany({ uploadedBy: userObjId }),
+    TimelineEvent.deleteMany({ createdBy: userObjId }),
+    Album.deleteMany({ createdBy: userObjId }),
+    Story.deleteMany({ user: userObjId }),
+    Song.deleteMany({ uploadedBy: userObjId }),
+    Activity.deleteMany({ $or: [{ userId: userObjId }, { actor: userObjId }] }),
+    Block.deleteMany({ $or: [{ blocker: userObjId }, { blocked: userObjId }] }),
+    CalendarEvent.deleteMany({ $or: [{ createdBy: userObjId }, { participants: userObjId }] }),
+    Comment.deleteMany({ $or: [{ author: userObjId }, { user: userObjId }] }),
+    Conversation.deleteMany({ participants: userObjId }),
+    DiaryEntry.deleteMany({ $or: [{ createdBy: userObjId }, { relationshipId: userId }] }),
+    FavoriteSong.deleteMany({ $or: [{ user: userObjId }, { userId: userObjId }] }),
+    Follow.deleteMany({ $or: [{ follower: userObjId }, { following: userObjId }] }),
+    BucketItem.deleteMany({ createdBy: userObjId }),
+    WishlistItem.deleteMany({ createdBy: userObjId }),
+    Goal.deleteMany({ createdBy: userObjId }),
+    MoodEntry.deleteMany({ userId: userObjId }),
+    Note.deleteMany({ createdBy: userObjId }),
+    MemoryCapsule.deleteMany({ createdBy: userObjId }),
+    Countdown.deleteMany({ createdBy: userObjId }),
+    ListeningSession.deleteMany({ $or: [{ host: userObjId }, { participants: userObjId }] }),
+    Message.deleteMany({ $or: [{ sender: userObjId }, { recipient: userObjId }] }),
+    MusicActivity.deleteMany({ $or: [{ user: userObjId }, { userId: userObjId }] }),
+    Notification.deleteMany({ $or: [{ recipient: userObjId }, { sender: userObjId }] }),
+    Playlist.deleteMany({ $or: [{ createdBy: userObjId }, { user: userObjId }] }),
+    PlaylistSong.deleteMany({ addedBy: userObjId }),
+    Reaction.deleteMany({ $or: [{ user: userObjId }, { userId: userObjId }] }),
+    RecentlyPlayed.deleteMany({ $or: [{ user: userObjId }, { userId: userObjId }] }),
+    Report.deleteMany({ $or: [{ reporter: userObjId }, { reported: userObjId }] }),
+    SongDedication.deleteMany({ $or: [{ sender: userObjId }, { recipient: userObjId }] }),
+    StealthConfig.deleteMany({ user: userObjId }),
+  ]);
+};
 
 export interface CreateRelationshipInput {
   name: string;
@@ -142,17 +226,74 @@ export class RelationshipService {
     return this.addMember(relationshipId, newUserId);
   }
 
-  static async archiveRelationship(id: string, adminId?: string): Promise<IRelationship> {
-    const rel = await Relationship.findOne({ _id: id, isDeleted: { $ne: true } });
+  static async archiveRelationship(id: string, adminId?: string): Promise<IRelationship | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const rel = await Relationship.findById(id);
     if (!rel) {
-      throw new AppError('Relationship record not found.', HTTP_STATUS.NOT_FOUND);
+      await Invite.deleteMany({ relationship: id });
+      return null;
     }
-    rel.status = 'ARCHIVED';
-    await rel.save();
+
+    // 1. Delete relationship from database
+    await Relationship.findByIdAndDelete(id);
+
+    // 2. Delete all invitation tokens linked to this relationship
+    await Invite.deleteMany({ relationship: rel._id });
+
+    // 3. Purge all member users linked to this relationship (except Super Owner / Co Owner)
+    if (rel.members && Array.isArray(rel.members)) {
+      for (const m of rel.members) {
+        const memberId = m.user?.toString();
+        if (memberId && mongoose.Types.ObjectId.isValid(memberId)) {
+          const u = await User.findById(memberId);
+          if (u && !['SUPER_OWNER', 'CO_OWNER'].includes(u.role)) {
+            await purgeUserAndAllData(memberId);
+          }
+        }
+      }
+    }
 
     if (adminId) {
       await AuditLogService.logAction({
         action: 'RELATIONSHIP_ARCHIVED',
+        adminUser: adminId,
+        targetRelationship: rel._id.toString(),
+      });
+    }
+
+    return rel;
+  }
+
+  static async deleteRelationship(id: string, adminId?: string): Promise<IRelationship | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const rel = await Relationship.findById(id);
+    if (!rel) {
+      await Invite.deleteMany({ relationship: id });
+      return null;
+    }
+
+    // 1. Delete relationship from database
+    await Relationship.findByIdAndDelete(id);
+
+    // 2. Delete all invitation tokens linked to this relationship
+    await Invite.deleteMany({ relationship: rel._id });
+
+    // 3. Purge all member users linked to this relationship (except Super Owner / Co Owner)
+    if (rel.members && Array.isArray(rel.members)) {
+      for (const m of rel.members) {
+        const memberId = m.user?.toString();
+        if (memberId && mongoose.Types.ObjectId.isValid(memberId)) {
+          const u = await User.findById(memberId);
+          if (u && !['SUPER_OWNER', 'CO_OWNER'].includes(u.role)) {
+            await purgeUserAndAllData(memberId);
+          }
+        }
+      }
+    }
+
+    if (adminId) {
+      await AuditLogService.logAction({
+        action: 'RELATIONSHIP_DELETED',
         adminUser: adminId,
         targetRelationship: rel._id.toString(),
       });

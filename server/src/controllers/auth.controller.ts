@@ -55,7 +55,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   // Check for duplicate email
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
-    throw new AppError('An account with this email address already exists.', HTTP_STATUS.CONFLICT);
+    throw new AppError('An account with this email address already exists. Please Sign In.', HTTP_STATUS.CONFLICT);
   }
 
   let assignedRole: UserRole = ROLES.INVITED_USER;
@@ -68,10 +68,13 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 
   let registeredUser: any;
 
+  let finalName = (name || '').trim();
+
   try {
     if (isFirstUser || cleanCode === 'MASTER2026' || cleanCode === 'AFZAL2026') {
       assignedRole = ROLES.SUPER_OWNER;
       onboardingCompletedState = true;
+      if (!finalName) finalName = 'Super Owner';
       logger.info(`👑 Master registration granted SUPER_OWNER role to: ${email}`);
     } else {
       if (!cleanCode) {
@@ -89,18 +92,27 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       derivedRelationshipId = invite.relationship ? invite.relationship._id || invite.relationship : undefined;
       derivedEnabledFeatures = invite.enabledFeatures || [];
       onboardingCompletedState = false; // Newly invited users always start with onboardingCompleted = false
+      
+      if (!finalName) {
+        finalName = invite.inviteDisplayName || 'Invited User';
+      }
     }
 
     const userDocs = await User.create(
       [
         {
-          name,
+          name: finalName,
           email: email.toLowerCase(),
           password,
           role: assignedRole,
           relationshipId: derivedRelationshipId,
           enabledFeatures: derivedEnabledFeatures,
-          onboardingCompleted: onboardingCompletedState,
+          onboardingCompleted: false,
+          avatar: req.body.avatar || '',
+          username: req.body.username || '',
+          phone: req.body.phone || '',
+          bio: req.body.bio || '',
+          birthday: req.body.birthday ? new Date(req.body.birthday) : undefined,
           status: USER_STATUS.ACTIVE,
           isEmailVerified: true,
           lastLoginAt: new Date(),
@@ -121,9 +133,46 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       );
     }
 
-    // Consume invite atomically inside transaction
+    // Auto-create Birthday Countdown & Activity Event
+    if (req.body.birthday) {
+      try {
+        const dobDate = new Date(req.body.birthday);
+        const today = new Date();
+        let nextBday = new Date(today.getFullYear(), dobDate.getMonth(), dobDate.getDate());
+        if (nextBday < today) {
+          nextBday.setFullYear(today.getFullYear() + 1);
+        }
+
+        const { Countdown } = await import('../models/lifeExperience.model');
+        await Countdown.create({
+          relationshipId: derivedRelationshipId ? derivedRelationshipId.toString() : 'AFZAL_AMRIN_AFRIN_VERSE',
+          createdBy: registeredUser._id,
+          title: `🎂 ${registeredUser.name}'s Birthday`,
+          targetDate: nextBday,
+          type: 'BIRTHDAY',
+        });
+
+        const { createActivity } = await import('./activity.controller');
+        await createActivity(
+          registeredUser._id.toString(),
+          'BIRTHDAY_REMINDER',
+          undefined,
+          undefined,
+          `🎂 ${registeredUser.name}'s Birthday Added!`,
+          `Born on ${dobDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+        );
+      } catch (_e) {}
+    }
+
+    // Consume invite atomically inside transaction & update InvitedUser collection
     if (cleanCode && cleanCode !== 'MASTER2026' && cleanCode !== 'AFZAL2026') {
       await InviteService.consumeInviteAtomic(cleanCode, registeredUser._id.toString(), session);
+      const { InvitedUser } = await import('../models/invitedUser.model');
+      await InvitedUser.findOneAndUpdate(
+        { tokenCode: cleanCode },
+        { status: 'ACTIVE', avatar: registeredUser.avatar || '' },
+        { session }
+      ).catch(() => {});
     }
 
     await session.commitTransaction();
@@ -186,8 +235,8 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 export const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-  if (!user) {
+  const user = await User.findOne({ email: email.toLowerCase(), isDeleted: { $ne: true } }).select('+password');
+  if (!user || user.isDeleted || user.status === USER_STATUS.DELETED) {
     throw new AppError('Invalid email or password credentials.', HTTP_STATUS.UNAUTHORIZED);
   }
 

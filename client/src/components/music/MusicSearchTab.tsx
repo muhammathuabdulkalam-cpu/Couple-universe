@@ -45,6 +45,7 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
 
+
   // Debounced input search (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {

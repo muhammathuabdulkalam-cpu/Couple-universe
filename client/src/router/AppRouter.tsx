@@ -15,7 +15,6 @@ const ResetPasswordPage = lazy(() => import('../pages/auth/ResetPasswordPage.js'
 
 // Lazy Loaded Protected Core Pages
 const HomePage = lazy(() => import('../pages/HomePage.js').then((m) => ({ default: m.HomePage })));
-const SessionManagerPage = lazy(() => import('../pages/user/SessionManagerPage.js').then((m) => ({ default: m.SessionManagerPage })));
 const HealthDashboardPage = lazy(() => import('../pages/HealthDashboardPage.js').then((m) => ({ default: m.HealthDashboardPage })));
 
 // Lazy Loaded Module 4 Media Pages
@@ -248,27 +247,8 @@ export const AppRouter: React.FC = () => {
           }
         />
 
-        <Route
-          path="/settings"
-          element={
-            <RoleGuard allowedRoles={['SUPER_OWNER']}>
-              <DashboardLayout>
-                <SessionManagerPage />
-              </DashboardLayout>
-            </RoleGuard>
-          }
-        />
-
-        <Route
-          path="/session-manager"
-          element={
-            <RoleGuard allowedRoles={['SUPER_OWNER']}>
-              <DashboardLayout>
-                <SessionManagerPage />
-              </DashboardLayout>
-            </RoleGuard>
-          }
-        />
+        <Route path="/settings" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/session-manager" element={<Navigate to="/admin/dashboard" replace />} />
 
         {/* Enterprise Admin Portal Routes */}
         <Route path="/admin/login" element={<AdminLoginPage />} />

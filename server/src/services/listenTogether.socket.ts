@@ -16,8 +16,8 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
     return partner;
   };
 
-  // 1. Join Couple Listen Room
-  const roomName = 'listen_together_couple_room';
+  // 1. Scope Listen Room per Relationship
+  const roomName = `listen_room_${user.relationshipId ? user.relationshipId.toString() : 'couple_default'}`;
   socket.join(roomName);
 
   // 2. Heartbeat Ping Handler (Every 10s from client)

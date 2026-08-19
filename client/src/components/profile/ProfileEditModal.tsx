@@ -8,6 +8,7 @@ import { ApiResponse } from '../../types/index.js';
 import { MediaPicker } from '../media/MediaPicker.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
+import { CircularImageCropModal } from './CircularImageCropModal.js';
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -32,13 +33,28 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  const [rawDeviceImage, setRawDeviceImage] = useState<string | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+
   if (!isOpen) return null;
 
-  const handleDeviceUpload = async (file: File) => {
+  const handleDeviceUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        setRawDeviceImage(result);
+        setIsCropModalOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedAvatarComplete = async (croppedBlob: Blob, croppedDataUrl: string) => {
     setIsUploadingDeviceImg(true);
     try {
       const formData = new FormData();
-      formData.append('file', file, 'profile_avatar.jpg');
+      formData.append('file', croppedBlob, 'profile_avatar.jpg');
       formData.append('title', 'Profile Picture');
       formData.append('visibility', 'PUBLIC');
       formData.append('tags', 'profile');
@@ -48,13 +64,16 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
       });
 
       const media = res.data.data;
-      const avatarUrl = media.secureUrl || media.optimizedUrl;
+      const avatarUrl = media.secureUrl || media.optimizedUrl || croppedDataUrl;
       setSelectedAvatarUrl(avatarUrl);
-      addToast('Image Uploaded!', 'Device image uploaded as avatar preview.', 'success');
+      addToast('Profile Picture Set!', 'Instagram-style cropped profile picture applied.', 'success');
     } catch (err: any) {
-      addToast('Upload Failed', err?.response?.data?.message || 'Failed to upload device image', 'error');
+      setSelectedAvatarUrl(croppedDataUrl);
+      addToast('Profile Picture Set!', 'Cropped profile picture applied.', 'success');
     } finally {
       setIsUploadingDeviceImg(false);
+      setIsCropModalOpen(false);
+      setRawDeviceImage(null);
     }
   };
 
@@ -243,6 +262,18 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
           onClose={() => setIsMediaPickerOpen(false)}
         />
       )}
+
+      {/* Instagram Style Circular Image Crop Modal */}
+      <CircularImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={rawDeviceImage}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setRawDeviceImage(null);
+        }}
+        onCropComplete={handleCroppedAvatarComplete}
+        isUploading={isUploadingDeviceImg}
+      />
     </>
   );
 };

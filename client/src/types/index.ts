@@ -13,6 +13,8 @@ export interface User {
   status: UserStatus;
   avatar?: string;
   bio?: string;
+  phone?: string;
+  gender?: string;
   birthday?: string;
   relationshipId?: string;
   enabledFeatures?: string[];

@@ -56,8 +56,9 @@ export const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      const submittedName = name.trim() || pendingInvite?.email?.split('@')[0] || email.split('@')[0] || 'Invited User';
       const response = await axiosClient.post<ApiResponse<{ user: User; accessToken: string }>>('/auth/register', {
-        name,
+        name: submittedName,
         email,
         password,
         inviteCode: inviteCode ? inviteCode.trim().toUpperCase() : undefined,
@@ -66,21 +67,30 @@ export const RegisterPage: React.FC = () => {
       const { user, accessToken } = response.data.data!;
       clearPendingInvite();
       setAuth(user, accessToken);
-      addToast('Registration Complete!', `Account created successfully with role ${user.role}`, 'success');
-      navigate('/');
+      addToast('Registration Complete!', 'Account created successfully. Let\'s set up your profile.', 'success');
+      navigate('/onboarding');
     } catch (err: any) {
-      addToast('Registration Failed', err.message || 'Unable to create account.', 'error');
+      if (err?.response?.status === 409 || err?.message?.includes('already exists')) {
+        addToast(
+          'Account Already Exists',
+          'An account with this email already exists. Redirecting to Sign In...',
+          'warning'
+        );
+        setTimeout(() => navigate('/login'), 1500);
+      } else {
+        addToast('Registration Failed', err?.response?.data?.message || err?.message || 'Unable to create account.', 'error');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto py-8">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-6">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Welcome
+    <div className="min-h-[85vh] flex flex-col items-center justify-center px-4 py-6 select-none">
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-md">
+        <div className="mb-4 text-center">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Welcome
           </Link>
         </div>
 
@@ -123,20 +133,22 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name</label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Afzal / Amrin"
-                  required
-                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
-                />
+            {systemStatus?.isInitialSetupOpen && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Afzal"
+                    required
+                    className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
@@ -156,7 +168,9 @@ export const RegisterPage: React.FC = () => {
 
             {!systemStatus?.isInitialSetupOpen && (
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Invitation Code</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Invitation Code <span className="text-[10px] text-emerald-400 font-normal">(Pre-filled & Locked)</span>
+                </label>
                 <div className="relative">
                   <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
@@ -165,8 +179,9 @@ export const RegisterPage: React.FC = () => {
                     onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                     placeholder="e.g. 8A3F9B2C"
                     required
-                    readOnly={!!pendingInvite?.token}
-                    className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-afzal focus:ring-1 focus:ring-afzal transition-colors"
+                    readOnly={!!inviteCode}
+                    disabled={!!inviteCode}
+                    className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:border-afzal focus:ring-1 focus:ring-afzal transition-colors disabled:opacity-70 cursor-not-allowed"
                   />
                 </div>
               </div>

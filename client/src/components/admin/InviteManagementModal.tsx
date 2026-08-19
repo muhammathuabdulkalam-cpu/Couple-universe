@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Key, Copy, RefreshCw, Ban, Check, Sparkles, QrCode } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import { AdminInviteToken } from '../../types/admin.types';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface InviteManagementModalProps {
   isOpen: boolean;
@@ -82,16 +83,16 @@ export const InviteManagementModal: React.FC<InviteManagementModalProps> = ({
     }
   };
 
-  const handleCopyLink = (code: string) => {
+  const handleCopyLink = async (code: string) => {
     const origin = window.location.origin;
     const inviteUrl = `${origin}/invite/${code}`;
-    navigator.clipboard.writeText(inviteUrl);
+    await copyToClipboard(inviteUrl);
     setCopiedCode(`link-${code}`);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const handleCopyToken = (code: string) => {
-    navigator.clipboard.writeText(code);
+  const handleCopyToken = async (code: string) => {
+    await copyToClipboard(code);
     setCopiedCode(`token-${code}`);
     setTimeout(() => setCopiedCode(null), 2000);
   };

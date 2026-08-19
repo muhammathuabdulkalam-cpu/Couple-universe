@@ -4,6 +4,7 @@ import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES, USER_STATUS } from '../constant
 import { Invite } from '../models/invite.model';
 import { Session } from '../models/session.model';
 import { User } from '../models/user.model';
+import { purgeUserAndAllData } from '../services/relationship.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
@@ -102,7 +103,13 @@ export const suspendUser = catchAsync(async (req: Request, res: Response) => {
   // Invalidate all active sessions
   await Session.updateMany({ user: targetUser._id }, { isValid: false });
 
-  return ApiResponse.success(res, `User ${targetUser.email} has been suspended and logged out.`);
+  // Revoke all invitation tokens linked to this user
+  await Invite.updateMany(
+    { $or: [{ usedBy: targetUser._id }, { createdBy: targetUser._id }] },
+    { $set: { isRevoked: true, status: 'REVOKED', revokedAt: new Date() } }
+  );
+
+  return ApiResponse.success(res, `User ${targetUser.email} has been inactivated/suspended, logged out, and invitation tokens disabled.`);
 });
 
 /**
@@ -138,8 +145,12 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
   }
 
   await Session.deleteMany({ user: id });
+  await Invite.updateMany(
+    { $or: [{ usedBy: id }, { createdBy: id }] },
+    { $set: { isRevoked: true, status: 'REVOKED', revokedAt: new Date() } }
+  );
 
-  return ApiResponse.success(res, `User ${targetUser.email} account has been deleted.`);
+  return ApiResponse.success(res, `User ${targetUser.email} account has been deleted and invitation tokens disabled.`);
 });
 
 /**

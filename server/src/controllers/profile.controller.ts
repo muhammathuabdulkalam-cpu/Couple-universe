@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { HTTP_STATUS, ROLES } from '../constants';
+import mongoose from 'mongoose';
+import { HTTP_STATUS, ROLES, UserRole } from '../constants';
 import { Activity } from '../models/activity.model';
 import { CalendarEvent } from '../models/calendarEvent.model';
 import { TimelineEvent } from '../models/timelineEvent.model';
@@ -13,21 +14,46 @@ import { getSocketServer } from '../utils/socketServer';
  * Get Profile Details with Activity Metrics & Partner Information
  */
 export const getProfile = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.params.id || req.user!._id;
+  const paramId = req.params.id;
+  let user: any = null;
 
-  const user = await User.findById(userId).select('-password');
+  if (paramId) {
+    if (mongoose.Types.ObjectId.isValid(paramId)) {
+      user = await User.findById(paramId).select('-password');
+    }
+    
+    if (!user) {
+      const lower = String(paramId).toLowerCase();
+      if (lower.includes('co') || lower.includes('amrin')) {
+        user = await User.findOne({ role: ROLES.CO_OWNER }).select('-password');
+      } else if (lower.includes('super') || lower.includes('afzal')) {
+        user = await User.findOne({ role: ROLES.SUPER_OWNER }).select('-password');
+      } else {
+        user = await User.findOne({
+          $or: [{ email: lower }, { name: new RegExp(lower, 'i') }],
+        }).select('-password');
+      }
+    }
+  }
+
+  if (!user) {
+    user = await User.findById(req.user!._id).select('-password');
+  }
+
   if (!user) {
     throw new AppError('User profile not found.', HTTP_STATUS.NOT_FOUND);
   }
 
   // Find partner user (if current user is SUPER_OWNER, partner is CO_OWNER; if CO_OWNER, partner is SUPER_OWNER)
-  const partnerRole = user.role === ROLES.SUPER_OWNER ? ROLES.CO_OWNER : ROLES.SUPER_OWNER;
+  let partnerRole: UserRole = ROLES.SUPER_OWNER;
+  if (user.role === ROLES.SUPER_OWNER) {
+    partnerRole = ROLES.CO_OWNER;
+  }
   const partner = await User.findOne({ role: partnerRole }).select('name email role avatar bio birthday');
 
   // Calculate stats (Social Posts created by this user, memories count, events count)
   const postsCount = await Activity.countDocuments({
     userId: user._id,
-    imageUrl: { $exists: true, $ne: '' },
     type: { $ne: 'STORY_CREATED' },
   });
   const memoriesCount = await TimelineEvent.countDocuments({ owner: user._id, isDeleted: false });

@@ -260,6 +260,9 @@ export const PlaylistsTab: React.FC = () => {
                         src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
                         alt={song.title}
                         className="w-12 h-12 rounded-lg object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+                        }}
                       />
                       <div className="min-w-0">
                         <p className="font-bold text-sm truncate">{song.title}</p>

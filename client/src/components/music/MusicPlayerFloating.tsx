@@ -17,6 +17,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { musicApi } from '../../api/musicApi';
 import { useUIStore } from '../../store/uiStore';
@@ -52,6 +53,9 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
   const toggleMobileFullPlayer = useMusicPlayerStore((s) => s.toggleMobileFullPlayer);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const closePlayer = useMusicPlayerStore((s) => s.closePlayer);
+
+  const location = useLocation();
+  const isSharedMusicPage = location.pathname === '/shared-music';
 
   const { addToast } = useUIStore();
   const [isFavorite, setIsFavorite] = useState(false);
@@ -170,10 +174,13 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
         </div>
       )}
 
-      {/* Main Floating Bottom Player Bar */}
+      {/* Main Floating Bottom Player Bar (Only visible on mobile when on /shared-music page, always available on desktop) */}
       <div
-        className={`fixed bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${isCollapsed ? 'translate-y-[calc(100%-3.5rem)]' : ''
-          }`}
+        className={`${
+          isSharedMusicPage ? 'fixed' : 'hidden md:fixed'
+        } bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${
+          isCollapsed ? 'translate-y-[calc(100%-3.5rem)]' : ''
+        }`}
       >
         <div className="relative overflow-hidden rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl shadow-rose-950/20 text-white p-3 md:p-4 pr-10 md:pr-12">
           {/* Top-Right Dedicated Close Button */}

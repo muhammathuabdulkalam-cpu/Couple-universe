@@ -9,8 +9,8 @@ export const requireFeature = (featureKey: string) => {
       throw new AppError('Authentication required to access feature.', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Bypass feature restrictions ONLY for SUPER_OWNER and CO_OWNER (NOT ADMIN)
-    if (['SUPER_OWNER', 'CO_OWNER'].includes(user.role)) {
+    // Bypass feature restrictions for SUPER_OWNER, CO_OWNER, and ADMIN
+    if (['SUPER_OWNER', 'CO_OWNER', 'ADMIN'].includes(user.role)) {
       return next();
     }
 

@@ -80,12 +80,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
         </main>
 
         {/* Right Collapsible Activity Panel */}
-        {!fullViewport && (
-          <RightContextPanel
-            isOpen={isRightPanelOpen}
-            onToggle={() => setIsRightPanelOpen(!isRightPanelOpen)}
-          />
-        )}
+        <RightContextPanel
+          isOpen={isRightPanelOpen}
+          onToggle={() => setIsRightPanelOpen(!isRightPanelOpen)}
+        />
       </div>
 
       {/* Mobile Bottom Navigation */}

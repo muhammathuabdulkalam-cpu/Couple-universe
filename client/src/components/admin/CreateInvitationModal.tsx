@@ -13,52 +13,45 @@ import {
   ArrowRight,
   RotateCcw,
   ExternalLink,
-  FolderPlus,
 } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import { ALL_FEATURES_CONFIG, FeatureKey } from '../../config/features';
-import { AdminRelationshipItem, AdminInviteToken } from '../../types/admin.types';
+import { AdminRelationshipItem, AdminUserListItem } from '../../types/admin.types';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface CreateInvitationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   relationships?: AdminRelationshipItem[];
+  defaultPartnerUserId?: string;
+  defaultRelationshipType?: string;
+  defaultTargetRole?: string;
+  branchTitle?: string;
 }
 
 const RELATIONSHIP_TYPES = ['Couple', 'Friendship', 'Family', 'Custom'];
 const TARGET_ROLES = [
-  { value: 'CO_OWNER', label: 'CO_OWNER (Relationship Partner)' },
-  { value: 'MEMBER', label: 'MEMBER (Relationship Member)' },
-  { value: 'INVITED_USER', label: 'INVITED_USER (Standard Guest)' },
-];
-
-const EXPIRY_OPTIONS = [
-  { label: '1 Day', value: 1 },
-  { label: '3 Days', value: 3 },
-  { label: '7 Days', value: 7 },
-  { label: '30 Days', value: 30 },
-  { label: 'Never Expires', value: 36500 },
+  { value: 'INVITED_USER', label: 'INVITED_USER (Standard Guest / Friend)' },
+  { value: 'CO_OWNER', label: 'CO_OWNER (Relationship Partner / Co-Owner)' },
+  { value: 'SUPER_OWNER', label: 'SUPER_OWNER (Super Owner)' },
 ];
 
 export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  relationships: initialRelationships = [],
+  defaultPartnerUserId = '',
+  defaultRelationshipType = 'Friendship',
+  defaultTargetRole = 'INVITED_USER',
+  branchTitle = 'Create Invitation Token',
 }) => {
   // Form State
   const [inviteDisplayName, setInviteDisplayName] = useState('');
   
-  // Relationship Selection Mode: 'existing' vs 'new'
-  const [relMode, setRelMode] = useState<'existing' | 'new'>('existing');
-  const [selectedRelId, setSelectedRelId] = useState<string>('');
-  const [newRelName, setNewRelName] = useState('');
-  const [newRelType, setNewRelType] = useState('Couple');
-  
-  const [fetchedRelationships, setFetchedRelationships] = useState<AdminRelationshipItem[]>(initialRelationships);
+  const [newRelType, setNewRelType] = useState(defaultRelationshipType);
 
-  const [targetRole, setTargetRole] = useState('MEMBER');
+  const [targetRole, setTargetRole] = useState(defaultTargetRole);
   const [selectedFeatures, setSelectedFeatures] = useState<FeatureKey[]>([
     'GALLERY',
     'TIMELINE',
@@ -68,11 +61,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
     'MUSIC',
     'LISTEN_TOGETHER',
   ]);
-
-  // Max Uses & Expiry
-  const [maxUsesPreset, setMaxUsesPreset] = useState<'1' | '5' | '10' | 'custom'>('1');
-  const [customMaxUses, setCustomMaxUses] = useState<number>(1);
-  const [expiryDays, setExpiryDays] = useState<number>(7);
 
   // Status State
   const [isLoading, setIsLoading] = useState(false);
@@ -89,32 +77,35 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
   } | null>(null);
 
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedTokenCode, setCopiedTokenCode] = useState(false);
+  const [existingUsers, setExistingUsers] = useState<AdminUserListItem[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>(defaultPartnerUserId);
+
+  const effectivePartnerId = selectedUserId || defaultPartnerUserId || '';
 
   useEffect(() => {
     if (isOpen) {
-      loadRelationships();
+      loadData();
       setInviteDisplayName('');
-      setRelMode('existing');
-      setSelectedRelId('');
-      setNewRelName('');
-      setNewRelType('Couple');
-      setTargetRole('MEMBER');
-      setMaxUsesPreset('1');
-      setCustomMaxUses(1);
-      setExpiryDays(7);
+      setSelectedUserId(defaultPartnerUserId || '');
+      setNewRelType(defaultRelationshipType || 'Friendship');
+      setTargetRole(defaultTargetRole || 'INVITED_USER');
       setErrorMsg('');
       setCreatedInvite(null);
       setCopiedLink(false);
+      setCopiedTokenCode(false);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultPartnerUserId, defaultRelationshipType, defaultTargetRole]);
 
-  const loadRelationships = async () => {
+  const loadData = async () => {
     try {
-      const rels = await adminApi.getRelationships();
-      setFetchedRelationships(rels);
-    } catch {
-      setFetchedRelationships(initialRelationships);
-    }
+      const usersRes = await adminApi.getUsers({ limit: 100 });
+      const allowedUsers = usersRes.users || [];
+      setExistingUsers(allowedUsers);
+      if (defaultPartnerUserId) {
+        setSelectedUserId(defaultPartnerUserId);
+      }
+    } catch (_err) {}
   };
 
   if (!isOpen) return null;
@@ -133,27 +124,19 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
     }
   };
 
-  const getEffectiveMaxUses = (): number => {
-    if (maxUsesPreset === 'custom') return Math.max(1, customMaxUses);
-    return Number(maxUsesPreset);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    const targetPartnerId = selectedUserId || defaultPartnerUserId || '';
 
     if (!inviteDisplayName.trim()) {
       setErrorMsg('Please enter an Invite Display Name.');
       return;
     }
 
-    if (relMode === 'existing' && !selectedRelId) {
-      setErrorMsg('Please select an existing relationship or switch to "+ Create New Relationship".');
-      return;
-    }
-
-    if (relMode === 'new' && !newRelName.trim()) {
-      setErrorMsg('Please enter a Relationship Name for the new relationship.');
+    if (!targetPartnerId) {
+      setErrorMsg('Please select an existing user to link the relationship.');
       return;
     }
 
@@ -162,64 +145,45 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
       return;
     }
 
-    const effectiveMaxUses = getEffectiveMaxUses();
     setIsLoading(true);
 
     try {
-      let inviteData: AdminInviteToken;
+      const partnerUser = existingUsers.find((u) => u.id === targetPartnerId || (u as any)._id === targetPartnerId);
+      const partnerName = partnerUser ? partnerUser.name : 'User';
+      const relationshipName = `${partnerName} & ${inviteDisplayName.trim()}`;
 
-      if (relMode === 'existing') {
-        const relObj = fetchedRelationships.find((r) => r.id === selectedRelId);
-        inviteData = await adminApi.generateRelationshipInvite(selectedRelId, {
-          targetRole,
-          enabledFeatures: selectedFeatures,
-          expiryDays,
-          maxUses: effectiveMaxUses,
-          inviteDisplayName: inviteDisplayName.trim(),
-          relationshipType: relObj?.type || 'Couple',
-        });
-      } else {
-        inviteData = await adminApi.generateRelationshipInvite('new', {
-          relationshipName: newRelName.trim(),
-          relationshipType: newRelType,
-          targetRole,
-          enabledFeatures: selectedFeatures,
-          expiryDays,
-          maxUses: effectiveMaxUses,
-          inviteDisplayName: inviteDisplayName.trim(),
-        });
-      }
+      const inviteData = await adminApi.createStandaloneInvite({
+        relationshipName,
+        relationshipType: newRelType,
+        targetRole,
+        enabledFeatures: selectedFeatures,
+        expiryDays: 36500,
+        maxUses: 1,
+        inviteDisplayName: inviteDisplayName.trim(),
+        partnerUserId: targetPartnerId,
+      });
 
       const token = inviteData.code;
       const origin = window.location.origin;
       const inviteUrl = `${origin}/invite/${token}`;
 
-      let displayRelName = '';
-      let displayRelType = 'Couple';
-
-      if (relMode === 'existing') {
-        const relObj = fetchedRelationships.find((r) => r.id === selectedRelId);
-        displayRelName = relObj?.name || 'Existing Relationship';
-        displayRelType = relObj?.type || 'Couple';
-      } else {
-        displayRelName = newRelName.trim();
-        displayRelType = newRelType;
-      }
-
       setCreatedInvite({
         token,
         inviteUrl,
-        relationshipName: displayRelName,
-        relationshipType: displayRelType,
+        relationshipName,
+        relationshipType: newRelType,
         targetRole,
         enabledFeatures: selectedFeatures,
-        expiryDays,
-        maxUses: effectiveMaxUses,
+        expiryDays: 36500,
+        maxUses: 1,
       });
 
       if (onSuccess) {
         onSuccess();
       }
+
+      handleResetForm();
+      onClose();
     } catch (err: any) {
       setErrorMsg(err?.response?.data?.message || err?.message || 'Failed to generate invitation token.');
     } finally {
@@ -227,18 +191,25 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
     }
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (!createdInvite) return;
-    navigator.clipboard.writeText(createdInvite.inviteUrl);
+    await copyToClipboard(createdInvite.inviteUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyTokenCode = async () => {
+    if (!createdInvite) return;
+    await copyToClipboard(createdInvite.token);
+    setCopiedTokenCode(true);
+    setTimeout(() => setCopiedTokenCode(false), 2500);
   };
 
   const handleResetForm = () => {
     setCreatedInvite(null);
     setInviteDisplayName('');
-    setSelectedRelId('');
-    setNewRelName('');
+    setSelectedUserId('');
+    setNewRelType('Friendship');
     setErrorMsg('');
     setCopiedLink(false);
   };
@@ -256,7 +227,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
             </div>
             <div>
               <h2 className="font-black text-lg text-white tracking-tight flex items-center gap-2">
-                <span>Create Invitation</span>
+                <span>{branchTitle}</span>
                 <Sparkles className="w-4 h-4 text-rose-400 animate-pulse" />
               </h2>
               <p className="text-xs text-slate-400">
@@ -310,93 +281,59 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 2: RELATIONSHIP */}
+              {/* SECTION 2: RELATIONSHIP CONFIGURATION */}
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                  <Heart className="w-3.5 h-3.5" /> 2. RELATIONSHIP SELECTION
+                  <Heart className="w-3.5 h-3.5" /> 2. RELATIONSHIP DETAILS
                 </h3>
 
-                {/* Mode Selector Tabs */}
-                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-950/60 rounded-xl border border-white/5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setRelMode('existing')}
-                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition ${
-                      relMode === 'existing'
-                        ? 'bg-rose-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <UsersIcon className="w-3.5 h-3.5" />
-                    <span>Existing Relationship</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRelMode('new')}
-                    className={`py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 transition ${
-                      relMode === 'new'
-                        ? 'bg-rose-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <FolderPlus className="w-3.5 h-3.5" />
-                    <span>+ Create New Relationship</span>
-                  </button>
-                </div>
-
-                {relMode === 'existing' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Select Partner / Existing User */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-200 mb-1">
-                      SELECT EXISTING RELATIONSHIP *
+                    <label className="block text-xs font-bold text-slate-200 mb-1 flex items-center justify-between">
+                      <span>SELECT PARTNER (EXISTING USER) *</span>
+                      {defaultPartnerUserId && (
+                        <span className="text-[10px] text-emerald-400 font-black">
+                          ✓ Auto-Assigned
+                        </span>
+                      )}
                     </label>
                     <select
-                      value={selectedRelId}
-                      onChange={(e) => setSelectedRelId(e.target.value)}
+                      value={effectivePartnerId}
+                      onChange={(e) => setSelectedUserId(e.target.value)}
+                      required
                       className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
                     >
-                      <option value="">-- Select Existing Relationship --</option>
-                      {fetchedRelationships.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.name} ({r.type || 'Couple'})
+                      <option value="">-- Select Registered User --</option>
+                      {existingUsers.map((u) => {
+                        const uid = u.id || (u as any)._id;
+                        return (
+                          <option key={uid} value={uid}>
+                            {u.name} ({u.role})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Select Relationship Type */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-200 mb-1">
+                      RELATIONSHIP TYPE *
+                    </label>
+                    <select
+                      value={newRelType}
+                      onChange={(e) => setNewRelType(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+                    >
+                      {RELATIONSHIP_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
                         </option>
                       ))}
                     </select>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-200 mb-1">
-                        NEW RELATIONSHIP NAME *
-                      </label>
-                      <input
-                        type="text"
-                        required={relMode === 'new'}
-                        value={newRelName}
-                        onChange={(e) => setNewRelName(e.target.value)}
-                        placeholder="e.g. Sarah & John"
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-200 mb-1">
-                        RELATIONSHIP TYPE *
-                      </label>
-                      <select
-                        value={newRelType}
-                        onChange={(e) => setNewRelType(e.target.value)}
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-                      >
-                        {RELATIONSHIP_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* SECTION 3: ACCESS */}
@@ -472,66 +409,6 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 </div>
               </div>
 
-              {/* SECTION 4: INVITATION LIMITS */}
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
-                <h3 className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" /> 4. INVITATION CAPACITY & EXPIRY
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Maximum Uses */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-200 mb-1">
-                      MAXIMUM INVITATION USES *
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={maxUsesPreset}
-                        onChange={(e) => setMaxUsesPreset(e.target.value as any)}
-                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-                      >
-                        <option value="1">1 User (Single-Use)</option>
-                        <option value="5">5 Users</option>
-                        <option value="10">10 Users</option>
-                        <option value="custom">Custom Capacity</option>
-                      </select>
-
-                      {maxUsesPreset === 'custom' && (
-                        <input
-                          type="number"
-                          min={1}
-                          max={100}
-                          value={customMaxUses}
-                          onChange={(e) => setCustomMaxUses(Number(e.target.value))}
-                          className="w-24 bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-                        />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Maximum number of separate user accounts that can register using this invitation.
-                    </p>
-                  </div>
-
-                  {/* Expiry Duration */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-200 mb-1">
-                      EXPIRY DURATION *
-                    </label>
-                    <select
-                      value={expiryDays}
-                      onChange={(e) => setExpiryDays(Number(e.target.value))}
-                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-                    >
-                      {EXPIRY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
               {/* Submit Action Button */}
               <div className="pt-2">
                 <button
@@ -563,25 +440,50 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
                 </p>
               </div>
 
-              {/* Invitation Link Box */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-300">
-                  INVITATION LINK
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={createdInvite.inviteUrl}
-                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-rose-300 font-mono focus:outline-none select-all"
-                  />
-                  <button
-                    onClick={handleCopyLink}
-                    className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 flex items-center gap-1.5 transition shadow"
-                  >
-                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span>{copiedLink ? '✓ Link Copied' : 'Copy Link'}</span>
-                  </button>
+              {/* Generated Token & Link Boxes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Invitation Code Token */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    GENERATED TOKEN CODE
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdInvite.token}
+                      className="w-full bg-slate-950 border border-emerald-500/40 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono font-black tracking-widest focus:outline-none select-all"
+                    />
+                    <button
+                      onClick={handleCopyTokenCode}
+                      className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 flex items-center gap-1 transition shadow"
+                    >
+                      {copiedTokenCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedTokenCode ? '✓ Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Invitation Link URL */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-rose-300 uppercase tracking-wider">
+                    INVITATION LINK URL
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={createdInvite.inviteUrl}
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-rose-300 font-mono focus:outline-none select-all"
+                    />
+                    <button
+                      onClick={handleCopyLink}
+                      className="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 flex items-center gap-1 transition shadow"
+                    >
+                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedLink ? '✓ Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

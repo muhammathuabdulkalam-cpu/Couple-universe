@@ -19,7 +19,7 @@ interface Props {
   } | null;
 }
 
-const ROLES = ['USER', 'ADMIN', 'MODERATOR'];
+const ROLES = ['INVITED_USER', 'MEMBER', 'CO_OWNER', 'SUPER_OWNER'];
 const STATUSES = ['ACTIVE', 'SUSPENDED', 'PENDING'];
 
 const UserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editingUser }) => {
@@ -34,7 +34,7 @@ const UserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, editingUser })
     phone: '',
     birthday: '',
     gender: '',
-    role: 'USER',
+    role: 'INVITED_USER',
     status: 'ACTIVE',
     bio: '',
     avatar: '',

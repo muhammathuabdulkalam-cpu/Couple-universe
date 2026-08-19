@@ -25,8 +25,16 @@ export const getMemoryAccessToken = () => accessTokenInMemory;
 // Request Interceptor
 axiosClient.interceptors.request.use(
   (config) => {
-    if (accessTokenInMemory) {
-      config.headers.Authorization = `Bearer ${accessTokenInMemory}`;
+    const adminToken = localStorage.getItem('admin_access_token');
+    const userToken = accessTokenInMemory || localStorage.getItem('access_token');
+    const isAdminPath = (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) || config.url?.startsWith('/admin');
+
+    if (isAdminPath && adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
+    } else if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
     }
     return config;
   },

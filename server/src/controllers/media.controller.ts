@@ -185,6 +185,110 @@ export const uploadMultipleMedia = catchAsync(async (req: Request, res: Response
 });
 
 /**
+ * Helper to sync Cloudinary gallery assets into MongoDB Media records
+ */
+export async function syncCloudinaryGalleryToDb(ownerId?: mongoose.Types.ObjectId): Promise<number> {
+  try {
+    const assets = await CloudinaryService.listGalleryAssets('afrin-universe/gallery');
+    if (!assets || assets.length === 0) return 0;
+
+    const defaultOwnerId = ownerId || new mongoose.Types.ObjectId('6a6e18200bfba68352f64b47');
+    const existingMedia = await Media.find().lean();
+    let addedCount = 0;
+
+    for (const item of assets) {
+      // Exclude cover images, profile pictures, and avatar assets from gallery album sync
+      if (
+        item.public_id.includes('covers') ||
+        item.public_id.includes('profile') ||
+        item.public_id.includes('avatar')
+      ) {
+        continue;
+      }
+
+      const exists = existingMedia.some(
+        (m: any) => m.cloudinaryPublicId === item.public_id || m.secureUrl === item.secure_url || m.url === item.secure_url
+      );
+
+      if (exists) continue;
+
+      const width = item.width || 800;
+      const height = item.height || 600;
+      const aspectRatio = parseFloat((width / height).toFixed(2));
+      let orientation: 'PORTRAIT' | 'LANDSCAPE' | 'SQUARE' = 'SQUARE';
+      if (width > height) orientation = 'LANDSCAPE';
+      else if (height > width) orientation = 'PORTRAIT';
+
+      let optimizedUrl = item.secure_url;
+      let thumbnailUrl = item.secure_url;
+
+      if (item.resource_type === 'image') {
+        thumbnailUrl = item.secure_url.includes('/upload/')
+          ? item.secure_url.replace('/upload/', '/upload/w_400,h_400,c_fill,g_auto,f_auto,q_auto/')
+          : item.secure_url;
+      } else if (item.resource_type === 'video') {
+        thumbnailUrl = item.secure_url.includes('/upload/')
+          ? item.secure_url.replace(/\.[^/.]+$/, '.jpg').replace('/upload/', '/upload/w_400,h_400,c_fill,f_auto,q_auto/')
+          : item.secure_url;
+      }
+
+      const filename = item.public_id.split('/').pop()?.replace(/\.[^/.]+$/, '') || '';
+      const withoutHash = filename.replace(/_[a-z0-9]{6}$/i, '');
+      const title = withoutHash.replace(/_/g, ' ').replace(/\s+/g, ' ').trim() || 'Untitled Memory';
+
+      let tags = ['gallery'];
+      if (item.public_id.includes('story')) tags.push('story');
+      if (item.public_id.includes('profile')) tags.push('profile');
+      if (item.public_id.includes('instagram')) tags.push('instagram');
+
+      await Media.create({
+        owner: defaultOwnerId,
+        createdBy: defaultOwnerId,
+        updatedBy: defaultOwnerId,
+        title,
+        tags,
+        visibility: 'COUPLE',
+        memoryDate: new Date(item.created_at || Date.now()),
+        cloudinaryPublicId: item.public_id,
+        cloudinaryFolder: item.folder || 'afrin-universe/gallery',
+        url: item.secure_url,
+        secureUrl: item.secure_url,
+        optimizedUrl,
+        thumbnailUrl,
+        width,
+        height,
+        aspectRatio,
+        orientation,
+        duration: item.duration || undefined,
+        mimeType: item.resource_type === 'video' ? `video/${item.format || 'mp4'}` : `image/${item.format || 'jpeg'}`,
+        fileSize: item.bytes || 500000,
+        isFavorite: false,
+        isArchived: false,
+        isDeleted: false,
+      });
+
+      addedCount++;
+    }
+
+    return addedCount;
+  } catch (_err: any) {
+    return 0;
+  }
+}
+
+/**
+ * Trigger Cloudinary to MongoDB Gallery Sync Endpoint
+ */
+export const syncGallery = catchAsync(async (req: Request, res: Response) => {
+  const addedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
+  const total = await Media.countDocuments({ isDeleted: false });
+  return ApiResponse.success(res, `Synced Cloudinary gallery successfully. Added ${addedCount} new photo/video asset(s).`, {
+    addedCount,
+    total,
+  });
+});
+
+/**
  * Get Media Directory (Paginated, Filtered, Sorted)
  * Excludes profile pictures from gallery/vault by default
  */
@@ -192,6 +296,10 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || PLATFORM_CONSTANTS.DEFAULT_PAGE;
   const limit = parseInt(req.query.limit as string, 10) || PLATFORM_CONSTANTS.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
+
+  if (req.query.sync === 'true') {
+    await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
+  }
 
   const user = req.user!;
   const { album, isFavorite, isArchived, isDeleted, search, tag, orientation } = req.query;
@@ -232,14 +340,35 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
     ];
   }
 
-  // Role visibility permissions
+  // Role & relationship visibility isolation (Gallery & Vault)
   if (user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER) {
-    filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] };
+    if (user.relationshipId) {
+      filter.$or = [
+        { owner: user._id },
+        { relationshipId: user.relationshipId },
+        { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] } },
+      ];
+    } else {
+      filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] };
+    }
   } else {
-    filter.$or = [{ owner: user._id }, { visibility: { $in: ['PUBLIC', 'FRIENDS'] } }];
+    // INVITED_USER: Isolated gallery showing only their uploaded media or relationship media
+    filter.$or = [
+      { owner: user._id },
+      ...(user.relationshipId ? [{ relationshipId: user.relationshipId }] : []),
+    ];
   }
 
-  const total = await Media.countDocuments(filter);
+  let total = await Media.countDocuments(filter);
+
+  // Auto-sync Cloudinary gallery assets if DB has 0 items or if sync=true is requested
+  if (total === 0 || req.query.sync === 'true') {
+    const syncedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
+    if (syncedCount > 0 || total === 0) {
+      total = await Media.countDocuments(filter);
+    }
+  }
+
   const mediaList = await Media.find(filter)
     .populate('owner', 'name email avatar role')
     .sort({ createdAt: -1 })
@@ -250,7 +379,7 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
     page,
     limit,
     total,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil(total / limit) || 1,
   });
 });
 

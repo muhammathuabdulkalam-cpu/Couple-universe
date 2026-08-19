@@ -4,6 +4,7 @@ import {
   archiveRelationship,
   createRelationship,
   createStandaloneInvite,
+  deleteRelationship,
   generateRelationshipInvite,
   getRelationshipInvites,
   listRelationships,
@@ -25,7 +26,11 @@ router.post('/create-invite', createStandaloneInvite);
 router.get('/', listRelationships);
 router.post('/', createRelationship);
 router.put('/:id', updateRelationship);
+router.delete('/:id', deleteRelationship);
+router.post('/:id/delete', deleteRelationship);
+router.all('/:id/delete', deleteRelationship);
 router.patch('/:id/archive', archiveRelationship);
+router.post('/:id/archive', archiveRelationship);
 router.patch('/:id/restore', restoreRelationship);
 router.post('/:id/members/add', addMember);
 router.delete('/:id/members/:userId', removeMember);

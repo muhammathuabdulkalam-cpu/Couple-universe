@@ -25,6 +25,8 @@ import {
   updatePlaylist,
   uploadSong,
   playSongAudio,
+  importSong,
+  syncCloudinarySongs,
 } from '../controllers/music.controller';
 import { authenticate, optionalAuthenticate } from '../middlewares/auth.middleware';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
@@ -55,6 +57,8 @@ router.post('/listen-together/end', endListenSession);
 // Search, Summary, Uploaded & Lyrics
 router.get('/search', searchMusic);
 router.get('/uploaded', getUploadedSongs);
+router.post('/uploaded/sync', syncCloudinarySongs);
+router.post('/uploaded/import', importSong);
 router.delete('/uploaded/:providerSongId', deleteUploadedSong);
 router.get('/summary', getDashboardSummary);
 router.get('/lyrics', getLyrics);

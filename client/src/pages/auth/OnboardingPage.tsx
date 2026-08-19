@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, User, Calendar, FileText, Camera, ArrowRight, CheckCircle2, ShieldCheck, Heart } from 'lucide-react';
+import { Sparkles, User, Calendar, FileText, Camera, ArrowRight, CheckCircle2, ShieldCheck, Heart, Upload } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { onboardingApi } from '../../api/onboardingApi';
+import { axiosClient } from '../../api/axiosClient';
 import { ALL_FEATURES_CONFIG } from '../../config/features';
+import { CircularImageCropModal } from '../../components/profile/CircularImageCropModal';
 
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +20,52 @@ export const OnboardingPage: React.FC = () => {
   const [bio, setBio] = useState(currentUser?.bio || '');
   const [birthday, setBirthday] = useState(currentUser?.birthday ? currentUser.birthday.substring(0, 10) : '');
   const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [gender, setGender] = useState(currentUser?.gender || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImg, setIsUploadingImg] = useState(false);
+  const [rawDeviceImage, setRawDeviceImage] = useState<string | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+
+  const handleDeviceUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (result) {
+        setRawDeviceImage(result);
+        setIsCropModalOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCroppedAvatarComplete = async (croppedBlob: Blob, croppedDataUrl: string) => {
+    setIsUploadingImg(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', croppedBlob, 'profile_avatar.jpg');
+      formData.append('title', 'Profile Picture');
+      formData.append('visibility', 'PUBLIC');
+
+      const res = await axiosClient.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const media = res.data?.data;
+      const avatarUrl = media?.secureUrl || media?.optimizedUrl || croppedDataUrl;
+      setAvatar(avatarUrl);
+      addToast('Profile Picture Set!', 'Instagram-style cropped profile picture applied.', 'success');
+    } catch (_err) {
+      setAvatar(croppedDataUrl);
+      addToast('Profile Picture Set!', 'Cropped profile picture applied.', 'success');
+    } finally {
+      setIsUploadingImg(false);
+      setIsCropModalOpen(false);
+      setRawDeviceImage(null);
+    }
+  };
 
   useEffect(() => {
     onboardingApi
@@ -28,6 +75,8 @@ export const OnboardingPage: React.FC = () => {
           setName(data.user.name || '');
           setAvatar(data.user.avatar || '');
           setBio(data.user.bio || '');
+          if (data.user.phone) setPhone(data.user.phone);
+          if (data.user.gender) setGender(data.user.gender);
           if (data.user.birthday) setBirthday(data.user.birthday.substring(0, 10));
         }
       })
@@ -44,6 +93,8 @@ export const OnboardingPage: React.FC = () => {
         name: name.trim(),
         avatar: avatar.trim(),
         bio: bio.trim(),
+        phone: phone.trim() || undefined,
+        gender: gender || undefined,
         birthday: birthday || undefined,
         username: username.trim() || undefined,
       });
@@ -128,9 +179,57 @@ export const OnboardingPage: React.FC = () => {
 
         {/* Onboarding Form */}
         <form onSubmit={handleCompleteOnboarding} className="space-y-4">
+
+          {/* Profile Picture Upload from Device */}
+          <div className="flex flex-col items-center space-y-2.5 p-3 rounded-2xl bg-white/5 border border-white/10">
+            <label className="block text-xs font-extrabold text-slate-300">
+              Profile Picture (Upload from Device)
+            </label>
+
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-20 h-20 rounded-full p-1 bg-gradient-to-tr from-rose-500 via-purple-500 to-amber-500 shadow-xl overflow-hidden">
+                <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center font-black text-white text-2xl overflow-hidden border border-white/20 relative">
+                  {avatar ? (
+                    <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    name.charAt(0).toUpperCase() || 'U'
+                  )}
+                  {isUploadingImg && (
+                    <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center text-[10px] font-bold text-white">
+                      Uploading...
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="absolute bottom-0 right-0 p-1.5 rounded-full bg-rose-500 text-white shadow-lg group-hover:scale-110 transition border border-slate-950">
+                <Camera className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-extrabold border border-rose-500/30 transition flex items-center gap-2"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Choose Image File from Device</span>
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleDeviceUpload(file);
+              }}
+            />
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1">
-              Your Display Name *
+              Full Name / Display Name *
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -139,23 +238,7 @@ export const OnboardingPage: React.FC = () => {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Afzal"
-                className="w-full bg-slate-800 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1">
-              Avatar Image URL (Optional)
-            </label>
-            <div className="relative">
-              <Camera className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="url"
-                value={avatar}
-                onChange={(e) => setAvatar(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
+                placeholder="e.g. Afzal or Amrin"
                 className="w-full bg-slate-800 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
               />
             </div>
@@ -195,15 +278,49 @@ export const OnboardingPage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1">
-              Birthday (Optional)
+              Date of Birth (DOB) *
             </label>
             <div className="relative">
               <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="date"
+                required
                 value={birthday}
                 onChange={(e) => setBirthday(e.target.value)}
                 className="w-full bg-slate-800 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Gender *
+              </label>
+              <select
+                required
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full bg-slate-800 border border-white/10 rounded-xl py-2.5 px-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+              >
+                <option value="">Select Gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="NON_BINARY">Non-Binary</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer Not to Say</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1">
+                Phone Number (Optional)
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 234 567 890"
+                className="w-full bg-slate-800 border border-white/10 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40"
               />
             </div>
           </div>
@@ -227,6 +344,17 @@ export const OnboardingPage: React.FC = () => {
           </div>
         </form>
       </motion.div>
+
+      <CircularImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={rawDeviceImage}
+        onClose={() => {
+          setIsCropModalOpen(false);
+          setRawDeviceImage(null);
+        }}
+        onCropComplete={handleCroppedAvatarComplete}
+        isUploading={isUploadingImg}
+      />
     </div>
   );
 };

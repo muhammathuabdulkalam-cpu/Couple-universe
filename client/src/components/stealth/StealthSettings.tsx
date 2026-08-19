@@ -6,6 +6,7 @@ import { Card } from '../ui/Card.js';
 import { Skeleton } from '../ui/Skeleton.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse } from '../../types/index.js';
+import { copyToClipboard } from '../../utils/clipboard.js';
 import {
   Check,
   Copy,
@@ -129,37 +130,8 @@ export const StealthSettings: React.FC = () => {
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    let success = false;
-
-    // Modern Clipboard API
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(text);
-        success = true;
-      } catch {
-        // Fallback below
-      }
-    }
-
-    // Fallback using temporary textarea element
-    if (!success) {
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        success = document.execCommand('copy');
-        textArea.remove();
-      } catch {
-        success = false;
-      }
-    }
-
+  const handleCopyLink = async (text: string) => {
+    const success = await copyToClipboard(text);
     if (success) {
       setIsCopied(true);
       addToast('Copied!', 'Private link copied to clipboard', 'info');
@@ -259,7 +231,7 @@ export const StealthSettings: React.FC = () => {
               <Button
                 variant={isCopied ? 'cyan' : 'glass'}
                 size="sm"
-                onClick={() => copyToClipboard(generatedLink)}
+                onClick={() => handleCopyLink(generatedLink)}
                 leftIcon={isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               >
                 {isCopied ? 'Copied!' : 'Copy'}

@@ -47,12 +47,12 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto py-8">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+    <div className="min-h-[85vh] flex flex-col items-center justify-center px-4 py-6 select-none">
+      <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-md">
         
-        <div className="mb-6">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to Welcome
+        <div className="mb-4 text-center">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back to Welcome
           </Link>
         </div>
 
