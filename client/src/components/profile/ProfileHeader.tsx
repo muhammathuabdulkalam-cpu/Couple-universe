@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Edit3, Grid, LogOut, Settings, Shield, Users, X } from 'lucide-react';
+import { Cake, Calendar, Edit3, Grid, LogOut, Settings, Shield, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -151,10 +151,34 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
               </button>
             </div>
 
-            {/* Bio */}
-            <p className="text-xs text-slate-300 leading-relaxed italic max-w-xl">
-              "{displayUser?.bio || 'Living our dream journey together in Afrin Verse ❤️'}"
-            </p>
+            {/* User Info & Entered Details (DOB, Username, Bio, Joined Date) */}
+            <div className="space-y-1.5 pt-1 text-center md:text-left">
+              {displayUser?.birthday && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm">
+                  <Cake className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    Born: {new Date(displayUser.birthday).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
+              {displayUser?.username && (
+                <div className="text-xs text-slate-400 font-mono font-semibold">
+                  @{displayUser.username}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-300 leading-relaxed italic max-w-xl">
+                "{displayUser?.bio || 'Living our dream journey together in Afrin Verse ❤️'}"
+              </p>
+
+              {displayUser?.createdAt && (
+                <div className="text-[11px] text-slate-500 flex items-center justify-center md:justify-start gap-1 font-medium">
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                  <span>Member since {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              )}
+            </div>
           </div>
 
         </div>

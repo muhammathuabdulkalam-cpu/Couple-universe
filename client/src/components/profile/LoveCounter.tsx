@@ -1,5 +1,6 @@
 import { Heart, Sparkles } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { useAuthStore } from '../../store/authStore.js';
 import { Card } from '../ui/Card.js';
 
 interface TogetherTime {
@@ -10,6 +11,7 @@ interface TogetherTime {
 }
 
 export const LoveCounter: React.FC = () => {
+  const { user } = useAuthStore();
   const [timeTogether, setTimeTogether] = useState<TogetherTime>({
     days: 0,
     hours: 0,
@@ -36,6 +38,10 @@ export const LoveCounter: React.FC = () => {
     const interval = setInterval(updateCounter, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  if (user?.role === 'INVITED_USER') {
+    return null;
+  }
 
   return (
     <Card
