@@ -117,60 +117,60 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             </button>
           )}
 
-          {/* 2. Activity Context Circular Button with Music Pulse Animation & Cover Art */}
-          <button
-            type="button"
-            onClick={() => setIsMobileDrawerOpen(true)}
-            className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
-              isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
-            } ${
-              isPlaying
-                ? 'border-amrin-glow ring-2 ring-amrin-glow/40 shadow-amrin-glow/30'
-                : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
-            }`}
-            aria-label="Open Activity Bar"
-            title={isPlaying ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
-          >
-            {isPlaying && currentTrack ? (
-              <img
-                src={getNormalizedCoverUrl(currentTrack.coverUrl)}
-                alt={currentTrack.title}
-                className="w-full h-full object-cover rounded-full animate-[spin_8s_linear_infinite]"
-                onError={(e) => {
-                  if (!e.currentTarget.src.includes('unsplash.com')) {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                  }
-                }}
-              />
-            ) : isPlaying ? (
-              <Music className="w-5 h-5 text-amrin-glow animate-bounce" />
-            ) : (
-              <Sparkles className="w-5 h-5 text-amber-300" />
-            )}
-
-            {/* Vinyl Center Hole Overlay for Playing Audio */}
-            {isPlaying && currentTrack && (
-              <div className="absolute inset-0 m-auto w-3.5 h-3.5 rounded-full bg-obsidian-950 border border-white/40 shadow-inner z-10 pointer-events-none flex items-center justify-center">
-                <div className="w-1 h-1 rounded-full bg-amrin-glow" />
-              </div>
-            )}
-
-            {/* Live Audio Equalizer Wave Bars */}
+          {/* 2. Activity Context Circular Button with Non-Rotating Soundwave & Pulse Animation */}
+          <div className="relative">
+            {/* Pulsing Soundwave Aura Effect when Playing */}
             {isPlaying && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center gap-0.5 z-20 pointer-events-none">
-                <span className="w-0.5 h-3 bg-amrin-glow rounded-full animate-bounce [animation-delay:0.1s]" />
-                <span className="w-0.5 h-4 bg-rose-400 rounded-full animate-bounce [animation-delay:0.3s]" />
-                <span className="w-0.5 h-2.5 bg-afzal-glow rounded-full animate-bounce [animation-delay:0.2s]" />
-              </div>
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-afzal/50 via-rose-500/40 to-amrin/50 animate-ping opacity-60 pointer-events-none" />
             )}
 
-            {/* Floating Bouncing Music Badge when playing */}
-            {isPlaying && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-30">
-                <Music className="w-2 h-2 text-white" />
-              </span>
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
+                isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
+              } ${
+                isPlaying
+                  ? 'border-amrin-glow ring-2 ring-amrin-glow/60 shadow-[0_0_15px_rgba(236,72,153,0.5)]'
+                  : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
+              }`}
+              aria-label="Open Activity Bar"
+              title={isPlaying ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
+            >
+              {isPlaying && currentTrack ? (
+                <img
+                  src={getNormalizedCoverUrl(currentTrack.coverUrl)}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover rounded-full select-none"
+                  onError={(e) => {
+                    if (!e.currentTarget.src.includes('unsplash.com')) {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+                    }
+                  }}
+                />
+              ) : isPlaying ? (
+                <Music className="w-5 h-5 text-amrin-glow animate-bounce" />
+              ) : (
+                <Sparkles className="w-5 h-5 text-amber-300" />
+              )}
+
+              {/* Center Live Audio Equalizer Waveform Bars Overlay */}
+              {isPlaying && (
+                <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center gap-0.5 z-10 pointer-events-none">
+                  <span className="w-0.5 h-3 bg-amrin-glow rounded-full animate-[pulse_0.6s_ease-in-out_infinite_100ms]" />
+                  <span className="w-0.5 h-4 bg-rose-400 rounded-full animate-[pulse_0.6s_ease-in-out_infinite_300ms]" />
+                  <span className="w-0.5 h-2 bg-afzal-glow rounded-full animate-[pulse_0.6s_ease-in-out_infinite_200ms]" />
+                </div>
+              )}
+
+              {/* Floating Music Note Badge */}
+              {isPlaying && (
+                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-pulse z-20">
+                  <Music className="w-2 h-2 text-white" />
+                </span>
+              )}
+            </button>
+          </div>
         </motion.div>
       )}
 
