@@ -57,6 +57,10 @@ export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
       return <Navigate to="/onboarding" replace />;
     }
 
+    if (user && (user.role === 'ADMIN' || user.email === 'admin@gmail.com')) {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+
     const isInviteRegister = location.pathname === '/register' && location.search.includes('invite');
     if (!isInviteRegister) {
       return <Navigate to="/dashboard" replace />;

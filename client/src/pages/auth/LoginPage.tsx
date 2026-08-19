@@ -41,7 +41,14 @@ export const LoginPage: React.FC = () => {
       const { user, accessToken } = response.data.data!;
       setAuth(user, accessToken);
       addToast('Welcome Back!', `Logged in successfully as ${user.name}`, 'success');
-      navigate('/');
+
+      if (user.role === 'ADMIN' || user.email === 'admin@gmail.com') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user.onboardingCompleted === false) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || 'Invalid email or password credentials.';
       setErrorMessage(msg);
