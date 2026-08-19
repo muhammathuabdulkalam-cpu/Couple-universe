@@ -117,13 +117,8 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             </button>
           )}
 
-          {/* 2. Activity Context Circular Button with Non-Rotating Soundwave & Pulse Animation */}
+          {/* 2. Activity Context Circular Button with Top-Right Music Bubble Badge */}
           <div className="relative">
-            {/* Pulsing Soundwave Aura Effect when Playing */}
-            {isPlaying && (
-              <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-afzal/50 via-rose-500/40 to-amrin/50 animate-ping opacity-60 pointer-events-none" />
-            )}
-
             <button
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
@@ -131,7 +126,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                 isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
               } ${
                 isPlaying
-                  ? 'border-amrin-glow ring-2 ring-amrin-glow/60 shadow-[0_0_15px_rgba(236,72,153,0.5)]'
+                  ? 'border-amrin-glow ring-2 ring-amrin-glow/50 shadow-lg shadow-amrin-glow/30'
                   : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
               }`}
               aria-label="Open Activity Bar"
@@ -149,27 +144,20 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                   }}
                 />
               ) : isPlaying ? (
-                <Music className="w-5 h-5 text-amrin-glow animate-bounce" />
+                <Music className="w-5 h-5 text-amrin-glow" />
               ) : (
                 <Sparkles className="w-5 h-5 text-amber-300" />
               )}
-
-              {/* Center Live Audio Equalizer Waveform Bars Overlay */}
-              {isPlaying && (
-                <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] flex items-center justify-center gap-0.5 z-10 pointer-events-none">
-                  <span className="w-0.5 h-3 bg-amrin-glow rounded-full animate-[pulse_0.6s_ease-in-out_infinite_100ms]" />
-                  <span className="w-0.5 h-4 bg-rose-400 rounded-full animate-[pulse_0.6s_ease-in-out_infinite_300ms]" />
-                  <span className="w-0.5 h-2 bg-afzal-glow rounded-full animate-[pulse_0.6s_ease-in-out_infinite_200ms]" />
-                </div>
-              )}
-
-              {/* Floating Music Note Badge */}
-              {isPlaying && (
-                <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-pulse z-20">
-                  <Music className="w-2 h-2 text-white" />
-                </span>
-              )}
             </button>
+
+            {/* Top-Right Music Equalizer Bubble Badge while Playing */}
+            {isPlaying && (
+              <div className="absolute -top-1.5 -right-1.5 z-20 px-1.5 py-1 rounded-full bg-gradient-to-r from-afzal via-rose-500 to-amrin border-2 border-obsidian-950 shadow-lg shadow-rose-500/40 flex items-center gap-0.5 animate-bounce pointer-events-none">
+                <span className="w-0.5 h-2 bg-white rounded-full animate-[pulse_0.6s_ease-in-out_infinite_100ms]" />
+                <span className="w-0.5 h-3 bg-white rounded-full animate-[pulse_0.6s_ease-in-out_infinite_300ms]" />
+                <span className="w-0.5 h-1.5 bg-white rounded-full animate-[pulse_0.6s_ease-in-out_infinite_200ms]" />
+              </div>
+            )}
           </div>
         </motion.div>
       )}
