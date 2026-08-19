@@ -38,27 +38,10 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
-    // If user is already authenticated and onboarded, redirect directly to dashboard
-    if (isAuthenticated) {
-      if (currentUser?.onboardingCompleted !== false) {
-        navigate('/dashboard', { replace: true });
-        return;
-      } else {
-        navigate('/onboarding', { replace: true });
-        return;
-      }
-    }
-
     inviteApi
       .validateInvite(token)
       .then((data: InviteValidationResult) => {
         setInvite(data);
-
-        // If the invite has already been accepted/used, go directly to login for unauthenticated visitors
-        if (data.status === 'FULLY_USED' || data.remainingUses === 0) {
-          navigate('/login', { replace: true });
-          return;
-        }
 
         // Always store pending invite for registration context
         setPendingInvite({
@@ -78,7 +61,7 @@ export const InviteRegistrationResolver: React.FC = () => {
         setErrorMsg(err?.response?.data?.message || 'This invitation link is invalid or has expired.');
         setStage('invalid');
       });
-  }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
+  }, [token, setPendingInvite]);
 
   const handleAcceptInvite = () => {
     if (!token) return;
