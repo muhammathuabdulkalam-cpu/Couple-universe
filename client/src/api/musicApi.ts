@@ -41,7 +41,12 @@ export const musicApi = {
     
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await axiosClient.get('/music/uploaded', { params: { page, limit }, headers });
-    return res.data.data as { songs: NormalizedSong[]; total: number; page: number; limit: number };
+    const rawData = res.data?.data;
+    const songs: NormalizedSong[] = Array.isArray(rawData)
+      ? rawData
+      : (rawData?.songs || []);
+    const total = res.data?.meta?.total || songs.length;
+    return { songs, total, page: page || 1, limit: limit || 500 };
   },
 
   deleteUploadedSong: async (providerSongId: string) => {

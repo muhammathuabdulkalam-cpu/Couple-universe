@@ -353,10 +353,20 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   // Role & relationship visibility isolation (Gallery & Vault)
   if (user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER || user.role === ROLES.ADMIN) {
     // Platform Owners & Admins see all gallery media
-    filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] };
+    filter.$or = [
+      { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] } },
+      { visibility: { $exists: false } },
+      { visibility: null },
+      { visibility: '' },
+    ];
   } else {
     // INVITED_USER & Members see all shared couple & public gallery media
-    filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] };
+    filter.$or = [
+      { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] } },
+      { visibility: { $exists: false } },
+      { visibility: null },
+      { visibility: '' },
+    ];
   }
 
   let total = 0;
