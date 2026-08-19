@@ -240,6 +240,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
     throw new AppError('Invalid email or password. If your account was removed, please contact the Super Owner.', HTTP_STATUS.UNAUTHORIZED);
   }
 
+  if (user.role === ROLES.ADMIN || user.email === 'admin@gmail.com') {
+    throw new AppError('System Admin credentials cannot be used for user login. Please access the Enterprise Admin Console at /admin/login.', HTTP_STATUS.FORBIDDEN);
+  }
+
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
     throw new AppError('Invalid email or password. Please check your credentials.', HTTP_STATUS.UNAUTHORIZED);

@@ -220,7 +220,11 @@ export class UserService {
     const limit = params.limit || 10;
     const skip = (page - 1) * limit;
 
-    const queryFilter: any = { isDeleted: { $ne: true } };
+    const queryFilter: any = {
+      isDeleted: { $ne: true },
+      role: { $ne: ROLES.ADMIN },
+      email: { $ne: 'admin@gmail.com' },
+    };
 
     if (params.search && params.search.trim()) {
       const regex = new RegExp(params.search.trim(), 'i');
@@ -376,7 +380,11 @@ export class UserService {
     role?: string;
     status?: string;
   }): Promise<string> {
-    const queryFilter: any = { isDeleted: { $ne: true } };
+    const queryFilter: any = {
+      isDeleted: { $ne: true },
+      role: { $ne: ROLES.ADMIN },
+      email: { $ne: 'admin@gmail.com' },
+    };
 
     if (params.search && params.search.trim()) {
       const regex = new RegExp(params.search.trim(), 'i');
