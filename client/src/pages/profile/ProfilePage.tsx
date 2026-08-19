@@ -45,7 +45,7 @@ export const ProfilePage: React.FC = () => {
   ] as const;
 
   return (
-    <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+    <div className="space-y-6 pb-20 w-full max-w-full lg:max-w-6xl mx-auto">
       <h1 className="sr-only">Relationship Profile</h1>
 
       {/* 1. Instagram-Style Profile Header */}
