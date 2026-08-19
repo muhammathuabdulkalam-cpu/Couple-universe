@@ -88,7 +88,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       default:
         return (
           <span className="px-2.5 py-0.5 rounded-full bg-slate-800 border border-white/10 text-slate-300 text-[10px] font-bold">
-            {role}
+            {role === 'INVITED_USER' ? 'MEMBER' : role}
           </span>
         );
     }

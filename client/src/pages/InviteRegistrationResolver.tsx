@@ -225,7 +225,9 @@ export const InviteRegistrationResolver: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>Your Assigned Role</span>
             </span>
-            <span className="font-extrabold text-emerald-300">{targetRole}</span>
+            <span className="font-extrabold text-emerald-300">
+              {targetRole === 'SUPER_OWNER' ? 'Super Owner' : targetRole === 'CO_OWNER' ? 'Co-Owner' : 'Space Member'}
+            </span>
           </div>
         </div>
 

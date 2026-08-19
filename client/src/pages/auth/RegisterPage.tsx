@@ -118,7 +118,7 @@ export const RegisterPage: React.FC = () => {
                 <Key className="w-4 h-4 shrink-0 mt-0.5 text-purple-400" />
                 <div>
                   <strong className="block text-purple-200">Invited to {pendingInvite.relationshipName}</strong>
-                  Joining as <span className="font-bold text-white">{pendingInvite.targetRole}</span>
+                  Joining as <span className="font-bold text-white">{pendingInvite.targetRole === 'SUPER_OWNER' ? 'Super Owner' : pendingInvite.targetRole === 'CO_OWNER' ? 'Co-Owner' : 'Space Member'}</span>
                 </div>
               </div>
             ) : (
