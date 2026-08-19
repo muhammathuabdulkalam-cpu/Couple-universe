@@ -150,16 +150,13 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               )}
             </button>
 
-            {/* Top-Right Micro Stationary Live Audio Equalizer Spectrum Bubble Badge */}
+            {/* Top-Right Glowing Animated Music Note Bubble Badge while Playing */}
             {isPlaying && (
               <div
-                className="absolute -top-1 -right-1 z-20 w-6 h-4.5 rounded-full bg-slate-950/95 backdrop-blur-md border border-amrin-glow/70 shadow-md shadow-rose-500/50 flex items-end justify-center gap-[2px] pb-[2px] pointer-events-none overflow-hidden"
-                title="Audio Equalizer Active"
+                className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-afzal via-rose-500 to-amrin border-2 border-obsidian-950 shadow-lg shadow-rose-500/60 flex items-center justify-center pointer-events-none animate-bounce"
+                title="Playing Shared Music"
               >
-                <span className="w-[2px] bg-rose-400 rounded-full animate-eq-bar-1 shrink-0" />
-                <span className="w-[2px] bg-pink-400 rounded-full animate-eq-bar-2 shrink-0" />
-                <span className="w-[2px] bg-amber-300 rounded-full animate-eq-bar-3 shrink-0" />
-                <span className="w-[2px] bg-cyan-400 rounded-full animate-eq-bar-4 shrink-0" />
+                <Music className="w-2.5 h-2.5 text-white animate-pulse" />
               </div>
             )}
           </div>
