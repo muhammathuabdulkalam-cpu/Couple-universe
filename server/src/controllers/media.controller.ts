@@ -359,21 +359,35 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
     filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] };
   }
 
-  let total = await Media.countDocuments(filter);
+  let total = 0;
+  let mediaList: any[] = [];
 
-  // Auto-sync Cloudinary gallery assets if DB has 0 items or if sync=true is requested
-  if (total === 0 || req.query.sync === 'true') {
-    const syncedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
-    if (syncedCount > 0 || total === 0) {
-      total = await Media.countDocuments(filter);
+  try {
+    total = await Media.countDocuments(filter);
+
+    // Auto-sync Cloudinary gallery assets if DB has 0 items or if sync=true is requested
+    if (total === 0 || req.query.sync === 'true') {
+      const syncedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
+      if (syncedCount > 0 || total === 0) {
+        total = await Media.countDocuments(filter);
+      }
     }
-  }
 
-  const mediaList = await Media.find(filter)
-    .populate('owner', 'name email avatar role')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+    mediaList = await Media.find(filter)
+      .populate('owner', 'name email avatar role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+  } catch (err: any) {
+    // Fail-safe fallback query: return all non-deleted gallery assets
+    const fallbackFilter = { isDeleted: false, tags: { $ne: 'profile' } };
+    total = await Media.countDocuments(fallbackFilter);
+    mediaList = await Media.find(fallbackFilter)
+      .populate('owner', 'name email avatar role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+  }
 
   return ApiResponse.success(res, 'Media retrieved successfully', mediaList, HTTP_STATUS.OK, {
     page,

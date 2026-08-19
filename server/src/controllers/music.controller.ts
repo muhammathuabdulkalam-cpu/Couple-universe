@@ -292,7 +292,6 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
     .select('-audioData')
     .populate('addedBy', 'name avatar')
     .sort({ _id: -1 })
-    .allowDiskUse(true)
     .limit(20);
 
   const localNormalized: NormalizedSong[] = localSongs.map((s: any) => ({
@@ -443,7 +442,6 @@ export const getUploadedSongs = catchAsync(async (req: Request, res: Response) =
       .select('-audioData')
       .populate('addedBy', 'name avatar role')
       .sort({ _id: -1 })
-      .allowDiskUse(true)
       .skip(skip)
       .limit(limit)
       .lean(),
@@ -459,7 +457,6 @@ export const getUploadedSongs = catchAsync(async (req: Request, res: Response) =
           .select('-audioData')
           .populate('addedBy', 'name avatar role')
           .sort({ _id: -1 })
-          .allowDiskUse(true)
           .skip(skip)
           .limit(limit)
           .lean(),
