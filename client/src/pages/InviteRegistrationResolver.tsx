@@ -220,15 +220,17 @@ export const InviteRegistrationResolver: React.FC = () => {
             <span className="font-extrabold text-purple-300">{relationshipType}</span>
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Your Assigned Role</span>
-            </span>
-            <span className="font-extrabold text-emerald-300">
-              {targetRole === 'SUPER_OWNER' ? 'Super Owner' : targetRole === 'CO_OWNER' ? 'Co-Owner' : 'Space Member'}
-            </span>
-          </div>
+          {targetRole && targetRole !== 'INVITED_USER' && (
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Your Assigned Role</span>
+              </span>
+              <span className="font-extrabold text-emerald-300">
+                {targetRole === 'SUPER_OWNER' ? 'Super Owner' : targetRole === 'CO_OWNER' ? 'Co-Owner' : targetRole}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* FEATURE ACCESS PREVIEW */}

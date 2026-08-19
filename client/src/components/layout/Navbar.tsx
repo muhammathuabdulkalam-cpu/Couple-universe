@@ -249,9 +249,11 @@ export const Navbar: React.FC = () => {
                   </div>
                   <div className="hidden lg:block text-left text-xs pr-1">
                     <div className="font-semibold text-white leading-tight">{user.name}</div>
-                    <div className="text-[10px] text-slate-400 capitalize">
-                      {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : user.role === 'ADMIN' ? 'System Admin' : 'Space Member'}
-                    </div>
+                    {user.role !== 'INVITED_USER' && (
+                      <div className="text-[10px] text-slate-400 capitalize">
+                        {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : 'System Admin'}
+                      </div>
+                    )}
                   </div>
                 </button>
 
@@ -278,9 +280,11 @@ export const Navbar: React.FC = () => {
                         <div className="min-w-0">
                           <div className="text-xs font-bold text-white truncate">{user.name}</div>
                           <div className="text-[11px] text-slate-400 truncate">{user.email}</div>
-                          <Badge variant={user.role === 'SUPER_OWNER' ? 'green' : user.role === 'CO_OWNER' ? 'violet' : 'cyan'} className="mt-1">
-                            {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : user.role === 'ADMIN' ? 'System Admin' : 'Space Member'}
-                          </Badge>
+                          {user.role !== 'INVITED_USER' && (
+                            <Badge variant={user.role === 'SUPER_OWNER' ? 'green' : 'violet'} className="mt-1">
+                              {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : 'System Admin'}
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
