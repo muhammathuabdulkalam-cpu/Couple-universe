@@ -125,7 +125,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
             } ${
               isPlaying
-                ? 'border-amrin-glow ring-2 ring-amrin/40 shadow-amrin/30'
+                ? 'border-amrin-glow ring-2 ring-amrin-glow/40 shadow-amrin-glow/30'
                 : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
             }`}
             aria-label="Open Activity Bar"
@@ -135,7 +135,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               <img
                 src={getNormalizedCoverUrl(currentTrack.coverUrl)}
                 alt={currentTrack.title}
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-cover rounded-full animate-[spin_8s_linear_infinite]"
                 onError={(e) => {
                   if (!e.currentTarget.src.includes('unsplash.com')) {
                     e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
@@ -148,9 +148,25 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               <Sparkles className="w-5 h-5 text-amber-300" />
             )}
 
+            {/* Vinyl Center Hole Overlay for Playing Audio */}
+            {isPlaying && currentTrack && (
+              <div className="absolute inset-0 m-auto w-3.5 h-3.5 rounded-full bg-obsidian-950 border border-white/40 shadow-inner z-10 pointer-events-none flex items-center justify-center">
+                <div className="w-1 h-1 rounded-full bg-amrin-glow" />
+              </div>
+            )}
+
+            {/* Live Audio Equalizer Wave Bars */}
+            {isPlaying && (
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center gap-0.5 z-20 pointer-events-none">
+                <span className="w-0.5 h-3 bg-amrin-glow rounded-full animate-bounce [animation-delay:0.1s]" />
+                <span className="w-0.5 h-4 bg-rose-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                <span className="w-0.5 h-2.5 bg-afzal-glow rounded-full animate-bounce [animation-delay:0.2s]" />
+              </div>
+            )}
+
             {/* Floating Bouncing Music Badge when playing */}
             {isPlaying && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-10">
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-afzal to-amrin border border-obsidian-950 flex items-center justify-center shadow-md animate-bounce z-30">
                 <Music className="w-2 h-2 text-white" />
               </span>
             )}
