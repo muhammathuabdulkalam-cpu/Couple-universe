@@ -29,7 +29,10 @@ axiosClient.interceptors.request.use(
     const userToken = accessTokenInMemory || localStorage.getItem('access_token');
     const isAdminPath = (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) || config.url?.startsWith('/admin');
 
-    if (isAdminPath && adminToken) {
+    // Do not attach authorization header for login requests
+    if (config.url?.includes('/login')) {
+      delete config.headers.Authorization;
+    } else if (isAdminPath && adminToken) {
       config.headers.Authorization = `Bearer ${adminToken}`;
     } else if (userToken) {
       config.headers.Authorization = `Bearer ${userToken}`;
@@ -65,7 +68,12 @@ axiosClient.interceptors.response.use(
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest = error.config as any;
 
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login') && !originalRequest.url?.includes('/auth/refresh-token')) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/login') &&
+      !originalRequest.url?.includes('/refresh-token')
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({

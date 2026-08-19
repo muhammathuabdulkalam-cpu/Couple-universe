@@ -4,6 +4,7 @@ import { HTTP_STATUS, PLATFORM_CONSTANTS, ROLES } from '../constants';
 import { Activity } from '../models/activity.model';
 import { Album } from '../models/album.model';
 import { IMedia, Media } from '../models/media.model';
+import { User } from '../models/user.model';
 import { CloudinaryService } from '../services/cloudinary.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
@@ -192,7 +193,16 @@ export async function syncCloudinaryGalleryToDb(ownerId?: mongoose.Types.ObjectI
     const assets = await CloudinaryService.listGalleryAssets('afrin-universe/gallery');
     if (!assets || assets.length === 0) return 0;
 
-    const defaultOwnerId = ownerId || new mongoose.Types.ObjectId('6a6e18200bfba68352f64b47');
+    let activeOwnerId = ownerId;
+    if (!activeOwnerId) {
+      const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: false });
+      if (superOwner) activeOwnerId = superOwner._id;
+      else {
+        const adminUser = await User.findOne({ role: ROLES.ADMIN, isDeleted: false });
+        if (adminUser) activeOwnerId = adminUser._id;
+      }
+    }
+    const defaultOwnerId = activeOwnerId || new mongoose.Types.ObjectId();
     const existingMedia = await Media.find().lean();
     let addedCount = 0;
 
@@ -341,22 +351,12 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Role & relationship visibility isolation (Gallery & Vault)
-  if (user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER) {
-    if (user.relationshipId) {
-      filter.$or = [
-        { owner: user._id },
-        { relationshipId: user.relationshipId },
-        { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] } },
-      ];
-    } else {
-      filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] };
-    }
+  if (user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER || user.role === ROLES.ADMIN) {
+    // Platform Owners & Admins see all gallery media
+    filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] };
   } else {
-    // INVITED_USER: Isolated gallery showing only their uploaded media or relationship media
-    filter.$or = [
-      { owner: user._id },
-      ...(user.relationshipId ? [{ relationshipId: user.relationshipId }] : []),
-    ];
+    // INVITED_USER & Members see all shared couple & public gallery media
+    filter.visibility = { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] };
   }
 
   let total = await Media.countDocuments(filter);

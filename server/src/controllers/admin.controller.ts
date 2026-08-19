@@ -118,9 +118,8 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
-  // Update last login timestamp
-  user.lastLoginAt = new Date();
-  await user.save({ validateBeforeSave: false });
+  // Update last login timestamp without re-running pre-save hooks
+  await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
 
   // Generate Session & Access Token
   const userAgent = req.headers['user-agent'] || 'Unknown Browser';
