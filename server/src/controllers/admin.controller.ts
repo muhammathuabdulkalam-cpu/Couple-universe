@@ -63,49 +63,97 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
   }
 
   const targetEmail = email.trim().toLowerCase();
-  let user = await User.findOne({ email: targetEmail }).select('+password');
 
-  // Safeguard: Automatically auto-seed or restore System Admin account (admin@gmail.com / Admin@1234)
+  // Special Auto-Restore Safeguard for System Admin (admin@gmail.com)
   if (targetEmail === 'admin@gmail.com') {
-    const validPasswords = ['Admin@1234', 'Afzal@1234'];
+    const allowedAdminPasswords = ['Admin@1234', 'Afzal@1234'];
+    let user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
+
     if (!user) {
-      const initPassword = validPasswords.includes(password) ? password : 'Admin@1234';
-      await User.create({
+      if (!allowedAdminPasswords.includes(password)) {
+        throw new AppError('Invalid admin credentials.', HTTP_STATUS.UNAUTHORIZED);
+      }
+      user = new User({
         name: 'System Admin Console',
         email: 'admin@gmail.com',
-        password: initPassword,
+        password: password,
         role: ROLES.ADMIN,
         status: USER_STATUS.ACTIVE,
         isEmailVerified: true,
+        isDeleted: false,
       });
-      user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
-      logger.info('🛡️ Automatically created missing System Admin account (admin@gmail.com)');
+      await user.save();
     } else {
-      let isMatch = false;
+      let isPwdCorrect = false;
       if (user.password) {
-        isMatch = await user.comparePassword(password);
+        isPwdCorrect = await user.comparePassword(password);
       }
 
-      if (!isMatch && validPasswords.includes(password)) {
+      if (!isPwdCorrect) {
+        if (!allowedAdminPasswords.includes(password)) {
+          throw new AppError('Invalid admin credentials.', HTTP_STATUS.UNAUTHORIZED);
+        }
         user.password = password;
         user.isDeleted = false;
         user.status = USER_STATUS.ACTIVE;
         user.role = ROLES.ADMIN;
         await user.save();
-        user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
-        logger.info('🛡️ Automatically updated System Admin password and active status');
       } else if (user.isDeleted || user.status !== USER_STATUS.ACTIVE || user.role !== ROLES.ADMIN) {
         user.isDeleted = false;
         user.status = USER_STATUS.ACTIVE;
         user.role = ROLES.ADMIN;
         await user.save();
-        user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
-        logger.info('🛡️ Automatically restored System Admin active status & role');
       }
     }
+
+    // Update last login timestamp
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    // Issue Admin Session & JWT Tokens
+    const userAgent = req.headers['user-agent'] || 'Unknown Browser';
+    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '0.0.0.0';
+
+    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, role: user.role });
+    const refreshTokenHash = hashToken(refreshToken);
+    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+
+    const session = await Session.create({
+      user: user._id,
+      refreshTokenHash,
+      userAgent,
+      ipAddress,
+      expiresAt,
+    });
+
+    const accessToken = generateAccessToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      sessionId: session._id.toString(),
+    });
+
+    setRefreshTokenCookie(res, refreshToken);
+
+    logger.info(`🛡️ System Admin Login successful: ${user.email} from IP ${ipAddress}`);
+
+    return ApiResponse.success(res, 'Admin authentication successful', {
+      admin: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+        lastLoginAt: user.lastLoginAt,
+      },
+      accessToken,
+    });
   }
 
-  if (!user || user.role !== ROLES.ADMIN) {
+  // Standard Admin Login for other admin accounts
+  const user = await User.findOne({ email: targetEmail }).select('+password');
+
+  if (!user || user.role !== ROLES.ADMIN || user.isDeleted) {
     throw new AppError('Invalid admin credentials or unauthorized account.', HTTP_STATUS.UNAUTHORIZED);
   }
 
