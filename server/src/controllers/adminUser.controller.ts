@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
-import { USER_STATUS } from '../constants';
+import { HTTP_STATUS, USER_STATUS } from '../constants';
 import { Invite } from '../models/invite.model';
 import { Relationship } from '../models/relationship.model';
+import { User } from '../models/user.model';
 import { InviteService } from '../services/invite.service';
 import { RelationshipService, purgeUserAndAllData } from '../services/relationship.service';
 import { UserService } from '../services/user.service';
 import { ApiResponse } from '../utils/ApiResponse';
+import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
 
 /** GET /api/v1/admin/users */

@@ -10,12 +10,52 @@ import { socketService } from './services/socket.service';
 import { syncCloudinaryAudioToDb } from './controllers/music.controller';
 import { syncCloudinaryGalleryToDb } from './controllers/media.controller';
 
+import { User } from './models/user.model';
+import { ROLES, USER_STATUS } from './constants';
+
 let server: any;
+
+async function ensureSystemAdminUserExists(): Promise<void> {
+  try {
+    let admin = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
+    if (!admin) {
+      admin = new User({
+        name: 'System Admin Console',
+        email: 'admin@gmail.com',
+        password: 'Admin@1234',
+        role: ROLES.ADMIN,
+        status: USER_STATUS.ACTIVE,
+        isEmailVerified: true,
+        isDeleted: false,
+      });
+      await admin.save();
+      logger.info('🛡️ Auto-seeded System Admin account (admin@gmail.com / Admin@1234)');
+    } else {
+      let pwdValid = false;
+      if (admin.password) {
+        pwdValid = await admin.comparePassword('Admin@1234');
+      }
+      if (!pwdValid || admin.isDeleted || admin.status !== USER_STATUS.ACTIVE || admin.role !== ROLES.ADMIN) {
+        admin.password = 'Admin@1234';
+        admin.isDeleted = false;
+        admin.status = USER_STATUS.ACTIVE;
+        admin.role = ROLES.ADMIN;
+        await admin.save();
+        logger.info('🛡️ Auto-restored System Admin account active status & credentials');
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`⚠️ System Admin auto-seed warning: ${err.message}`);
+  }
+}
 
 const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB Database
     await connectDatabase();
+
+    // Ensure System Admin Account is Active & Restored
+    await ensureSystemAdminUserExists();
 
     // Auto-sync Cloudinary audio & gallery libraries asynchronously on startup
     syncCloudinaryAudioToDb().catch((syncErr) => {

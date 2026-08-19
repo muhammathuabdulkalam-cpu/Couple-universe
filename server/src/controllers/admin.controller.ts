@@ -162,50 +162,6 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-  // Update last login
-  user.lastLoginAt = new Date();
-  await user.save({ validateBeforeSave: false });
-
-  // Generate tokens
-  const userAgent = req.headers['user-agent'] || 'Unknown Browser';
-  const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '0.0.0.0';
-
-  const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, role: user.role });
-  const refreshTokenHash = hashToken(refreshToken);
-  const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
-
-  const session = await Session.create({
-    user: user._id,
-    refreshTokenHash,
-    userAgent,
-    ipAddress,
-    expiresAt,
-  });
-
-  const accessToken = generateAccessToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role,
-    sessionId: session._id.toString(),
-  });
-
-  setRefreshTokenCookie(res, refreshToken);
-
-  logger.info(`🛡️ Admin Login successful: ${user.email} from IP ${ipAddress}`);
-
-  return ApiResponse.success(res, 'Admin authentication successful', {
-    admin: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-      lastLoginAt: user.lastLoginAt,
-    },
-    accessToken,
-  });
-});
-
 /**
  * 2. Unified Admin Dashboard Payload
  * Displays 6 Summary Cards: Total Users, Active Users, Suspended Users, Deleted Users, Relationships, Active Invites
