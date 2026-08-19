@@ -12,6 +12,7 @@ import {
   Zap,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AnniversaryCountdownWidget } from '../dashboard/AnniversaryCountdownWidget.js';
 import { BirthdayCountdown } from '../dashboard/BirthdayCountdown.js';
 import { TodaysMemoryWidget } from '../dashboard/TodaysMemoryWidget.js';
@@ -30,6 +31,8 @@ interface RightContextPanelProps {
 }
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
+  const location = useLocation();
+  const isChatPage = location.pathname.startsWith('/chat');
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -91,7 +94,11 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   return (
     <>
       {/* Gradient-Border Circular Floating Trigger Buttons on Mobile Viewports */}
-      <div className="fixed right-3 bottom-20 z-40 md:hidden flex flex-col gap-3 items-center select-none">
+      <div
+        className={`fixed right-3 z-40 md:hidden flex flex-col gap-3 items-center select-none transition-all duration-300 ${
+          isChatPage ? 'top-16' : 'bottom-20'
+        }`}
+      >
         {/* 1. Mobile Apps Launcher Grid Button */}
         <button
           type="button"
