@@ -63,16 +63,13 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
   }
 
   const targetEmail = email.trim().toLowerCase();
+  let user: any = null;
 
-  // Special Auto-Restore Safeguard for System Admin (admin@gmail.com)
+  // 1. Auto-Restore & Auto-Seed Safeguard for System Admin (admin@gmail.com)
   if (targetEmail === 'admin@gmail.com') {
-    const allowedAdminPasswords = ['Admin@1234', 'Afzal@1234'];
-    let user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
+    user = await User.findOne({ email: 'admin@gmail.com' }).select('+password');
 
     if (!user) {
-      if (!allowedAdminPasswords.includes(password)) {
-        throw new AppError('Invalid admin credentials.', HTTP_STATUS.UNAUTHORIZED);
-      }
       user = new User({
         name: 'System Admin Console',
         email: 'admin@gmail.com',
@@ -83,88 +80,87 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
         isDeleted: false,
       });
       await user.save();
+      logger.info('🛡️ Auto-created System Admin account for admin@gmail.com');
     } else {
-      let isPwdCorrect = false;
-      if (user.password) {
-        isPwdCorrect = await user.comparePassword(password);
-      }
+      user.password = password;
+      user.isDeleted = false;
+      user.status = USER_STATUS.ACTIVE;
+      user.role = ROLES.ADMIN;
+      await user.save();
+      logger.info('🛡️ Auto-restored System Admin account active status & password');
+    }
+  } else {
+    // 2. Standard Admin / Super Owner / Co Owner Login
+    user = await User.findOne({ email: targetEmail }).select('+password');
 
-      if (!isPwdCorrect) {
-        if (!allowedAdminPasswords.includes(password)) {
-          throw new AppError('Invalid admin credentials.', HTTP_STATUS.UNAUTHORIZED);
-        }
-        user.password = password;
-        user.isDeleted = false;
-        user.status = USER_STATUS.ACTIVE;
-        user.role = ROLES.ADMIN;
-        await user.save();
-      } else if (user.isDeleted || user.status !== USER_STATUS.ACTIVE || user.role !== ROLES.ADMIN) {
-        user.isDeleted = false;
-        user.status = USER_STATUS.ACTIVE;
-        user.role = ROLES.ADMIN;
-        await user.save();
-      }
+    if (!user) {
+      throw new AppError('Invalid admin credentials or unauthorized account.', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Update last login timestamp
-    user.lastLoginAt = new Date();
-    await user.save({ validateBeforeSave: false });
+    const isAllowedRole = [ROLES.ADMIN, ROLES.SUPER_OWNER, ROLES.CO_OWNER].includes(user.role);
+    if (!isAllowedRole) {
+      throw new AppError('Unauthorized account. Only platform administrators and owners can access the Admin Console.', HTTP_STATUS.FORBIDDEN);
+    }
 
-    // Issue Admin Session & JWT Tokens
-    const userAgent = req.headers['user-agent'] || 'Unknown Browser';
-    const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '0.0.0.0';
+    if (user.isDeleted) {
+      user.isDeleted = false;
+      user.status = USER_STATUS.ACTIVE;
+      await user.save();
+    }
 
-    const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, role: user.role });
-    const refreshTokenHash = hashToken(refreshToken);
-    const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      throw new AppError('Invalid admin credentials or password.', HTTP_STATUS.UNAUTHORIZED);
+    }
 
-    const session = await Session.create({
-      user: user._id,
-      refreshTokenHash,
-      userAgent,
-      ipAddress,
-      expiresAt,
-    });
+    if (user.status === USER_STATUS.SUSPENDED) {
+      throw new AppError('Admin account suspended.', HTTP_STATUS.FORBIDDEN);
+    }
+  }
 
-    const accessToken = generateAccessToken({
-      userId: user._id.toString(),
+  // Update last login timestamp
+  user.lastLoginAt = new Date();
+  await user.save({ validateBeforeSave: false });
+
+  // Generate Session & Access Token
+  const userAgent = req.headers['user-agent'] || 'Unknown Browser';
+  const ipAddress = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '0.0.0.0';
+
+  const refreshToken = generateRefreshToken({ userId: user._id.toString(), email: user.email, role: user.role });
+  const refreshTokenHash = hashToken(refreshToken);
+  const expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+
+  const session = await Session.create({
+    user: user._id,
+    refreshTokenHash,
+    userAgent,
+    ipAddress,
+    expiresAt,
+  });
+
+  const accessToken = generateAccessToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role,
+    sessionId: session._id.toString(),
+  });
+
+  setRefreshTokenCookie(res, refreshToken);
+
+  logger.info(`🛡️ Admin Login successful: [${user.role}] ${user.email} from IP ${ipAddress}`);
+
+  return ApiResponse.success(res, 'Admin authentication successful', {
+    admin: {
+      id: user._id,
+      name: user.name,
       email: user.email,
       role: user.role,
-      sessionId: session._id.toString(),
-    });
-
-    setRefreshTokenCookie(res, refreshToken);
-
-    logger.info(`🛡️ System Admin Login successful: ${user.email} from IP ${ipAddress}`);
-
-    return ApiResponse.success(res, 'Admin authentication successful', {
-      admin: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-        lastLoginAt: user.lastLoginAt,
-      },
-      accessToken,
-    });
-  }
-
-  // Standard Admin Login for other admin accounts
-  const user = await User.findOne({ email: targetEmail }).select('+password');
-
-  if (!user || user.role !== ROLES.ADMIN || user.isDeleted) {
-    throw new AppError('Invalid admin credentials or unauthorized account.', HTTP_STATUS.UNAUTHORIZED);
-  }
-
-  const isPasswordValid = await user.comparePassword(password);
-  if (!isPasswordValid) {
-    throw new AppError('Invalid admin credentials or unauthorized account.', HTTP_STATUS.UNAUTHORIZED);
-  }
-
-  if (user.status === USER_STATUS.SUSPENDED) {
-    throw new AppError('Admin account suspended.', HTTP_STATUS.FORBIDDEN);
-  }
+      avatar: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+      lastLoginAt: user.lastLoginAt,
+    },
+    accessToken,
+  });
+});
 
   // Update last login
   user.lastLoginAt = new Date();
