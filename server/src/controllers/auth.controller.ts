@@ -235,18 +235,18 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 export const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email: email.toLowerCase(), isDeleted: { $ne: true } }).select('+password');
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
   if (!user || user.isDeleted || user.status === USER_STATUS.DELETED) {
-    throw new AppError('Invalid email or password credentials.', HTTP_STATUS.UNAUTHORIZED);
+    throw new AppError('Invalid email or password. If your account was removed, please contact the Super Owner.', HTTP_STATUS.UNAUTHORIZED);
   }
 
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
-    throw new AppError('Invalid email or password credentials.', HTTP_STATUS.UNAUTHORIZED);
+    throw new AppError('Invalid email or password. Please check your credentials.', HTTP_STATUS.UNAUTHORIZED);
   }
 
   if (user.status === USER_STATUS.SUSPENDED) {
-    throw new AppError('Your account has been suspended. Please contact the Super Owner.', HTTP_STATUS.FORBIDDEN);
+    throw new AppError('Your account has been suspended by the Super Owner.', HTTP_STATUS.FORBIDDEN);
   }
 
   // Update last login timestamp

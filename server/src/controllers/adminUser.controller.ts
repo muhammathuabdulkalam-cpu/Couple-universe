@@ -52,10 +52,14 @@ export const activateUser = catchAsync(async (req: Request, res: Response) => {
 
 /** DELETE /api/v1/admin/users/:id */
 export const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
-  await purgeUserAndAllData(req.params.id).catch(() => {});
-  await UserService.softDeleteUser(req.params.id, req.user!._id.toString()).catch(() => {});
-  await Relationship.findByIdAndDelete(req.params.id).catch(() => {});
-  await Invite.deleteMany({ $or: [{ relationship: req.params.id }, { code: req.params.id }] }).catch(() => {});
+  const targetId = req.params.id;
+  await purgeUserAndAllData(targetId).catch(() => {});
+  await UserService.softDeleteUser(targetId, req.user!._id.toString()).catch(() => {});
+  await User.findByIdAndDelete(targetId).catch(() => {});
+  await Relationship.findByIdAndDelete(targetId).catch(() => {});
+  await Invite.deleteMany({ $or: [{ relationship: targetId }, { code: targetId }] }).catch(() => {});
+  const { InvitedUser } = await import('../models/invitedUser.model');
+  await InvitedUser.deleteMany({ $or: [{ _id: targetId }, { tokenCode: targetId }, { relationshipId: targetId }] }).catch(() => {});
   return ApiResponse.success(res, 'User and all data deleted permanently from database');
 });
 
@@ -84,8 +88,11 @@ export const bulkAction = catchAsync(async (req: Request, res: Response) => {
         await purgeUserAndAllData(id).catch(() => {});
         await UserService.softDeleteUser(id, req.user!._id.toString()).catch(() => {});
         await RelationshipService.deleteRelationship(id, req.user!._id.toString()).catch(() => {});
+        await User.findByIdAndDelete(id).catch(() => {});
         await Relationship.findByIdAndDelete(id).catch(() => {});
         await Invite.deleteMany({ $or: [{ relationship: id }, { code: id }] }).catch(() => {});
+        const { InvitedUser } = await import('../models/invitedUser.model');
+        await InvitedUser.deleteMany({ $or: [{ _id: id }, { tokenCode: id }, { relationshipId: id }] }).catch(() => {});
       } else if (action === 'restore') {
         await UserService.restoreUser(id, req.user!._id.toString()).catch(() => {});
       }

@@ -19,10 +19,13 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     if (!email || !password) {
+      setErrorMessage('Please enter your email address and password.');
       addToast('Validation Error', 'Please enter your email and password.', 'warning');
       return;
     }
@@ -40,7 +43,9 @@ export const LoginPage: React.FC = () => {
       addToast('Welcome Back!', `Logged in successfully as ${user.name}`, 'success');
       navigate('/');
     } catch (err: any) {
-      addToast('Authentication Failed', err.message || 'Invalid email or password.', 'error');
+      const msg = err?.response?.data?.message || err?.message || 'Invalid email or password credentials.';
+      setErrorMessage(msg);
+      addToast('Authentication Failed', msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -64,6 +69,17 @@ export const LoginPage: React.FC = () => {
             <h2 className="text-2xl font-extrabold text-white tracking-tight">Sign In to Universe</h2>
             <p className="text-xs text-slate-400">Enter your credentials to access your private vault</p>
           </div>
+
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold shadow-lg flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-ping" />
+              <span>{errorMessage}</span>
+            </motion.div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

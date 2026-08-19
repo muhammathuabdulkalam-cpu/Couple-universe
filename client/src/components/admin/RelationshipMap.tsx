@@ -243,7 +243,11 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
 
   const standaloneUsers = users.filter((u) => {
     const uid = getUserId(u.id) || getUserId((u as any)._id);
-    return !mappedUserIds.has(uid);
+    const isSystemAdmin =
+      u.role === 'ADMIN' ||
+      u.email === 'admin@gmail.com' ||
+      (u.name && u.name.toLowerCase().includes('system admin'));
+    return !mappedUserIds.has(uid) && !isSystemAdmin;
   });
 
   // Helper to get friend's clean display name (stripping super owner prefixes)
@@ -1311,12 +1315,23 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h5 className="font-bold text-xs text-white truncate">{user.name}</h5>
                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${getRoleBadgeClass(user.role)}`}>
                         {user.role}
                       </span>
                     </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFriend({ id: user.id, name: user.name, relationshipId: (user as any).relationshipId || user.id });
+                      }}
+                      title="Permanently Delete Account & Revoke Credentials"
+                      className="p-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 transition shrink-0 ml-1"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </motion.div>
                 ))}
               </div>
