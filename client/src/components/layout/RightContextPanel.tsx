@@ -18,7 +18,6 @@ import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
-import { useNavigate } from 'react-router-dom';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
@@ -29,7 +28,6 @@ interface RightContextPanelProps {
 }
 
 export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, onToggle }) => {
-  const navigate = useNavigate();
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);

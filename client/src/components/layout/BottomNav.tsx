@@ -4,7 +4,6 @@ import {
   Heart,
   Home,
   Image,
-  Menu,
   MessageSquare,
   Plus,
   Sparkles,

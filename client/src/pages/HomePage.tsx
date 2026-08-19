@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import React from 'react';
 import { axiosClient } from '../api/axiosClient.js';
