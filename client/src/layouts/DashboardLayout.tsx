@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { InAppChatNotificationBanner } from '../components/chat/InAppChatNotificationBanner.js';
 import { BottomNav } from '../components/layout/BottomNav.js';
 import { Breadcrumb } from '../components/layout/Breadcrumb.js';
@@ -19,6 +20,9 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
+  const location = useLocation();
+  const isChatRoute = location.pathname.startsWith('/chat');
+
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const { accessToken } = useAuthStore();
@@ -70,12 +74,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
         {/* Center Main Content Area */}
         <main
-          className={`flex-1 min-w-0 h-full scroll-smooth w-full max-w-full overflow-x-hidden ${fullViewport
-            ? 'p-0 m-0 border-0 rounded-none overflow-hidden flex flex-col'
-            : 'p-3 sm:p-6 lg:p-8 pb-20 md:pb-8 overflow-y-auto overflow-x-hidden'
-            }`}
+          className={`flex-1 min-w-0 h-full scroll-smooth w-full max-w-full flex flex-col ${
+            fullViewport
+              ? 'p-0 m-0 border-0 rounded-none overflow-hidden'
+              : isChatRoute
+              ? 'p-0 pb-0 m-0 border-0 rounded-none lg:p-6 lg:pb-6 overflow-hidden'
+              : 'p-3 sm:p-4 lg:p-6 pb-20 md:pb-6 overflow-y-auto overflow-x-hidden'
+          }`}
         >
-          {!fullViewport && <Breadcrumb />}
+          {!fullViewport && !isChatRoute && <Breadcrumb />}
           {children}
         </main>
 

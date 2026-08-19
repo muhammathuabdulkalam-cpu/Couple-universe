@@ -71,8 +71,7 @@ export const ChatPage: React.FC = () => {
   }, [accessToken, addMessage, updateMessageStatus, updateMessageReaction, setUserOnline, setTypingUser]);
 
   return (
-    // flex-1 + min-h-0 fills the parent flex column without overflowing
-    <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden">
       <ChatLayout />
       <MediaViewerModal />
     </div>
