@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Plus,
   Sparkles,
+  User,
   X,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
@@ -51,7 +52,7 @@ export const BottomNav: React.FC = () => {
     { label: 'Gallery', path: '/gallery', icon: Image, isAction: false },
     { label: 'Create', path: '#create', icon: Plus, isAction: true },
     { label: 'Chat', path: '/chat', icon: MessageSquare, isAction: false },
-    { label: 'Menu', path: '#menu', icon: Menu, isAction: false, isMenuToggle: true },
+    { label: 'Profile', path: '/profile', icon: User, isAction: false, isProfile: true },
   ];
 
   return (
@@ -78,15 +79,51 @@ export const BottomNav: React.FC = () => {
               );
             }
 
-            if (item.isMenuToggle) {
+            if (item.isProfile) {
+              const isActive = location.pathname === '/profile';
               return (
-                <button
-                  key={idx}
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="relative flex items-center justify-center p-2 text-slate-400 hover:text-white transition-colors"
+                <Link
+                  key="/profile"
+                  to="/profile"
+                  className="relative flex items-center justify-center p-2 transition-colors"
+                  aria-label="User Profile"
                 >
-                  <Icon className="w-6 h-6" />
-                </button>
+                  <motion.div
+                    animate={{ scale: isActive ? 1.15 : 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    className="relative flex items-center justify-center"
+                  >
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name || 'Profile'}
+                        className={`w-6 h-6 rounded-full object-cover transition-all ${
+                          isActive
+                            ? 'ring-2 ring-amrin-glow border border-amrin-glow shadow-md shadow-amrin/40'
+                            : 'border border-slate-600 hover:border-slate-300'
+                        }`}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                          if (fallback) fallback.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <User
+                      className={`w-6 h-6 transition-colors ${
+                        user?.avatar ? 'hidden' : ''
+                      } ${isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'}`}
+                    />
+                  </motion.div>
+
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeBottomNavDot"
+                      className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-amrin-glow shadow-lg shadow-amrin"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </Link>
               );
             }
 
