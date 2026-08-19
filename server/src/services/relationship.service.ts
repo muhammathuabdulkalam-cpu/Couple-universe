@@ -36,6 +36,12 @@ export const purgeUserAndAllData = async (userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(userId)) return;
   const userObjId = new mongoose.Types.ObjectId(userId);
 
+  // Protection: System Admin accounts can NEVER be purged
+  const targetUser = await User.findById(userId);
+  if (targetUser && (targetUser.role === 'ADMIN' || targetUser.email === 'admin@gmail.com')) {
+    return;
+  }
+
   // 1. Permanently delete user document from User collection
   await User.findByIdAndDelete(userId);
 

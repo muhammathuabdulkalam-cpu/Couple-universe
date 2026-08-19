@@ -40,6 +40,10 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
 
 /** PATCH /api/v1/admin/users/:id/suspend */
 export const suspendUser = catchAsync(async (req: Request, res: Response) => {
+  const targetUser = await User.findById(req.params.id);
+  if (targetUser && (targetUser.role === 'ADMIN' || targetUser.email === 'admin@gmail.com')) {
+    throw new AppError('The System Admin account is immutable and cannot be suspended.', HTTP_STATUS.FORBIDDEN);
+  }
   const user = await UserService.setStatus(req.params.id, USER_STATUS.SUSPENDED, req.user!._id.toString());
   return ApiResponse.success(res, 'User suspended successfully', user);
 });
@@ -53,6 +57,10 @@ export const activateUser = catchAsync(async (req: Request, res: Response) => {
 /** DELETE /api/v1/admin/users/:id */
 export const softDeleteUser = catchAsync(async (req: Request, res: Response) => {
   const targetId = req.params.id;
+  const targetUser = await User.findById(targetId);
+  if (targetUser && (targetUser.role === 'ADMIN' || targetUser.email === 'admin@gmail.com')) {
+    throw new AppError('The System Admin account is immutable and cannot be deleted.', HTTP_STATUS.FORBIDDEN);
+  }
   await purgeUserAndAllData(targetId).catch(() => {});
   await UserService.softDeleteUser(targetId, req.user!._id.toString()).catch(() => {});
   await User.findByIdAndDelete(targetId).catch(() => {});

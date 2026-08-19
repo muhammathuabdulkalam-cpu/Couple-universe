@@ -345,7 +345,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {usr.status === 'ACTIVE' && onSuspendUser && (
+                        {usr.role !== 'ADMIN' && usr.email !== 'admin@gmail.com' && usr.status === 'ACTIVE' && onSuspendUser && (
                           <button
                             onClick={() => onSuspendUser(usr.id)}
                             title="Suspend"
@@ -354,7 +354,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                             <UserX className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {usr.status !== 'ACTIVE' && onActivateUser && (
+                        {usr.role !== 'ADMIN' && usr.email !== 'admin@gmail.com' && usr.status !== 'ACTIVE' && onActivateUser && (
                           <button
                             onClick={() => onActivateUser(usr.id)}
                             title="Activate"
@@ -372,7 +372,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {onDeleteUser && (
+                        {usr.role !== 'ADMIN' && usr.email !== 'admin@gmail.com' && onDeleteUser && (
                           <button
                             onClick={() => onDeleteUser(usr.id)}
                             title="Delete"
