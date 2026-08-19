@@ -198,14 +198,28 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     .sort({ updatedAt: -1 })
     .lean();
 
-  // 3. For invited users, restrict chat list ONLY to chats involving their inviter/owners or relationship room
+  // 3. For invited users, restrict chat list strictly to 1-on-1 private chats with their creator/owner
   let filteredConvs = conversations;
-  if (currentUser.role !== 'SUPER_OWNER' && currentUser.role !== 'CO_OWNER' && currentUser.role !== 'ADMIN') {
+  if (currentUser.role === 'INVITED_USER') {
+    const { Invite } = await import('../models/invite.model');
+    const invite = await Invite.findOne({ usedBy: currentUser._id }).select('createdBy');
+    let targetInviterId = invite ? invite.createdBy?.toString() : null;
+
+    if (!targetInviterId) {
+      const superOwner = await User.findOne({ role: 'SUPER_OWNER' }).select('_id');
+      if (superOwner) targetInviterId = superOwner._id.toString();
+    }
+
     filteredConvs = conversations.filter((conv) => {
-      if (conv.type === 'RELATIONSHIP') return true;
+      if (conv.type !== 'PRIVATE') return false;
       const otherPart = conv.participants?.find((p: any) => (p._id || p.id)?.toString() !== currentUser._id.toString());
-      // Invited user can chat ONLY with Super Owner or Co-Owner who created them
-      return otherPart && (otherPart.role === 'SUPER_OWNER' || otherPart.role === 'CO_OWNER');
+      if (!otherPart) return false;
+      const otherId = (otherPart._id || otherPart.id)?.toString();
+      return (
+        otherId === targetInviterId ||
+        otherPart.role === 'SUPER_OWNER' ||
+        otherPart.role === 'CO_OWNER'
+      );
     });
   }
 
