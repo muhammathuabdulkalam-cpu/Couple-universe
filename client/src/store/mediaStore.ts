@@ -33,7 +33,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   mediaList: [],
   albumsList: [],
   activeAlbum: null,
-  viewMode: '3d',
+  viewMode: 'grid',
   selectedMedia: null,
   isViewerOpen: false,
   isUploadModalOpen: false,

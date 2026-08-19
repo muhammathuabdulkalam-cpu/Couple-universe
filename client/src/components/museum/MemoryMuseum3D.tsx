@@ -107,14 +107,25 @@ const MemoryMuseum3DImpl: React.FC<MemoryMuseum3DProps> = ({ mediaItems }) => {
     } catch {
       setWebglReady(false);
     }
-  }, []);
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      addToast('WebGL Notice', 'GPU context lost. Switched to 2D Grid Gallery for performance.', 'warning');
+      setViewMode('grid');
+    };
+
+    window.addEventListener('webglcontextlost', handleContextLost, false);
+    return () => {
+      window.removeEventListener('webglcontextlost', handleContextLost);
+    };
+  }, [addToast, setViewMode]);
 
   if (webglReady === false) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] bg-obsidian-950/80 rounded-3xl border border-white/10 p-8 text-center text-white">
         <h3 className="text-xl font-bold text-amber-400 mb-2">WebGL 3D Not Supported</h3>
         <p className="text-sm text-slate-300 mb-6 max-w-md">
-          Your browser or device GPU does not support 3D WebGL rendering.
+          Your browser or device GPU does not support 3D WebGL rendering or WebGL context was lost.
         </p>
         <button
           type="button"
