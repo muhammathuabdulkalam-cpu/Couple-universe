@@ -32,9 +32,9 @@ interface CreateInvitationModalProps {
 
 const RELATIONSHIP_TYPES = ['Couple', 'Friendship', 'Family', 'Custom'];
 const TARGET_ROLES = [
-  { value: 'INVITED_USER', label: 'INVITED_USER (Standard Guest / Friend)' },
-  { value: 'CO_OWNER', label: 'CO_OWNER (Relationship Partner / Co-Owner)' },
-  { value: 'SUPER_OWNER', label: 'SUPER_OWNER (Super Owner)' },
+  { value: 'INVITED_USER', label: 'Member (Standard Member / Guest)' },
+  { value: 'CO_OWNER', label: 'Co-Owner (Relationship Partner)' },
+  { value: 'SUPER_OWNER', label: 'Super Owner (Platform Owner)' },
 ];
 
 export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({

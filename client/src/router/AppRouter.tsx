@@ -182,13 +182,13 @@ export const AppRouter: React.FC = () => {
           }
         />
 
-        {/* Module 7 Chat Route — full viewport sticky layout, no page scroll */}
+        {/* Module 7 Chat Route — standard responsive layout with header alignment */}
         <Route
           path="/chat"
           element={
             <AuthGuard>
               <FeatureRouteGuard featureKey={FEATURES.CHAT}>
-                <DashboardLayout fullViewport>
+                <DashboardLayout>
                   <ChatPage />
                 </DashboardLayout>
               </FeatureRouteGuard>

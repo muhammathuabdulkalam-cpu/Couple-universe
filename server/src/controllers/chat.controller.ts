@@ -117,6 +117,75 @@ export const createOrGetConversation = catchAsync(async (req: Request, res: Resp
 export const getUserConversations = catchAsync(async (req: Request, res: Response) => {
   const currentUser = req.user!;
 
+  // 1. Auto-initialize 1-on-1 private conversations between owners and their created invited users
+  try {
+    const { Invite } = await import('../models/invite.model');
+
+    if (currentUser.role === 'SUPER_OWNER' || currentUser.role === 'CO_OWNER') {
+      // Find all invited users created by or linked to this owner
+      const invites = await Invite.find({ createdBy: currentUser._id, usedBy: { $exists: true, $ne: null } }).select('usedBy');
+      const invitedUserIds: any[] = invites.map((inv) => inv.usedBy).filter(Boolean);
+
+      // Also find all users in relationships where currentUser is a member
+      if (currentUser.relationshipId) {
+        const relUsers = await User.find({
+          relationshipId: currentUser.relationshipId,
+          _id: { $ne: currentUser._id },
+          role: { $ne: 'ADMIN' },
+        }).select('_id');
+        relUsers.forEach((u) => {
+          if (!invitedUserIds.some((id) => id.toString() === u._id.toString())) {
+            invitedUserIds.push(u._id);
+          }
+        });
+      }
+
+      // Ensure 1-on-1 private conversation exists for each invited user created under this owner
+      for (const targetUserId of invitedUserIds) {
+        const exists = await Conversation.findOne({
+          type: 'PRIVATE',
+          participants: { $all: [currentUser._id, targetUserId] },
+          isDeleted: false,
+        });
+        if (!exists) {
+          await Conversation.create({
+            type: 'PRIVATE',
+            participants: [currentUser._id, targetUserId],
+            createdBy: currentUser._id,
+          });
+        }
+      }
+    } else {
+      // Invited User / Member role: find the owner who created their invitation
+      const invite = await Invite.findOne({ usedBy: currentUser._id }).select('createdBy');
+      let inviterId = invite ? invite.createdBy : null;
+
+      // Fallback: if no specific invite record, find the platform Super Owner
+      if (!inviterId) {
+        const superOwner = await User.findOne({ role: 'SUPER_OWNER' }).select('_id');
+        if (superOwner) inviterId = superOwner._id;
+      }
+
+      if (inviterId && inviterId.toString() !== currentUser._id.toString()) {
+        const exists = await Conversation.findOne({
+          type: 'PRIVATE',
+          participants: { $all: [currentUser._id, inviterId] },
+          isDeleted: false,
+        });
+        if (!exists) {
+          await Conversation.create({
+            type: 'PRIVATE',
+            participants: [currentUser._id, inviterId],
+            createdBy: currentUser._id,
+          });
+        }
+      }
+    }
+  } catch (initErr: any) {
+    logger.warn('⚠️ Auto chat thread sync notice:', initErr.message);
+  }
+
+  // 2. Fetch user conversations
   const conversations = await Conversation.find({
     participants: currentUser._id,
     isDeleted: false,
@@ -129,8 +198,19 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     .sort({ updatedAt: -1 })
     .lean();
 
+  // 3. For invited users, restrict chat list ONLY to chats involving their inviter/owners or relationship room
+  let filteredConvs = conversations;
+  if (currentUser.role !== 'SUPER_OWNER' && currentUser.role !== 'CO_OWNER' && currentUser.role !== 'ADMIN') {
+    filteredConvs = conversations.filter((conv) => {
+      if (conv.type === 'RELATIONSHIP') return true;
+      const otherPart = conv.participants?.find((p: any) => (p._id || p.id)?.toString() !== currentUser._id.toString());
+      // Invited user can chat ONLY with Super Owner or Co-Owner who created them
+      return otherPart && (otherPart.role === 'SUPER_OWNER' || otherPart.role === 'CO_OWNER');
+    });
+  }
+
   const conversationsWithUnread = await Promise.all(
-    conversations.map(async (conv) => {
+    filteredConvs.map(async (conv) => {
       const unreadCount = await Message.countDocuments({
         conversationId: conv._id,
         sender: { $ne: currentUser._id },

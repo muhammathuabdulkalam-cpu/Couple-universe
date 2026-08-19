@@ -31,7 +31,7 @@ export const ChatLayout: React.FC = () => {
      *   - pb-0 when inside chat thread so input bar uses 100% height
      */
     <div
-      className={`w-full h-full flex overflow-hidden rounded-none border-0 bg-obsidian-950 shadow-none ${
+      className={`w-full h-full flex overflow-hidden rounded-none lg:rounded-3xl border-0 lg:border lg:border-white/10 bg-obsidian-950/90 backdrop-blur-xl shadow-2xl ${
         mobileView === 'list' ? 'pb-16 md:pb-0' : 'pb-0'
       }`}
     >
