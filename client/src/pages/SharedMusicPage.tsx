@@ -77,6 +77,18 @@ export const SharedMusicPage: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab('uploads')}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
+                activeTab === 'uploads'
+                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+              }`}
+            >
+              <UploadCloud className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span>Uploads</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('search')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'search'
@@ -98,18 +110,6 @@ export const SharedMusicPage: React.FC = () => {
             >
               <ListMusic className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span>Playlists</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('uploads')}
-              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
-                activeTab === 'uploads'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
-              }`}
-            >
-              <UploadCloud className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span>Uploads</span>
             </button>
 
             <button
