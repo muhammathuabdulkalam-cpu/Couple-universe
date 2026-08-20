@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Pause, Play, Music, Disc, SkipBack, SkipForward, Headphones, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
-import { useListenTogetherStore } from '../../store/listenTogetherStore';
-import { useMusicPlayerStore } from '../../store/musicPlayerStore';
-import { getNormalizedCoverUrl } from '../../utils/audioDecoder';
-import { musicApi } from '../../api/musicApi';
-import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
-import { NormalizedSong } from '../../types/music.types';
+import { useAuthStore } from '../../store/authStore.js';
+import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
+import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
+import { useUIStore } from '../../store/uiStore.js';
+import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
+import { musicApi } from '../../api/musicApi.js';
+import { Card } from '../ui/Card.js';
+import { Badge } from '../ui/Badge.js';
+import { NormalizedSong } from '../../types/music.types.js';
 
 export const RightSidebarMusicWidget: React.FC = () => {
   const navigate = useNavigate();
+  const { toggleActivityDrawer } = useUIStore();
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTime = useMusicPlayerStore((s) => s.currentTime);
@@ -67,6 +69,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
   };
 
   const handleCardClick = () => {
+    toggleActivityDrawer(false);
     navigate('/shared-music');
   };
 
@@ -239,7 +242,10 @@ export const RightSidebarMusicWidget: React.FC = () => {
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span>No active song</span>
           <button
-            onClick={() => navigate('/shared-music')}
+            onClick={() => {
+              toggleActivityDrawer(false);
+              navigate('/shared-music');
+            }}
             className="text-rose-400 font-bold hover:underline"
           >
             Browse Music
