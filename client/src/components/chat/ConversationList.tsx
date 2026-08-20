@@ -93,13 +93,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
       });
 
       setConversations(mergedConvs);
-
-      // Auto-select first conversation when available
-      if (!activeConversation && mergedConvs.length > 0) {
-        setActiveConversation(mergedConvs[0]);
-      }
+      // NOTE: intentionally NOT auto-selecting the first conversation.
+      // The user must click a chat themselves from the list.
     }
-  }, [convData, setConversations, activeConversation, setActiveConversation]);
+  }, [convData, setConversations]);
 
   const handleStartRelationshipChat = async () => {
     try {

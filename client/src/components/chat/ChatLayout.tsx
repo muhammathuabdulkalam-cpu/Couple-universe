@@ -7,13 +7,18 @@ import { MessageContainer } from './MessageContainer.js';
 import { TypingIndicator } from './TypingIndicator.js';
 
 export const ChatLayout: React.FC = () => {
-  const { activeConversation, typingUsers, mobileView, setMobileView } = useChatStore();
+  const { activeConversation, typingUsers, mobileView, setMobileView, clearActiveConversation } = useChatStore();
 
   const conversationId = activeConversation?._id;
   const currentTyping = conversationId ? typingUsers[conversationId] || [] : [];
 
   const handleSelectConversation = () => setMobileView('chat');
   const handleBackToList = () => setMobileView('list');
+
+  // On mount: always reset to list view (never auto-open a leftover conversation)
+  useEffect(() => {
+    clearActiveConversation();
+  }, [clearActiveConversation]);
 
   // Reset to list view on unmount
   useEffect(() => {
