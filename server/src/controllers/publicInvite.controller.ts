@@ -6,15 +6,7 @@ import { catchAsync } from '../utils/catchAsync';
 /** GET /api/v1/invites/validate/:token */
 export const validateInviteToken = catchAsync(async (req: Request, res: Response) => {
   const { token } = req.params;
-  const { invite, relationship } = await InviteService.validateToken(token);
+  const preview = await InviteService.getInvitePreview(token);
 
-  return ApiResponse.success(res, 'Invite token is valid', {
-    code: invite.code,
-    targetRole: invite.targetRole,
-    relationshipId: invite.relationship,
-    relationshipType: invite.relationshipType,
-    relationshipName: (invite.metadata as any)?.relationshipName || relationship?.name || 'Unknown',
-    expiresAt: invite.expiresAt,
-    status: invite.status,
-  });
+  return ApiResponse.success(res, 'Invite token preview retrieved successfully', preview);
 });
