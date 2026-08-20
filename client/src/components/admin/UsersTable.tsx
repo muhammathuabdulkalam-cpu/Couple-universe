@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AdminUserListItem } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
+import { Avatar } from '../ui/Avatar';
 
 interface UsersTableProps {
   users: AdminUserListItem[];
@@ -279,10 +280,11 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <img
-                          src={usr.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                          alt={usr.name}
-                          className="w-9 h-9 rounded-full object-cover border border-white/10 group-hover:border-rose-500/50"
+                        <Avatar
+                          src={usr.avatar}
+                          name={usr.name}
+                          size="sm"
+                          className="border border-white/10 group-hover:border-rose-500/50"
                         />
                         <span
                           className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-slate-900 ${

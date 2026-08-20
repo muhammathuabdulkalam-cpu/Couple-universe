@@ -120,21 +120,77 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
   const currentUser = req.user!;
   const currentUserIdStr = currentUser._id.toString();
 
+  // Helper: get sub-user IDs for this owner using two sources of truth
+  const getMySubUserIds = async (ownerId: mongoose.Types.ObjectId): Promise<Set<string>> => {
+    const idSet = new Set<string>();
+
+    // Source 1: Invite.usedBy where createdBy === this owner (usedBy set = someone registered with it)
+    const ownerInvites = await Invite.find({
+      createdBy: ownerId,
+      usedBy: { $exists: true, $ne: null },
+    }).select('usedBy');
+
+    for (const inv of ownerInvites) {
+      if (inv.usedBy) idSet.add(inv.usedBy.toString());
+    }
+
+    // Source 2: InvitedUser.ownerUserId (most reliable, always set at invite creation time)
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    const invitedUserDocs = await InvitedUser.find({
+      ownerUserId: ownerId,
+      isDeleted: false,
+    }).select('_id email tokenCode');
+
+    // For each InvitedUser record, find the matching registered User by email or tokenCode
+    for (const invDoc of invitedUserDocs) {
+      // Try to find the registered User account linked to this invite slot
+      // Match by the invite token code via Invite.usedBy
+      const inviteRecord = await Invite.findOne({ code: invDoc.tokenCode }).select('usedBy');
+      if (inviteRecord?.usedBy) {
+        idSet.add(inviteRecord.usedBy.toString());
+      }
+      // Also try matching by email if set
+      if (invDoc.email) {
+        const matchedUser = await User.findOne({
+          email: invDoc.email,
+          role: 'INVITED_USER',
+          isDeleted: false,
+        }).select('_id');
+        if (matchedUser) idSet.add(matchedUser._id.toString());
+      }
+    }
+
+    return idSet;
+  };
+
+  // Helper: get the owner ID for an invited user using two sources of truth
+  const getMyOwnerIdStr = async (userId: mongoose.Types.ObjectId): Promise<string | null> => {
+    // Source 1: Invite.createdBy where usedBy === this user
+    const myInvite = await Invite.findOne({
+      usedBy: userId,
+    }).select('createdBy');
+
+    if (myInvite?.createdBy) return myInvite.createdBy.toString();
+
+    // Source 2: InvitedUser.ownerUserId matched by email
+    const userDoc = await User.findById(userId).select('email');
+    if (userDoc?.email) {
+      const { InvitedUser } = await import('../models/invitedUser.model');
+      const invitedDoc = await InvitedUser.findOne({ email: userDoc.email, isDeleted: false }).select('ownerUserId');
+      if (invitedDoc?.ownerUserId) return invitedDoc.ownerUserId.toString();
+    }
+
+    return null;
+  };
+
   // 1. Auto-initialize 1-on-1 private conversations scoped by ownership
   try {
     if (currentUser.role === 'SUPER_OWNER' || currentUser.role === 'CO_OWNER') {
-      // Find only the invited users who registered via an invite token created by THIS owner
-      const ownerInvites = await Invite.find({
-        createdBy: currentUser._id,
-        status: 'USED',
-        usedBy: { $exists: true },
-      }).select('usedBy');
+      const mySubUserIdStrs = await getMySubUserIds(currentUser._id);
 
-      const mySubUserIds = ownerInvites
-        .map((inv) => inv.usedBy)
-        .filter(Boolean) as mongoose.Types.ObjectId[];
-
-      for (const subUserId of mySubUserIds) {
+      for (const subUserIdStr of mySubUserIdStrs) {
+        if (!mongoose.Types.ObjectId.isValid(subUserIdStr)) continue;
+        const subUserId = new mongoose.Types.ObjectId(subUserIdStr);
         const exists = await Conversation.findOne({
           type: 'PRIVATE',
           participants: { $all: [currentUser._id, subUserId] },
@@ -149,14 +205,9 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
         }
       }
     } else if (currentUser.role === 'INVITED_USER') {
-      // Find the specific invite this user registered with, to identify their owner
-      const myInvite = await Invite.findOne({
-        usedBy: currentUser._id,
-        status: 'USED',
-      }).select('createdBy');
-
-      if (myInvite?.createdBy) {
-        const ownerId = myInvite.createdBy;
+      const ownerIdStr = await getMyOwnerIdStr(currentUser._id);
+      if (ownerIdStr && mongoose.Types.ObjectId.isValid(ownerIdStr)) {
+        const ownerId = new mongoose.Types.ObjectId(ownerIdStr);
         const exists = await Conversation.findOne({
           type: 'PRIVATE',
           participants: { $all: [currentUser._id, ownerId] },
@@ -175,7 +226,7 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     console.warn('⚠️ Auto chat thread sync notice:', initErr.message);
   }
 
-  // 2. Fetch all user conversations
+  // 2. Fetch all conversations the current user is part of
   const conversations = await Conversation.find({
     participants: currentUser._id,
     isDeleted: false,
@@ -188,17 +239,12 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     .sort({ updatedAt: -1 })
     .lean();
 
-  // 3. Filter conversations based on role to enforce isolation
+  // 3. Filter to enforce strict ownership isolation
   let filteredConvs = conversations;
 
   if (currentUser.role === 'INVITED_USER') {
-    // Invited users see ONLY their 1-on-1 private conversation with their specific owner
-    const myInvite = await Invite.findOne({
-      usedBy: currentUser._id,
-      status: 'USED',
-    }).select('createdBy');
-
-    const myOwnerIdStr = myInvite?.createdBy?.toString();
+    // Invited users see ONLY the 1-on-1 chat with their specific owner (who invited them)
+    const myOwnerIdStr = await getMyOwnerIdStr(currentUser._id);
 
     filteredConvs = conversations.filter((conv) => {
       if (conv.type !== 'PRIVATE') return false;
@@ -208,8 +254,9 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
       if (!otherPart) return false;
       const otherRole = (otherPart as any).role;
       const otherIdStr = (otherPart as any)._id?.toString();
-      // Only show conversation with THIS user's specific owner
+      // Must be an owner role
       if (otherRole !== 'SUPER_OWNER' && otherRole !== 'CO_OWNER') return false;
+      // Must be THIS user's specific owner
       if (myOwnerIdStr && otherIdStr !== myOwnerIdStr) return false;
       return true;
     });
@@ -225,21 +272,12 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
       seenPartners.add(key);
       return true;
     });
+
   } else if (currentUser.role === 'SUPER_OWNER' || currentUser.role === 'CO_OWNER') {
     // Owners see:
-    // (a) RELATIONSHIP room
-    // (b) PRIVATE chats with their own sub-users only (invited via their tokens)
-    // NOT each other's sub-user chats
-
-    const ownerInvites = await Invite.find({
-      createdBy: currentUser._id,
-      status: 'USED',
-      usedBy: { $exists: true },
-    }).select('usedBy');
-
-    const mySubUserIdStrs = new Set(
-      ownerInvites.map((inv) => inv.usedBy?.toString()).filter(Boolean) as string[]
-    );
+    //   (a) RELATIONSHIP room (only for SUPER/CO owners)
+    //   (b) PRIVATE chats with THEIR OWN sub-users only
+    const mySubUserIdStrs = await getMySubUserIds(currentUser._id);
 
     filteredConvs = conversations.filter((conv) => {
       if (conv.type === 'RELATIONSHIP') return true;
@@ -253,7 +291,7 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
       const otherIdStr = (otherPart as any)._id?.toString();
       const otherRole = (otherPart as any).role;
 
-      // Always exclude chats with the other platform owner (Super/Co-Owner to each other via RELATIONSHIP)
+      // Exclude chats with other owners (handled by RELATIONSHIP type)
       if (otherRole === 'SUPER_OWNER' || otherRole === 'CO_OWNER') return false;
 
       // Only include chats with THIS owner's own sub-users

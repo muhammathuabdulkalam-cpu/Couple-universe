@@ -17,6 +17,7 @@ import {
   Key,
 } from 'lucide-react';
 import { AdminRelationshipItem } from '../../types/admin.types';
+import { Avatar } from '../ui/Avatar';
 
 interface RelationshipsViewerProps {
   relationships: AdminRelationshipItem[];
@@ -125,10 +126,11 @@ export const RelationshipsViewer: React.FC<RelationshipsViewerProps> = ({
                       key={m.id}
                       className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-white/5"
                     >
-                      <img
-                        src={m.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                        alt={m.name}
-                        className="w-6 h-6 rounded-full object-cover border border-white/20"
+                      <Avatar
+                        src={m.avatar}
+                        name={m.name}
+                        size="xs"
+                        className="border border-white/20"
                       />
                       <div>
                         <p className="text-xs font-bold text-white leading-tight">{m.name}</p>

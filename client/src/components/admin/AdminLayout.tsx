@@ -12,6 +12,7 @@ import {
   Disc,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
+import { Avatar } from '../ui/Avatar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -103,10 +104,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         {/* Sidebar Footer Logout */}
         <div className="pt-6 border-t border-white/5 space-y-4">
           <div className="p-4 rounded-2xl bg-[#16161E] border border-white/5 flex items-center gap-3">
-            <img
-              src={admin?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-              alt="Admin Avatar"
-              className="w-9 h-9 rounded-full object-cover border border-indigo-500/40"
+            <Avatar
+              src={admin?.avatar}
+              name={admin?.name || 'Admin'}
+              size="sm"
+              className="border border-indigo-500/40"
             />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-extrabold text-white truncate">{admin?.name || 'System Admin'}</p>
@@ -161,10 +163,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
             {/* Admin Profile & Logout */}
             <div className="flex items-center gap-3 pl-3 border-l border-white/10">
-              <img
-                src={admin?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                alt="Admin Profile"
-                className="w-9 h-9 rounded-full object-cover border border-indigo-500/40 shadow-sm"
+              <Avatar
+                src={admin?.avatar}
+                name={admin?.name || 'Admin'}
+                size="sm"
+                className="border border-indigo-500/40 shadow-sm"
               />
               <button
                 onClick={handleLogout}

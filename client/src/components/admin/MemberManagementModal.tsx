@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, UserPlus, Trash2, ArrowRightLeft, ShieldAlert, X } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import { AdminUserListItem } from '../../types/admin.types';
+import { Avatar } from '../ui/Avatar';
 
 interface Props {
   isOpen: boolean;
@@ -150,10 +151,11 @@ const MemberManagementModal: React.FC<Props> = ({ isOpen, onClose, relationship 
                   className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-xs"
                 >
                   <div className="flex items-center gap-3">
-                    <img
-                      src={m.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                      alt={m.name}
-                      className="w-9 h-9 rounded-full object-cover border border-white/10"
+                    <Avatar
+                      src={m.avatar}
+                      name={m.name}
+                      size="sm"
+                      className="border border-white/10"
                     />
                     <div>
                       <p className="font-bold text-white">{m.name}</p>

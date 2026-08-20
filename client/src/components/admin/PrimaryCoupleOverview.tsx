@@ -2,6 +2,7 @@ import React from 'react';
 import { Heart, Calendar, Clock, Eye, Layers, Image as ImageIcon, BookOpen, Music, CheckCircle2 } from 'lucide-react';
 import { PrimaryCoupleData } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
+import { Avatar } from '../ui/Avatar';
 
 interface PrimaryCoupleOverviewProps {
   data: PrimaryCoupleData;
@@ -69,10 +70,11 @@ export const PrimaryCoupleOverview: React.FC<PrimaryCoupleOverviewProps> = ({ da
               onClick={() => setSelectedUserIdForDrawer(partner1.id)}
               className="p-4 rounded-2xl bg-[#1E1E28] border border-white/5 hover:border-indigo-500/40 transition cursor-pointer flex items-center gap-3.5"
             >
-              <img
-                src={partner1.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                alt={partner1.name}
-                className="w-12 h-12 rounded-xl object-cover border border-white/10"
+              <Avatar
+                src={partner1.avatar}
+                name={partner1.name}
+                size="lg"
+                className="border border-white/10 rounded-xl"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
@@ -97,10 +99,11 @@ export const PrimaryCoupleOverview: React.FC<PrimaryCoupleOverviewProps> = ({ da
               onClick={() => setSelectedUserIdForDrawer(partner2.id)}
               className="p-4 rounded-2xl bg-[#1E1E28] border border-white/5 hover:border-indigo-500/40 transition cursor-pointer flex items-center gap-3.5"
             >
-              <img
-                src={partner2.avatar || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'}
-                alt={partner2.name}
-                className="w-12 h-12 rounded-xl object-cover border border-white/10"
+              <Avatar
+                src={partner2.avatar}
+                name={partner2.name}
+                size="lg"
+                className="border border-white/10 rounded-xl"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">

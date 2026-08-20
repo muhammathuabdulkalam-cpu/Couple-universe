@@ -569,7 +569,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                   <img
                     src={
                       superOwner?.avatar ||
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'
+                      undefined
                     }
                     alt={superOwner?.name || 'Afzal'}
                     className="w-full h-full object-cover"
@@ -610,7 +610,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                   <img
                     src={
                       coOwner?.avatar ||
-                      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+                      undefined
                     }
                     alt={coOwner?.name || 'Amrin'}
                     className="w-full h-full object-cover"
@@ -707,7 +707,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                             <img
                               src={
                                 friend.avatar ||
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+                                undefined
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-white/10"
@@ -903,7 +903,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                             <img
                               src={
                                 friend.avatar ||
-                                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
+                                undefined
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-amber-500/30"
@@ -1099,7 +1099,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                             <img
                               src={
                                 friend.avatar ||
-                                'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'
+                                undefined
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-white/10"

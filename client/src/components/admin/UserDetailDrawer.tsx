@@ -17,6 +17,7 @@ import {
 import { adminApi } from '../../api/adminApi';
 import { AdminUserDetail } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
+import { Avatar } from '../ui/Avatar';
 
 export const UserDetailDrawer: React.FC = () => {
   const { selectedUserIdForDrawer, setSelectedUserIdForDrawer } = useAdminAuthStore();
@@ -90,10 +91,11 @@ export const UserDetailDrawer: React.FC = () => {
               />
               <div className="p-4 flex items-center gap-4 -mt-8 relative z-10">
                 <div className="relative">
-                  <img
-                    src={userDetail.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
-                    alt={userDetail.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-900 shadow-xl bg-slate-800"
+                  <Avatar
+                    src={userDetail.avatar}
+                    name={userDetail.name}
+                    size="xl"
+                    className="border-2 border-slate-900 shadow-xl"
                   />
                   <span
                     className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-slate-900 ${

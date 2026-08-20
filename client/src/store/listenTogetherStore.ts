@@ -46,10 +46,10 @@ export const fetchPartnerProfile = async (): Promise<{ name: string | null; avat
     const partner = res.data?.data?.partner;
     if (partner) {
       const pName = partner.name || 'Partner';
-      const defaultPartnerAvatar = pName.toLowerCase().includes('amrin')
-        ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
-        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-      const pAvatar = partner.avatar && partner.avatar.trim() !== '' ? partner.avatar : defaultPartnerAvatar;
+      // Only use a real avatar URL — no Unsplash or stock photo fallbacks
+      const pAvatar = partner.avatar && partner.avatar.trim() !== '' && !partner.avatar.includes('unsplash.com')
+        ? partner.avatar
+        : null;
 
       useListenTogetherStore.setState({
         partnerName: pName,
@@ -72,10 +72,11 @@ const resolvePartner = (session: ListeningSession | null) => {
 
   if (typeof partnerObj === 'object' && partnerObj && partnerObj !== null) {
     const pName = (partnerObj as any).name || 'Partner';
-    const defaultPartnerAvatar = pName.toLowerCase().includes('amrin')
-      ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
-      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-    const pAvatar = (partnerObj as any).avatar && (partnerObj as any).avatar.trim() !== '' ? (partnerObj as any).avatar : defaultPartnerAvatar;
+    // Only use real avatar — no Unsplash or stock photo fallbacks
+    const rawAvatar = (partnerObj as any).avatar;
+    const pAvatar = rawAvatar && rawAvatar.trim() !== '' && !rawAvatar.includes('unsplash.com')
+      ? rawAvatar
+      : null;
     return { name: pName, avatar: pAvatar };
   }
   return { name: null, avatar: null };
