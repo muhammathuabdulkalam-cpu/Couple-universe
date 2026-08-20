@@ -14,6 +14,7 @@ import {
   Trash2,
   Key,
   UserX,
+  RefreshCw,
 } from 'lucide-react';
 import { AdminUserListItem, AdminRelationshipItem } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
@@ -444,6 +445,38 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
     }
   };
 
+  const handleRegenerateFriendToken = async (friend: { id?: string; relationshipId?: string; tokenCode?: string; name: string; relType?: string; role?: string }) => {
+    const dispName = getDisplayName(friend);
+    if (!window.confirm(`Regenerate a brand new invitation link for "${dispName}"?\n\nThis will generate a fresh token so they can register.`)) return;
+
+    try {
+      const freshInvite = await adminApi.createStandaloneInvite({
+        relationshipName: `${dispName} Relationship`,
+        relationshipType: friend.relType || 'Friendship',
+        targetRole: friend.role || 'INVITED_USER',
+        enabledFeatures: ['GALLERY', 'TIMELINE', 'CALENDAR', 'STORIES', 'CHAT', 'MUSIC', 'LISTEN_TOGETHER'],
+        expiryDays: 36500,
+        maxUses: 1,
+        inviteDisplayName: dispName,
+        partnerUserId: superOwnerId,
+      });
+
+      const newTokenCode = freshInvite.code;
+      const keyId = friend.relationshipId || friend.id || 'token';
+      setTokensMap((prev) => ({ ...prev, [keyId]: newTokenCode }));
+
+      const inviteUrl = buildInviteUrl(newTokenCode);
+      await copyToClipboard(inviteUrl);
+      setCopiedTokenRelId(keyId);
+      setTimeout(() => setCopiedTokenRelId(null), 2500);
+
+      if (onRefresh) await onRefresh();
+      alert(`✨ Fresh invitation link generated & copied to clipboard for "${dispName}"!\n\nLink:\n${inviteUrl}`);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to regenerate invitation token.');
+    }
+  };
+
   // Handlers for tailored branch invitation forms
   const handleSuperOwnerInvite = () => {
     if (onCreateInviteForBranch) {
@@ -789,6 +822,16 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                     <span className="text-[9px] font-black">✓ Copied</span>
                                   )}
                                 </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRegenerateFriendToken(friend);
+                                  }}
+                                  title="Regenerate Fresh Invitation Link"
+                                  className="p-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-purple-400 border border-purple-500/20 transition shrink-0"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
                                 {friend.status === 'SUSPENDED' || friend.status === 'INACTIVE' ? (
                                   <button
                                     onClick={(e) => {
@@ -985,6 +1028,16 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                     <span className="text-[9px] font-black">✓ Copied</span>
                                   )}
                                 </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRegenerateFriendToken(friend);
+                                  }}
+                                  title="Regenerate Fresh Invitation Link"
+                                  className="p-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-purple-400 border border-purple-500/20 transition shrink-0"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
                                 {friend.status === 'SUSPENDED' || friend.status === 'INACTIVE' ? (
                                   <button
                                     onClick={(e) => {
@@ -1180,6 +1233,16 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                   {copiedTokenRelId === friend.relationshipId && (
                                     <span className="text-[9px] font-black">✓ Copied</span>
                                   )}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRegenerateFriendToken(friend);
+                                  }}
+                                  title="Regenerate Fresh Invitation Link"
+                                  className="p-1.5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-purple-400 border border-purple-500/20 transition shrink-0"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
                                 {friend.status === 'SUSPENDED' || friend.status === 'INACTIVE' ? (
                                   <button
