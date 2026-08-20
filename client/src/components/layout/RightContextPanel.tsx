@@ -39,6 +39,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   const location = useLocation();
   const { mobileView } = useChatStore();
   const isInsideChatThread = location.pathname.startsWith('/chat') && mobileView === 'chat';
+  const isSharedMusicPage = location.pathname.startsWith('/shared-music');
 
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
@@ -109,8 +110,8 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Floating Trigger Buttons Outside Active Chat Thread */}
-      {!isInsideChatThread && (
+      {/* Floating Trigger Buttons Outside Active Chat Thread & Outside Shared Music Page */}
+      {!isInsideChatThread && !isSharedMusicPage && (
         <div
           className="fixed right-3 bottom-20 z-50 md:hidden flex flex-col gap-3 items-center select-none"
         >
