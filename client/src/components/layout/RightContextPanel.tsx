@@ -6,6 +6,7 @@ import {
   Headphones,
   Heart,
   LayoutGrid,
+  Music,
   Plus,
   Sparkles,
   UserCircle2,
@@ -25,6 +26,8 @@ import { Card } from '../ui/Card.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
+import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
+import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
 
 interface RightContextPanelProps {
@@ -37,12 +40,17 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   const { mobileView } = useChatStore();
   const isInsideChatThread = location.pathname.startsWith('/chat') && mobileView === 'chat';
 
+  const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
+  const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+
   const { isSessionActive, partnerName, partnerAvatar, setDrawerOpen } = useListenTogetherStore();
   const { user } = useAuthStore();
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
+
+  const isPlayingSolo = isPlaying && !isSessionActive;
 
   const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
   const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
@@ -101,58 +109,91 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Floating Listen Together Circle Button (Outside Chat Only) */}
-      {!isInsideChatThread && (isSessionActive || user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') && (
+      {/* Floating Trigger Buttons Outside Chat Only */}
+      {!isInsideChatThread && (
         <div
           className="fixed right-3 bottom-20 z-50 md:hidden flex flex-col gap-3 items-center select-none"
         >
-          {/* Mobile Apps Launcher Grid Button (Hidden in Active Chat Thread) */}
-          {!isInsideChatThread && (
+          {/* 1. Mobile Apps Launcher Grid Button */}
+          <button
+            type="button"
+            onClick={() => setIsAppLauncherOpen(true)}
+            className="w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border border-white/15 shadow-xl active:scale-95 transition-all flex items-center justify-center text-slate-300 hover:text-white hover:border-amrin-glow/50 group"
+            aria-label="Universe Apps"
+            title="Universe Apps"
+          >
+            <LayoutGrid className="w-5 h-5 group-hover:text-amrin-glow transition-colors" />
+          </button>
+
+          {/* 2. Listen Together Active Dual-Avatar Floating Button */}
+          {isSessionActive && (
             <button
               type="button"
-              onClick={() => setIsAppLauncherOpen(true)}
-              className="w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border border-white/15 shadow-xl active:scale-95 transition-all flex items-center justify-center text-slate-300 hover:text-white hover:border-amrin-glow/50 group"
-              aria-label="Universe Apps"
-              title="Universe Apps"
+              onClick={() => setDrawerOpen(true)}
+              className="w-11 h-11 rounded-full bg-gradient-to-tr from-rose-950 via-slate-950 to-purple-950 backdrop-blur-xl border-2 border-rose-500/80 ring-2 ring-rose-500/40 shadow-xl shadow-rose-500/30 active:scale-95 transition-all flex items-center justify-center relative group cursor-pointer shrink-0"
+              title={`Listening Together with ${partnerName || 'Partner'} 💖`}
             >
-              <LayoutGrid className="w-5 h-5 group-hover:text-amrin-glow transition-colors" />
+              {/* Combined Overlapping Dual Avatars */}
+              <div className="flex items-center justify-center -space-x-2">
+                {myHasAvatar ? (
+                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
+                {pHasAvatar ? (
+                  <img src={partnerAvatar!} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
+              </div>
+
+              {/* Glowing Heartbeat Headphones Badge */}
+              <div className="absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-500 border border-white/30 shadow-lg flex items-center justify-center animate-bounce">
+                <Headphones className="w-2.5 h-2.5 text-white animate-pulse" />
+              </div>
             </button>
           )}
 
-          {/* Listen Together Circle Icon (Draggable Dual-Avatar Circle Button) */}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className={`w-12 h-12 rounded-full backdrop-blur-xl border-2 ring-2 shadow-2xl active:scale-95 transition-all flex items-center justify-center relative group cursor-pointer shrink-0 ${
-              isSessionActive
-                ? 'bg-gradient-to-tr from-rose-950 via-slate-950 to-purple-950 border-rose-500/80 ring-rose-500/40 shadow-rose-500/40'
-                : 'bg-obsidian-950/90 border-white/20 ring-white/10 shadow-black/50'
-            }`}
-            title={`Listen Together with ${partnerName || 'Partner'} 💖`}
-          >
-            {/* Combined Overlapping Dual Avatars */}
-            <div className="flex items-center justify-center -space-x-2">
-              {myHasAvatar ? (
-                <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
+          {/* 3. Activity Context Circular Button (Outside Chat) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsMobileDrawerOpen(true)}
+              className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
+                isPlayingSolo
+                  ? 'border-amrin-glow ring-2 ring-amrin-glow/50 shadow-lg shadow-amrin-glow/30'
+                  : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
+              }`}
+              aria-label="Open Activity Bar"
+              title={isPlayingSolo ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
+            >
+              {isPlayingSolo && currentTrack ? (
+                <img
+                  src={getNormalizedCoverUrl(currentTrack.coverUrl)}
+                  alt={currentTrack.title}
+                  className="w-full h-full object-cover rounded-full select-none"
+                />
+              ) : isPlayingSolo ? (
+                <Music className="w-5 h-5 text-amrin-glow" />
               ) : (
-                <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
-                  <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
-                </div>
+                <Sparkles className="w-5 h-5 text-amber-300" />
               )}
-              {pHasAvatar ? (
-                <img src={partnerAvatar!} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" />
-              ) : (
-                <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
-                  <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
-                </div>
-              )}
-            </div>
+            </button>
 
-            {/* Glowing Heartbeat Headphones Badge */}
-            <div className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-500 border border-white/30 shadow-lg flex items-center justify-center animate-bounce">
-              <Headphones className="w-2.5 h-2.5 text-white animate-pulse" />
-            </div>
-          </button>
+            {/* Top-Right Glowing Animated Music Note Bubble Badge while Playing Solo */}
+            {isPlayingSolo && (
+              <div
+                className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-afzal via-rose-500 to-amrin border-2 border-obsidian-950 shadow-lg shadow-rose-500/60 flex items-center justify-center pointer-events-none animate-bounce"
+                title="Playing Shared Music"
+              >
+                <Music className="w-2.5 h-2.5 text-white animate-pulse" />
+              </div>
+            )}
+          </div>
         </div>
       )}
 
