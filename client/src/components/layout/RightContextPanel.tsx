@@ -109,7 +109,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Floating Trigger Buttons Outside Chat Only */}
+      {/* Floating Trigger Buttons Outside Active Chat Thread */}
       {!isInsideChatThread && (
         <div
           className="fixed right-3 bottom-20 z-50 md:hidden flex flex-col gap-3 items-center select-none"

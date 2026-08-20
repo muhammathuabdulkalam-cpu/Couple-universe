@@ -3,11 +3,18 @@ import { motion } from 'framer-motion';
 import { Headphones, Heart } from 'lucide-react';
 import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useAuthStore } from '../../store/authStore.js';
+import { useChatStore } from '../../store/chatStore.js';
 import { Avatar } from '../ui/Avatar.js';
 
 export const FloatingCoupleMusicWidget: React.FC = () => {
   const { isSessionActive, partnerName, partnerAvatar, toggleDrawer } = useListenTogetherStore();
   const { user } = useAuthStore();
+  const { activeConversation, mobileView } = useChatStore();
+
+  // ONLY render when inside an active chat thread (not on chat list page)
+  if (!activeConversation || mobileView !== 'chat') {
+    return null;
+  }
 
   const isCoOwner = user?.role === 'CO_OWNER' || user?.name?.toLowerCase().includes('amrin');
   const partnerDisplayName = partnerName || (isCoOwner ? 'Afzal' : 'Amrin');
