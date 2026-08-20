@@ -39,6 +39,11 @@ export const InviteRegistrationResolver: React.FC = () => {
     inviteApi
       .validateInvite(token)
       .then((data: InviteValidationResult) => {
+        if (!data || !data.status) {
+          setStage('invalid');
+          setErrorMsg('Invitation token details could not be retrieved.');
+          return;
+        }
         setInvite(data);
 
         // 2nd time onwards: If invitation code is already fully consumed after registration:
