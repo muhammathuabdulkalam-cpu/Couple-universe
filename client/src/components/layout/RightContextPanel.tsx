@@ -141,7 +141,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               {/* Combined Overlapping Dual Avatars */}
               <div className="flex items-center justify-center -space-x-2">
                 {myHasAvatar ? (
-                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" />
+                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
                     <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />

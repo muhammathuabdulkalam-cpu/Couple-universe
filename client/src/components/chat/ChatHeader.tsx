@@ -55,7 +55,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
         <div className="relative shrink-0 w-9 h-9">
           <div className="w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] shadow-md border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
             {otherParticipant?.avatar ? (
-              <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover rounded-full" />
+              <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover rounded-full"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
             ) : (
               <span className="text-white font-bold text-xs">{partnerName?.[0] || '❤️'}</span>
             )}

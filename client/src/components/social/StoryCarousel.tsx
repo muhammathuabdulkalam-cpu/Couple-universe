@@ -76,7 +76,7 @@ export const StoryCarousel: React.FC = () => {
                     src={user.avatar}
                     alt={user.name}
                     className="w-full h-full object-cover rounded-full shrink-0"
-                  />
+                   onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                 ) : (
                   <span className="text-base font-bold text-white">{user?.name?.[0] || 'U'}</span>
                 )}
@@ -121,7 +121,7 @@ export const StoryCarousel: React.FC = () => {
                       src={storyUser.avatar}
                       alt={storyUser.name}
                       className="w-full h-full object-cover rounded-full shrink-0"
-                    />
+                     onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white font-bold text-base rounded-full bg-obsidian-900">
                       {storyUser.name?.[0]}

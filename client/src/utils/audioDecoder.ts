@@ -92,7 +92,7 @@ export function getCloudinaryMp3Url(cloudinaryUrl: string): string {
  */
 export function getNormalizedCoverUrl(coverUrl?: string): string {
   if (!coverUrl || typeof coverUrl !== 'string' || coverUrl.trim() === '' || coverUrl === 'null' || coverUrl === 'undefined') {
-    return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
+    return '';
   }
   let url = coverUrl.trim();
 

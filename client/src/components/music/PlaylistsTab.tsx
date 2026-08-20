@@ -257,12 +257,10 @@ export const PlaylistsTab: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span className="w-6 text-center text-xs font-mono text-slate-500">{idx + 1}</span>
                       <img
-                        src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                        src={song.coverUrl || ''}
                         alt={song.title}
                         className="w-12 h-12 rounded-lg object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                       <div className="min-w-0">
                         <p className="font-bold text-sm truncate">{song.title}</p>

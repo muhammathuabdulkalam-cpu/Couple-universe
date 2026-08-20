@@ -92,7 +92,7 @@ export const BottomNav: React.FC = () => {
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     className="relative flex items-center justify-center"
                   >
-                    {user?.avatar ? (
+                    {user?.avatar && !user.avatar.includes('unsplash.com') ? (
                       <img
                         src={user.avatar}
                         alt={user.name || 'Profile'}
@@ -110,7 +110,7 @@ export const BottomNav: React.FC = () => {
                     ) : null}
                     <User
                       className={`w-6 h-6 transition-colors ${
-                        user?.avatar ? 'hidden' : ''
+                        user?.avatar && !user.avatar.includes('unsplash.com') ? 'hidden' : ''
                       } ${isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'}`}
                     />
                   </motion.div>

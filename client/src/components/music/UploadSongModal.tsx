@@ -270,7 +270,7 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
           {/* Uploaded Song Card */}
           <div className="bg-slate-800/80 border border-white/10 rounded-2xl p-4 flex items-center gap-4 text-left shadow-inner">
             <img
-              src={uploadedSong.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200'}
+              src={uploadedSong.coverUrl || ''}
               alt={uploadedSong.title}
               className="w-16 h-16 rounded-xl object-cover border border-white/15 shadow-md shrink-0"
             />

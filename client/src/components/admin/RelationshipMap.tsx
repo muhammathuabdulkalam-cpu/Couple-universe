@@ -573,7 +573,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                     }
                     alt={superOwner?.name || 'Afzal'}
                     className="w-full h-full object-cover"
-                  />
+                   onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                   <span
                     className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${superOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
                       }`}
@@ -614,7 +614,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                     }
                     alt={coOwner?.name || 'Amrin'}
                     className="w-full h-full object-cover"
-                  />
+                   onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                   <span
                     className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${coOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
                       }`}
@@ -711,7 +711,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-white/10"
-                            />
+                             onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                             <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#16161E]" />
                           </div>
 
@@ -907,7 +907,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-amber-500/30"
-                            />
+                             onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                             <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#16161E]" />
                           </div>
 
@@ -1103,7 +1103,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               }
                               alt={friend.name}
                               className="w-full h-full rounded-2xl object-cover border border-white/10"
-                            />
+                             onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                             <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-[#16161E]" />
                           </div>
 

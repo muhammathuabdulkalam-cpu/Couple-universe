@@ -91,7 +91,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center -space-x-2 shrink-0">
                 {myHasAvatar ? (
-                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full border border-white/40 object-cover" />
+                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full border border-white/40 object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
                     <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />

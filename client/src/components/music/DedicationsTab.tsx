@@ -128,7 +128,7 @@ export const DedicationsTab: React.FC<DedicationsTabProps> = ({
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <div className="relative shrink-0">
                     <img
-                      src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                      src={song.coverUrl || ''}
                       alt={song.title}
                       className="w-16 h-16 rounded-xl object-cover shadow-lg border border-white/10"
                     />
@@ -204,7 +204,7 @@ export const DedicationsTab: React.FC<DedicationsTabProps> = ({
             <form onSubmit={handleSendDedication} className="space-y-4 my-4">
               <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3 border border-white/5">
                 <img
-                  src={selectedSong.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                  src={selectedSong.coverUrl || ''}
                   alt={selectedSong.title}
                   className="w-12 h-12 rounded-lg object-cover"
                 />

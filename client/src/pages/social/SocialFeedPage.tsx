@@ -77,7 +77,7 @@ export const SocialFeedPage: React.FC = () => {
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-afzal to-amrin p-[2px]">
                 <div className="w-full h-full rounded-full bg-obsidian-900 overflow-hidden flex items-center justify-center">
                   {user?.avatar ? (
-                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                   ) : (
                     <span className="text-white font-bold text-base">{user?.name?.[0]}</span>
                   )}

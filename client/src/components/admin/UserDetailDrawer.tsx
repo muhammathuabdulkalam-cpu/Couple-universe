@@ -85,7 +85,7 @@ export const UserDetailDrawer: React.FC = () => {
             {/* Cover Image & Profile Header */}
             <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-slate-800">
               <img
-                src={userDetail.coverImage || 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=800'}
+                src={userDetail.coverImage || ''}
                 alt="Cover"
                 className="w-full h-24 object-cover opacity-60"
               />

@@ -99,7 +99,7 @@ export const SuperOwnerProfileModal: React.FC<Props> = ({ isOpen, onClose }) => 
                               src={superOwnerData.avatar}
                               alt={superOwnerData.name}
                               className="w-full h-full object-cover rounded-full"
-                            />
+                             onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                           ) : (
                             superOwnerData?.name?.[0] || 'A'
                           )}
@@ -280,7 +280,7 @@ export const SuperOwnerProfileModal: React.FC<Props> = ({ isOpen, onClose }) => 
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 overflow-hidden">
                             {u.avatar ? (
-                              <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" />
+                              <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                             ) : (
                               <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
                                 {u.name?.[0] || 'U'}

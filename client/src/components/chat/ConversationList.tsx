@@ -224,7 +224,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                   <div className="relative shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center font-bold text-white text-sm shadow overflow-hidden">
                       {otherParticipant?.avatar ? (
-                        <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover" />
+                        <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                       ) : (
                         <span>{partnerName?.[0] || '❤️'}</span>
                       )}

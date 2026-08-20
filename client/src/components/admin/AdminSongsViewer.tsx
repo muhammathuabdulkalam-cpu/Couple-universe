@@ -171,7 +171,7 @@ export const AdminSongsViewer: React.FC<AdminSongsViewerProps> = ({
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-white/10">
                           <img
-                            src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                            src={song.coverUrl || ''}
                             alt={song.title}
                             className="w-full h-full object-cover"
                           />
@@ -208,7 +208,7 @@ export const AdminSongsViewer: React.FC<AdminSongsViewerProps> = ({
                             src={song.uploadedBy.avatar}
                             alt=""
                             className="w-5 h-5 rounded-full object-cover border border-white/10"
-                          />
+                           onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                         ) : (
                           <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[9px] font-bold text-rose-300">
                             <UserIcon className="w-3 h-3 text-slate-400" />

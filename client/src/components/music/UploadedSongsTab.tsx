@@ -221,11 +221,7 @@ export const UploadedSongsTab: React.FC = () => {
                       src={getNormalizedCoverUrl(song.coverUrl)}
                       alt={song.title}
                       className="w-full h-full object-cover"
-                      onError={(e) => {
-                        if (!e.currentTarget.src.includes('unsplash.com')) {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                        }
-                      }}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                     <div
                       className={`absolute inset-0 flex items-center justify-center bg-black/50 transition ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover/img:opacity-100'

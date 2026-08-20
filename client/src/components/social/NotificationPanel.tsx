@@ -233,7 +233,7 @@ export const NotificationPanel: React.FC<Props> = ({ isOpen: propIsOpen, onClose
                             src={n.senderId.avatar}
                             alt={n.senderId.name}
                             className="w-full h-full object-cover rounded-full"
-                          />
+                           onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                         ) : (
                           <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
                             {(n.senderId?.name || 'A').charAt(0).toUpperCase()}

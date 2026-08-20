@@ -133,7 +133,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
     title: 'Love Story',
     artist: 'Taylor Swift',
     album: 'Fearless',
-    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+    coverUrl: '',
     previewUrl: 'https://cdns-preview-d.dzcdn.net/stream/c-d64627d3129528d22384a2754d924ebc-3.mp3',
     duration: 30,
   };
@@ -297,7 +297,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     >
                       <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
                         <img
-                          src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200'}
+                          src={song.coverUrl || ''}
                           alt={song.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
@@ -356,7 +356,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           <div className="relative group shrink-0">
             <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
               <img
-                src={activeHeroTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'}
+                src={activeHeroTrack.coverUrl || ''}
                 alt={activeHeroTrack.title}
                 className={`w-full h-full object-cover transition-transform duration-700 ${isPlaying ? 'scale-105' : 'scale-100'
                   }`}
@@ -482,7 +482,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     >
                       <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
                         <img
-                          src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=200'}
+                          src={song.coverUrl || ''}
                           alt={song.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />

@@ -65,7 +65,7 @@ export const DashboardMusicWidget: React.FC = React.memo(() => {
         <div className="flex items-center gap-4 bg-white/5 rounded-2xl p-3.5 border border-white/5">
           <div className="relative shrink-0">
             <img
-              src={trackToDisplay.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+              src={trackToDisplay.coverUrl || ''}
               alt={trackToDisplay.title}
               className={`w-14 h-14 rounded-xl object-cover shadow-md transition-transform duration-300 ${
                 isPlaying ? 'scale-105 ring-2 ring-rose-500/50' : ''

@@ -147,7 +147,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0 group-hover:scale-105 transition-transform">
             <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {activity.userId.avatar ? (
-                <img src={activity.userId.avatar} alt={activity.userId.name} className="w-full h-full object-cover" />
+                <img src={activity.userId.avatar} alt={activity.userId.name} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
               ) : (
                 <span className="text-white font-bold text-sm">{activity.userId.name?.[0]}</span>
               )}

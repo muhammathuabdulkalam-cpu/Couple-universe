@@ -230,7 +230,7 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
           <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 p-[2px] shrink-0 group-hover:scale-105 transition-transform">
             <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {current.userId.avatar ? (
-                <img src={current.userId.avatar} className="w-full h-full object-cover" alt="" />
+                <img src={current.userId.avatar} className="w-full h-full object-cover" alt=""  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
               ) : (
                 <span className="text-white text-xs font-bold">{current.userId.name?.[0]}</span>
               )}
@@ -382,7 +382,7 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] overflow-hidden shrink-0 shadow-md">
                           {item.avatar ? (
-                            <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full" />
+                            <img src={item.avatar} alt={item.name} className="w-full h-full object-cover rounded-full"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                           ) : (
                             <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
                               {item.name?.[0] || '❤️'}

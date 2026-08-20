@@ -51,8 +51,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
           <div className="relative shrink-0">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-2xl">
               <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center font-extrabold text-white text-3xl overflow-hidden p-0.5">
-                {displayUser?.avatar ? (
-                  <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover rounded-full" />
+                {displayUser?.avatar && !displayUser.avatar.includes('unsplash.com') ? (
+                  <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; }} />
                 ) : (
                   <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
                     <UserCircle2 className="w-12 h-12 text-slate-400" />
@@ -231,8 +231,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 overflow-hidden">
-                          {u.avatar ? (
-                            <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" />
+                          {u.avatar && !u.avatar.includes('unsplash.com') ? (
+                            <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; }} />
                           ) : (
                             <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
                               {u.name?.[0] || 'U'}

@@ -143,7 +143,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                         }`}
                     >
                       <img
-                        src={track.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                        src={track.coverUrl || ''}
                         alt={track.title}
                         className="w-10 h-10 rounded-lg object-cover"
                       />
@@ -215,7 +215,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
             >
               <div className="relative group shrink-0">
                 <img
-                  src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                  src={currentTrack.coverUrl || ''}
                   alt={currentTrack.title}
                   className={`w-12 h-12 rounded-xl object-cover shadow-md transition-transform duration-300 ${isPlaying ? 'scale-105 ring-2 ring-rose-500/50' : ''
                     }`}

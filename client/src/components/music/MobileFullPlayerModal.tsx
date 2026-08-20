@@ -134,7 +134,7 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
           <div className="flex-1 flex flex-col items-center justify-center my-3 relative">
             <div className="relative w-64 h-64 sm:w-72 sm:h-72 rounded-full overflow-hidden shadow-2xl border-4 border-white/10 p-1 bg-slate-900 flex items-center justify-center">
               <img
-                src={currentTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500'}
+                src={currentTrack.coverUrl || ''}
                 alt={currentTrack.title}
                 className="w-full h-full object-cover rounded-full"
               />

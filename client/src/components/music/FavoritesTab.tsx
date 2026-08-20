@@ -101,7 +101,7 @@ export const FavoritesTab: React.FC = () => {
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <img
-                    src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                    src={song.coverUrl || ''}
                     alt={song.title}
                     className="w-12 h-12 rounded-xl object-cover"
                   />

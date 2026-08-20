@@ -89,7 +89,7 @@ export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId
       <div key={comment._id} className={`flex gap-3 text-xs ${isReply ? 'ml-8 mt-2.5 border-l-2 border-white/10 pl-3' : 'mt-3'}`}>
         <div className="w-7 h-7 rounded-full bg-afzal/20 border border-white/10 overflow-hidden shrink-0">
           {comment.userId.avatar ? (
-            <img src={comment.userId.avatar} alt={comment.userId.name} className="w-full h-full object-cover" />
+            <img src={comment.userId.avatar} alt={comment.userId.name} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-white font-bold text-[10px]">
               {comment.userId.name?.[0]}

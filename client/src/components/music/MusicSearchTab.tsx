@@ -243,7 +243,7 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
                 {/* Cover Image & Play Overlay */}
                 <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
                   <img
-                    src={song.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300'}
+                    src={song.coverUrl || ''}
                     alt={song.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
@@ -333,7 +333,7 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
 
             <div className="py-4 flex items-center gap-3 bg-white/5 rounded-xl p-3 my-4">
               <img
-                src={selectedSongForPlaylist.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100'}
+                src={selectedSongForPlaylist.coverUrl || ''}
                 alt={selectedSongForPlaylist.title}
                 className="w-12 h-12 rounded-lg object-cover"
               />

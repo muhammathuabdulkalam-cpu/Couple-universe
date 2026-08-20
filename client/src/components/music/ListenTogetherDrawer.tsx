@@ -98,7 +98,7 @@ export const ListenTogetherDrawer: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center -space-x-3">
                     {myHasAvatar ? (
-                      <img src={user!.avatar!} alt={user?.name || 'Me'} className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md" />
+                      <img src={user!.avatar!} alt={user?.name || 'Me'} className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-slate-700 border-2 border-white/30 flex items-center justify-center">
                         <UserCircle2 className="w-5 h-5 text-slate-400" />
