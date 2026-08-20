@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Headphones, Music, Sparkles } from 'lucide-react';
+import { Headphones, Music } from 'lucide-react';
 import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -99,9 +99,9 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
             </div>
           </>
         ) : (
-          /* State 3: Listen Together Disconnected & Idle -> Show Activity Sparkles ✨ Icon */
-          <div className="flex items-center justify-center text-amber-300">
-            <Sparkles className="w-6 h-6 animate-pulse" />
+          /* State 3: Listen Together Disconnected & Idle -> Show Music Icon */
+          <div className="flex items-center justify-center text-amrin-glow">
+            <Music className="w-5 h-5 text-amrin-glow animate-pulse" />
           </div>
         )}
       </button>
