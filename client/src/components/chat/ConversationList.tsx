@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Heart, Lock, MessageSquare, RefreshCw, Search, Shield } from 'lucide-react';
+import { Heart, Lock, MessageSquare, RefreshCw, Search } from 'lucide-react';
 import React, { useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';

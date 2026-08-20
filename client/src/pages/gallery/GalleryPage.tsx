@@ -84,8 +84,10 @@ export const GalleryPage: React.FC = () => {
   const effectiveMediaList = isInvitedUser && (user?._id || user?.id)
     ? rawMediaList.filter((m) => {
         const uId = (user._id || user.id)?.toString();
-        const ownerId = typeof m.owner === 'object' ? ((m.owner as any)?._id || (m.owner as any)?.id)?.toString() : m.owner?.toString();
-        const createdById = typeof m.createdBy === 'object' ? ((m.createdBy as any)?._id || (m.createdBy as any)?.id)?.toString() : m.createdBy?.toString();
+        const ownerVal = m.owner as any;
+        const createdByVal = m.createdBy as any;
+        const ownerId = typeof ownerVal === 'object' ? (ownerVal?._id || ownerVal?.id)?.toString() : ownerVal?.toString();
+        const createdById = typeof createdByVal === 'object' ? (createdByVal?._id || createdByVal?.id)?.toString() : createdByVal?.toString();
         return ownerId === uId || createdById === uId;
       })
     : rawMediaList;

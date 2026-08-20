@@ -8,7 +8,6 @@ import {
   Link,
   Search,
   UserPlus,
-  User,
   Network,
   ChevronDown,
   GitBranch,
@@ -389,8 +388,9 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
 
       if (tokenCode) {
         const keyId = friend.relationshipId || friend.id || 'token';
-        setTokensMap((prev) => ({ ...prev, [keyId]: tokenCode }));
-        const inviteUrl = `${window.location.origin}/invite/${tokenCode}`;
+        const finalTokenCode = tokenCode;
+        setTokensMap((prev) => ({ ...prev, [keyId]: finalTokenCode }));
+        const inviteUrl = `${window.location.origin}/invite/${finalTokenCode}`;
         await copyToClipboard(inviteUrl);
         setCopiedTokenRelId(keyId);
         setTimeout(() => setCopiedTokenRelId(null), 2500);
@@ -449,19 +449,6 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
       (userObj.email || '').toLowerCase().includes(q) ||
       (userObj.role || '').toLowerCase().includes(q)
     );
-  };
-
-  const getRoleBadgeClass = (role?: string) => {
-    switch (role) {
-      case 'SUPER_OWNER':
-        return 'bg-gradient-to-r from-rose-500/20 to-pink-500/20 border-rose-500/40 text-rose-300';
-      case 'CO_OWNER':
-        return 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/40 text-pink-300';
-      case 'ADMIN':
-        return 'bg-blue-500/20 border-blue-500/40 text-blue-300';
-      default:
-        return 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300';
-    }
   };
 
   const getRelIcon = (relType: string) => {

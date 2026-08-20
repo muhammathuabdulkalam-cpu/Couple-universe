@@ -19,7 +19,6 @@ const WALLPAPER_PRESETS = [
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
   const { user } = useAuthStore();
-  const isInvitedUser = user?.role === 'INVITED_USER';
   const { activeConversation, onlineUsers, wallpaper, setWallpaper } = useChatStore();
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
 
