@@ -34,24 +34,33 @@ const fileFormat = winston.format.combine(
   winston.format.json()
 );
 
-const transports = [
+const transports: winston.transport[] = [
   new winston.transports.Console({ format }),
-  new DailyRotateFile({
-    filename: path.join(logDir, 'error-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    level: 'error',
-    format: fileFormat,
-    maxFiles: '30d',
-    zippedArchive: true,
-  }),
-  new DailyRotateFile({
-    filename: path.join(logDir, 'combined-%DATE%.log'),
-    datePattern: 'YYYY-MM-DD',
-    format: fileFormat,
-    maxFiles: '14d',
-    zippedArchive: true,
-  }),
 ];
+
+if (env.NODE_ENV === 'development' && !process.env.VERCEL) {
+  try {
+    transports.push(
+      new DailyRotateFile({
+        filename: path.join(logDir, 'error-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        level: 'error',
+        format: fileFormat,
+        maxFiles: '30d',
+        zippedArchive: true,
+      }),
+      new DailyRotateFile({
+        filename: path.join(logDir, 'combined-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        format: fileFormat,
+        maxFiles: '14d',
+        zippedArchive: true,
+      })
+    );
+  } catch (_e) {
+    // Read-only filesystem fallback
+  }
+}
 
 export const logger = winston.createLogger({
   level: env.NODE_ENV === 'development' ? 'debug' : 'info',
