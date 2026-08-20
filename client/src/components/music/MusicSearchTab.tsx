@@ -8,25 +8,12 @@ import {
   Play,
   Plus,
   Search,
-  Sparkles,
   X,
 } from 'lucide-react';
-import { musicApi } from '../../api/musicApi';
-import { useMusicPlayerStore } from '../../store/musicPlayerStore';
-import { NormalizedSong, Playlist } from '../../types/music.types';
-
-const SUGGESTIONS = [
-  { label: '❤️ Love', query: 'Love' },
-  { label: 'Chill', query: 'Chill' },
-  { label: 'EDM', query: 'EDM' },
-  { label: 'Pop', query: 'Pop' },
-  { label: 'Folk', query: 'Folk' },
-  { label: 'Indie', query: 'Indie' },
-  { label: '🎵 Ed Sheeran', query: 'Ed Sheeran' },
-  { label: '🎶 Arijit Singh', query: 'Arijit Singh' },
-  { label: '🎧 Sid Sriram', query: 'Sid Sriram' },
-  { label: '🌸 Taylor Swift', query: 'Taylor Swift' },
-];
+import { musicApi } from '../../api/musicApi.js';
+import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
+import { NormalizedSong, Playlist } from '../../types/music.types.js';
+import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 
 interface MusicSearchTabProps {
   onOpenDedicateModal?: (song: NormalizedSong) => void;
@@ -44,7 +31,6 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
-
 
   // Debounced input search (300ms)
   useEffect(() => {
@@ -96,7 +82,7 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
         [song.providerSongId]: res.isFavorite,
       }));
     } catch (_err) {
-      // Silently handle error or inline feedback
+      // Silently handle error
     }
   };
 
@@ -111,17 +97,17 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
   };
 
   return (
-    <div className="space-y-6">
-      {/* Sticky Search Bar on Mobile / Standard Header on Desktop */}
-      <div className="sticky top-16 z-20 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-4 md:p-6 shadow-xl text-white">
+    <div className="space-y-4">
+      {/* Clean Compact Search Input Bar */}
+      <div className="bg-slate-900/90 border border-white/10 rounded-2xl p-3 shadow-md text-white space-y-2">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rose-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-rose-400" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search songs, artists, albums on Deezer..."
-            className="w-full bg-slate-800/80 border border-white/10 rounded-xl pl-12 pr-12 py-3 md:py-3.5 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500 transition text-sm md:text-base"
+            placeholder="Search songs, artists..."
+            className="w-full bg-slate-800/90 border border-white/10 rounded-xl pl-10 pr-9 py-2 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-rose-500 transition"
           />
           {query && (
             <button
@@ -130,105 +116,68 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
                 setQuery('');
                 setSearchTerm('');
               }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Provider Filter Tabs: All, Deezer, Uploaded */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* Minimal Provider Filter Tabs */}
+        <div className="flex items-center gap-1.5 pt-0.5">
           {(['all', 'deezer', 'uploaded'] as const).map((prov) => (
             <button
               key={prov}
               type="button"
               onClick={() => setFilterProvider(prov)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition border ${
+              className={`px-3 py-1 rounded-full text-[10px] font-bold transition border ${
                 filterProvider === prov
-                  ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-500/30'
+                  ? 'bg-rose-500 text-white border-rose-500 shadow-sm'
                   : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
               }`}
             >
-              {prov === 'all' ? 'All Tracks' : prov === 'deezer' ? 'Deezer Only' : '🎵 Uploaded Only'}
-            </button>
-          ))}
-        </div>
-
-        {/* Suggestion Chips */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-slate-400 font-semibold flex items-center gap-1 mr-1">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Quick Search:
-          </span>
-          {SUGGESTIONS.map((item) => (
-            <button
-              key={item.query}
-              onClick={() => {
-                setQuery(item.query);
-                setSearchTerm(item.query);
-              }}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                searchTerm === item.query
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/5'
-              }`}
-            >
-              {item.label}
+              {prov === 'all' ? 'All' : prov === 'deezer' ? 'Deezer' : 'Uploaded'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Results Header */}
+      {/* Results Count Header */}
       {searchTerm && (
-        <div className="flex items-center justify-between text-slate-300 px-1">
-          <h3 className="font-bold text-lg text-white flex items-center gap-2">
-            <span>Results for</span>
-            <span className="text-rose-400 italic">"{searchTerm}"</span>
-          </h3>
-          <span className="text-xs text-slate-400">{total} tracks found</span>
+        <div className="flex items-center justify-between text-slate-300 px-1 text-xs">
+          <span className="font-bold text-white">
+            Results for <span className="text-rose-400">"{searchTerm}"</span>
+          </span>
+          <span className="text-[10px] text-slate-400">{total} tracks found</span>
         </div>
       )}
 
-      {/* Results Grid / Loading Skeletons / Empty State */}
+      {/* Search Results Grid / List */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-slate-900/40 border border-white/5 rounded-2xl p-4 animate-pulse">
-              <div className="w-full aspect-square bg-white/10 rounded-xl mb-3" />
-              <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-white/5 rounded w-1/2" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-slate-900/40 border border-white/5 rounded-xl p-3 animate-pulse flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-lg shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 bg-white/10 rounded w-3/4" />
+                <div className="h-2.5 bg-white/5 rounded w-1/2" />
+              </div>
             </div>
           ))}
         </div>
       ) : !searchTerm || results.length === 0 || isError ? (
-        /* Premium Empty State Required */
-        <div className="text-center py-16 px-4 bg-slate-900/50 rounded-3xl border border-white/10 backdrop-blur-xl text-white my-8">
-          <div className="w-20 h-20 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4 shadow-xl">
-            <Music2 className="w-10 h-10 animate-pulse" />
-          </div>
-          <h3 className="text-2xl font-black tracking-tight text-white">No songs yet</h3>
-          <p className="text-sm text-slate-400 mt-2 max-w-sm mx-auto">
-            Search for your favorite songs to start listening together.
+        /* Clean Minimal Empty State */
+        <div className="text-center py-10 px-4 bg-slate-900/40 rounded-2xl border border-white/10 text-white">
+          <Music2 className="w-8 h-8 text-rose-400/60 mx-auto mb-2" />
+          <p className="text-xs font-bold text-slate-300">
+            {!searchTerm ? 'Type a song title above to search' : 'No matching songs found'}
           </p>
-
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
-            {SUGGESTIONS.map((item) => (
-              <button
-                key={item.query}
-                onClick={() => {
-                  setQuery(item.query);
-                  setSearchTerm(item.query);
-                }}
-                className="px-4 py-2 rounded-full bg-white/5 hover:bg-rose-500/20 hover:border-rose-500/30 text-rose-300 border border-white/10 text-xs font-semibold transition"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-[10px] text-slate-400 mt-1">
+            Search Deezer streaming or uploaded library
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {results.map((song) => {
             const isCurrent = currentTrack?.providerSongId === song.providerSongId;
             const isSongPlaying = isCurrent && isPlaying;
@@ -238,76 +187,65 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
             return (
               <div
                 key={song.providerSongId}
-                className="group relative bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-4 transition-all duration-300 flex flex-col justify-between shadow-lg hover:shadow-rose-950/20"
+                className="group bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/30 rounded-xl p-2.5 transition flex items-center justify-between gap-2 shadow-sm"
               >
-                {/* Cover Image & Play Overlay */}
-                <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
-                  <img
-                    src={song.coverUrl || ''}
-                    alt={song.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div
-                    onClick={() => {
-                      if (!hasPreview) return;
-                      isCurrent ? togglePlay() : playTrack(song, results);
-                    }}
-                    className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center transition-opacity ${
-                      hasPreview ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
-                    } ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                {/* Artwork & Details */}
+                <div
+                  onClick={() => {
+                    if (!hasPreview) return;
+                    isCurrent ? togglePlay() : playTrack(song, results);
+                  }}
+                  className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                >
+                  <div className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-slate-950">
+                    <img
+                      src={getNormalizedCoverUrl(song.coverUrl)}
+                      alt={song.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                    <div className={`absolute inset-0 bg-black/40 flex items-center justify-center ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                      {isSongPlaying ? (
+                        <Pause className="w-4 h-4 fill-white text-white" />
+                      ) : (
+                        <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-white text-xs truncate group-hover:text-rose-300 transition">
+                      {song.title}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 truncate">{song.artist}</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions: Favorite & Dedicate */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleToggleFavorite(song)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-rose-400 transition"
+                    title="Favorite"
                   >
-                    {hasPreview ? (
-                      <button className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition">
-                        {isSongPlaying ? (
-                          <Pause className="w-6 h-6 fill-current" />
-                        ) : (
-                          <Play className="w-6 h-6 fill-current ml-0.5" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="px-2.5 py-1 rounded-full bg-black/70 text-slate-300 text-[10px] font-bold">
-                        Preview unavailable
-                      </span>
-                    )}
-                  </div>
-                </div>
+                    <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </button>
 
-                {/* Track Details */}
-                <div className="min-w-0">
-                  <h4 className="font-bold text-white text-sm truncate group-hover:text-rose-300 transition">
-                    {song.title}
-                  </h4>
-                  <p className="text-xs text-slate-400 truncate mt-0.5">{song.artist}</p>
-                  {song.album && <p className="text-[11px] text-slate-500 truncate mt-0.5">{song.album}</p>}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/5">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleToggleFavorite(song)}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-rose-400 transition"
-                      title="Favorite"
-                    >
-                      <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedSongForPlaylist(song)}
-                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
-                      title="Add to Playlist"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setSelectedSongForPlaylist(song)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
+                    title="Add to Playlist"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
 
                   {onOpenDedicateModal && (
                     <button
                       onClick={() => onOpenDedicateModal(song)}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold flex items-center gap-1 border border-rose-500/20 transition"
+                      className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[10px] font-semibold border border-rose-500/20 transition"
+                      title="Dedicate Song"
                     >
                       <HeartHandshake className="w-3.5 h-3.5" />
-                      <span>Dedicate</span>
                     </button>
                   )}
                 </div>
@@ -320,41 +258,41 @@ export const MusicSearchTab: React.FC<MusicSearchTabProps> = ({ onOpenDedicateMo
       {/* Add To Playlist Modal */}
       {selectedSongForPlaylist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md text-white shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
-              <h3 className="font-bold text-lg">Add to Playlist</h3>
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-5 w-full max-w-md text-white shadow-2xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h3 className="font-bold text-sm">Add to Playlist</h3>
               <button
                 onClick={() => setSelectedSongForPlaylist(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-full hover:bg-white/10"
+                className="p-1 text-slate-400 hover:text-white rounded-full"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="py-4 flex items-center gap-3 bg-white/5 rounded-xl p-3 my-4">
+            <div className="flex items-center gap-3 bg-white/5 rounded-xl p-2.5">
               <img
                 src={selectedSongForPlaylist.coverUrl || ''}
                 alt={selectedSongForPlaylist.title}
-                className="w-12 h-12 rounded-lg object-cover"
+                className="w-10 h-10 rounded-lg object-cover"
               />
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{selectedSongForPlaylist.title}</p>
-                <p className="text-xs text-slate-400 truncate">{selectedSongForPlaylist.artist}</p>
+                <p className="font-semibold text-xs truncate">{selectedSongForPlaylist.title}</p>
+                <p className="text-[10px] text-slate-400 truncate">{selectedSongForPlaylist.artist}</p>
               </div>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
               {playlists.map((pl) => (
                 <button
                   key={pl._id}
                   onClick={() => handleAddToPlaylist(pl._id)}
-                  className="w-full text-left p-3 rounded-xl hover:bg-white/10 border border-white/5 flex items-center justify-between transition group"
+                  className="w-full text-left p-2.5 rounded-xl hover:bg-white/10 border border-white/5 flex items-center justify-between transition group text-xs"
                 >
                   <div>
-                    <p className="font-semibold text-sm text-slate-200 group-hover:text-rose-300">{pl.title}</p>
-                    <p className="text-xs text-slate-500">{pl.songCount} tracks</p>
+                    <p className="font-semibold text-slate-200 group-hover:text-rose-300">{pl.title}</p>
+                    <p className="text-[10px] text-slate-500">{pl.songCount} tracks</p>
                   </div>
-                  <Plus className="w-4 h-4 text-slate-400 group-hover:text-rose-400" />
+                  <Plus className="w-3.5 h-3.5 text-slate-400 group-hover:text-rose-400" />
                 </button>
               ))}
             </div>
