@@ -14,6 +14,7 @@ interface ChatState {
 
   setConversations: (conversations: ConversationItem[]) => void;
   setActiveConversation: (conversation: ConversationItem | null) => void;
+  removeConversation: (conversationId: string) => void;
   setMessages: (conversationId: string, messages: MessageItem[]) => void;
   addMessage: (conversationId: string, message: MessageItem) => void;
   updateMessageStatus: (conversationId: string, messageId: string, status: MessageItem['status']) => void;
@@ -45,6 +46,17 @@ export const useChatStore = create<ChatState>((set) => ({
       mobileView: activeConversation ? 'chat' : 'list',
     }),
 
+  removeConversation: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.filter((c) => c._id !== conversationId),
+      activeConversation:
+        state.activeConversation?._id === conversationId ? null : state.activeConversation,
+      mobileView:
+        state.activeConversation?._id === conversationId ? 'list' : state.mobileView,
+      messages: Object.fromEntries(
+        Object.entries(state.messages).filter(([k]) => k !== conversationId)
+      ),
+    })),
   setMessages: (conversationId, messagesList) =>
     set((state) => ({
       messages: { ...state.messages, [conversationId.toString()]: messagesList },

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Cake, Calendar, Edit3, Grid, LogOut, Settings, Shield, Users, X } from 'lucide-react';
+import { Cake, Calendar, Edit3, Grid, LogOut, Settings, Shield, UserCircle2, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -54,7 +54,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                 {displayUser?.avatar ? (
                   <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover rounded-full" />
                 ) : (
-                  displayUser?.name?.charAt(0) || 'U'
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
+                    <UserCircle2 className="w-12 h-12 text-slate-400" />
+                  </div>
                 )}
               </div>
             </div>

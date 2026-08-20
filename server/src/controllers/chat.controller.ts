@@ -307,20 +307,39 @@ export const getConversationById = catchAsync(async (req: Request, res: Response
 });
 
 /**
- * Soft Delete Conversation
+ * Soft Delete Conversation (hides from all participants + deletes all messages)
  */
 export const deleteConversation = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
+  const currentUser = req.user!;
 
-  const conversation = await Conversation.findById(id);
+  const conversation = await Conversation.findOne({
+    _id: id,
+    participants: currentUser._id,
+    isDeleted: false,
+  });
+
   if (!conversation) {
-    throw new AppError('Conversation not found.', HTTP_STATUS.NOT_FOUND);
+    throw new AppError('Conversation not found or you are not a participant.', HTTP_STATUS.NOT_FOUND);
   }
 
+  // Hard-delete all messages in this conversation
+  await Message.deleteMany({ conversationId: conversation._id });
+
+  // Soft-delete the conversation itself
   conversation.isDeleted = true;
   await conversation.save();
 
-  return ApiResponse.success(res, 'Conversation deleted.');
+  // Emit socket event to notify all participants in real-time
+  try {
+    const io = socketService.getIO();
+    conversation.participants.forEach((pId) => {
+      io.to(pId.toString()).emit('conversation_deleted', { conversationId: id });
+      io.to(`user:${pId.toString()}`).emit('conversation_deleted', { conversationId: id });
+    });
+  } catch (_e) {}
+
+  return ApiResponse.success(res, 'Conversation and all messages deleted.');
 });
 
 /**

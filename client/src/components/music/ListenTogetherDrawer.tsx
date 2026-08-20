@@ -12,6 +12,7 @@ import {
   Radio,
   LogOut,
   Compass,
+  UserCircle2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -43,10 +44,8 @@ export const ListenTogetherDrawer: React.FC = () => {
 
   if (!isDrawerOpen) return null;
 
-  const myAvatar = user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-  const pAvatar = partnerAvatar || (partnerName?.toLowerCase().includes('amrin')
-    ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
-    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
+  const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
+  const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
 
   const formatTime = (secs?: number | null) => {
     if (!secs || isNaN(secs) || !isFinite(secs) || secs < 0) return '0:00';
@@ -98,16 +97,20 @@ export const ListenTogetherDrawer: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/80 via-slate-900/90 to-purple-950/80 border border-rose-500/30 flex items-center justify-between shadow-xl">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center -space-x-3">
-                    <img
-                      src={myAvatar}
-                      alt={user?.name || 'Me'}
-                      className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md"
-                    />
-                    <img
-                      src={pAvatar}
-                      alt={partnerName || 'Partner'}
-                      className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md"
-                    />
+                    {myHasAvatar ? (
+                      <img src={user!.avatar!} alt={user?.name || 'Me'} className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-slate-700 border-2 border-white/30 flex items-center justify-center">
+                        <UserCircle2 className="w-5 h-5 text-slate-400" />
+                      </div>
+                    )}
+                    {pHasAvatar ? (
+                      <img src={partnerAvatar!} alt={partnerName || 'Partner'} className="w-9 h-9 rounded-full object-cover border-2 border-white/40 shadow-md" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-slate-700 border-2 border-white/30 flex items-center justify-center">
+                        <UserCircle2 className="w-5 h-5 text-slate-400" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h4 className="text-xs font-extrabold text-rose-200">Synced Session</h4>
@@ -136,11 +139,7 @@ export const ListenTogetherDrawer: React.FC = () => {
                     src={getNormalizedCoverUrl(currentTrack.coverUrl)}
                     alt={currentTrack.title}
                     className={`w-full h-full object-cover ${isPlaying ? 'animate-spin-slow' : ''}`}
-                    onError={(e) => {
-                      if (!e.currentTarget.src.includes('unsplash.com')) {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                      }
-                    }}
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Music className="w-8 h-8 text-white/80" />

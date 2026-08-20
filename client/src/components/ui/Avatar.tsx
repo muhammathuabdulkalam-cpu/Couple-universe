@@ -1,3 +1,4 @@
+import { UserCircle2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 interface AvatarProps {
@@ -16,8 +17,13 @@ const sizeClasses = {
   xl: 'w-16 h-16 text-xl',
 };
 
-const DEFAULT_AFZAL_AVATAR = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80';
-const DEFAULT_AMRIN_AVATAR = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80';
+const iconSizeClasses = {
+  xs: 'w-4 h-4',
+  sm: 'w-5 h-5',
+  md: 'w-6 h-6',
+  lg: 'w-7 h-7',
+  xl: 'w-9 h-9',
+};
 
 export const Avatar: React.FC<AvatarProps> = ({
   src,
@@ -26,36 +32,41 @@ export const Avatar: React.FC<AvatarProps> = ({
   className = '',
   alt = 'User Avatar',
 }) => {
-  const [imgErrorCount, setImgErrorCount] = useState(0);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    setImgErrorCount(0);
+    setImgError(false);
   }, [src]);
-
-  const displayName = name || 'User';
-  const isAmrin = displayName.toLowerCase().includes('amrin') || displayName.toLowerCase().includes('co-owner');
-  const defaultAvatarUrl = isAmrin ? DEFAULT_AMRIN_AVATAR : DEFAULT_AFZAL_AVATAR;
 
   const isKnownBroken = Boolean(
     !src ||
     src.trim() === '' ||
+    src.includes('unsplash.com') ||
     src.includes('profile_avatar_e77eul') ||
     src.includes('404')
   );
 
-  let currentSrc = (!isKnownBroken && imgErrorCount === 0) ? src! : defaultAvatarUrl;
+  const showIcon = isKnownBroken || imgError;
 
   const baseSize = sizeClasses[size] || sizeClasses.md;
+  const iconSize = iconSizeClasses[size] || iconSizeClasses.md;
+
+  if (showIcon) {
+    return (
+      <div
+        className={`${baseSize} rounded-full bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 border border-white/10 flex items-center justify-center shrink-0 ${className}`}
+        aria-label={alt}
+      >
+        <UserCircle2 className={`${iconSize} text-slate-400`} />
+      </div>
+    );
+  }
 
   return (
     <img
-      src={currentSrc}
-      alt={alt || displayName}
-      onError={() => {
-        if (imgErrorCount < 2) {
-          setImgErrorCount((prev) => prev + 1);
-        }
-      }}
+      src={src!}
+      alt={alt || name || 'User'}
+      onError={() => setImgError(true)}
       className={`${baseSize} rounded-full object-cover shrink-0 ${className}`}
     />
   );

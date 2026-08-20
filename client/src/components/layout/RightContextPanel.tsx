@@ -9,6 +9,7 @@ import {
   Music,
   Plus,
   Sparkles,
+  UserCircle2,
   X,
   Zap,
 } from 'lucide-react';
@@ -48,10 +49,8 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
 
-  const myAvatar = user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-  const pAvatar = partnerAvatar || (partnerName?.toLowerCase().includes('amrin')
-    ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
-    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
+  const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
+  const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
 
   const panelContent = (
     <div className="space-y-4">
@@ -141,16 +140,20 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             >
               {/* Combined Overlapping Dual Avatars */}
               <div className="flex items-center justify-center -space-x-2">
-                <img
-                  src={myAvatar}
-                  alt="Me"
-                  className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm"
-                />
-                <img
-                  src={pAvatar}
-                  alt={partnerName || 'Partner'}
-                  className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm"
-                />
+                {myHasAvatar ? (
+                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
+                {pHasAvatar ? (
+                  <img src={partnerAvatar!} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
               </div>
 
               {/* Glowing Heartbeat Headphones Badge */}
@@ -180,11 +183,6 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                   src={getNormalizedCoverUrl(currentTrack.coverUrl)}
                   alt={currentTrack.title}
                   className="w-full h-full object-cover rounded-full select-none"
-                  onError={(e) => {
-                    if (!e.currentTarget.src.includes('unsplash.com')) {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                    }
-                  }}
                 />
               ) : isPlayingSolo ? (
                 <Music className="w-5 h-5 text-amrin-glow" />

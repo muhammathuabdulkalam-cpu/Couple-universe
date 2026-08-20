@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pause, Play, Music, Disc, SkipBack, SkipForward, Headphones } from 'lucide-react';
+import { Pause, Play, Music, Disc, SkipBack, SkipForward, Headphones, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useListenTogetherStore } from '../../store/listenTogetherStore';
@@ -20,10 +20,8 @@ export const RightSidebarMusicWidget: React.FC = () => {
   const { isSessionActive, partnerName, partnerAvatar } = useListenTogetherStore();
   const { user } = useAuthStore();
 
-  const myAvatar = user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
-  const pAvatar = partnerAvatar || (partnerName?.toLowerCase().includes('amrin')
-    ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
-    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
+  const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
+  const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
 
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
@@ -92,9 +90,21 @@ export const RightSidebarMusicWidget: React.FC = () => {
         <div className="p-2 rounded-xl bg-gradient-to-r from-rose-950/60 via-slate-950/80 to-purple-950/60 border border-rose-500/40 flex items-center justify-between gap-2 shadow-inner">
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center -space-x-2 shrink-0">
-              <img src={myAvatar} alt="Me" className="w-5 h-5 rounded-full border border-white/40 object-cover" />
-              <img src={pAvatar} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full border border-white/40 object-cover" />
-            </div>
+                {myHasAvatar ? (
+                  <img src={user!.avatar!} alt="Me" className="w-5 h-5 rounded-full border border-white/40 object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
+                {pHasAvatar ? (
+                  <img src={partnerAvatar!} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full border border-white/40 object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-slate-700 border border-white/30 flex items-center justify-center">
+                    <UserCircle2 className="w-3.5 h-3.5 text-slate-400" />
+                  </div>
+                )}
+              </div>
             <div className="min-w-0">
               <span className="text-[11px] font-extrabold text-rose-300 truncate block">Listening Together 💖</span>
               <span className="text-[9px] text-slate-300 truncate block">Synced with {partnerName || 'Partner'}</span>
@@ -135,9 +145,8 @@ export const RightSidebarMusicWidget: React.FC = () => {
                 alt={displaySong.title}
                 className={`w-full h-full object-cover ${isPlaying ? 'animate-spin-slow' : ''}`}
                 onError={(e) => {
-                  if (!e.currentTarget.src.includes('unsplash.com')) {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400';
-                  }
+                  const t = e.currentTarget;
+                  t.style.display = 'none';
                 }}
               />
               <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

@@ -13,6 +13,7 @@ export const ChatPage: React.FC = () => {
     updateMessageReaction,
     setUserOnline,
     setTypingUser,
+    removeConversation,
   } = useChatStore();
 
   useEffect(() => {
@@ -58,6 +59,10 @@ export const ChatPage: React.FC = () => {
       setTypingUser(conversationId, userName, false);
     });
 
+    socket.on('conversation_deleted', ({ conversationId }) => {
+      removeConversation(conversationId);
+    });
+
     return () => {
       socket.off('receive_message');
       socket.off('message_delivered');
@@ -67,8 +72,10 @@ export const ChatPage: React.FC = () => {
       socket.off('user_offline');
       socket.off('typing_start');
       socket.off('typing_stop');
+      socket.off('conversation_deleted');
     };
-  }, [accessToken, addMessage, updateMessageStatus, updateMessageReaction, setUserOnline, setTypingUser]);
+  }, [accessToken, addMessage, updateMessageStatus, updateMessageReaction, setUserOnline, setTypingUser, removeConversation]);
+
 
   return (
     <div className="w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden">
