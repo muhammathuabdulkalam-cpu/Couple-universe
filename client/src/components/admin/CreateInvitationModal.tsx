@@ -18,6 +18,7 @@ import { adminApi } from '../../api/adminApi';
 import { ALL_FEATURES_CONFIG, FeatureKey } from '../../config/features';
 import { AdminRelationshipItem, AdminUserListItem } from '../../types/admin.types';
 import { copyToClipboard } from '../../utils/clipboard';
+import { buildInviteUrl } from '../../utils/inviteUrl';
 
 interface CreateInvitationModalProps {
   isOpen: boolean;
@@ -164,8 +165,7 @@ export const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
       });
 
       const token = inviteData.code;
-      const origin = window.location.origin;
-      const inviteUrl = `${origin}/invite/${token}`;
+      const inviteUrl = buildInviteUrl(token);
 
       setCreatedInvite({
         token,

@@ -3,6 +3,7 @@ import { X, Key, Copy, RefreshCw, Ban, Check, Sparkles, QrCode } from 'lucide-re
 import { adminApi } from '../../api/adminApi';
 import { AdminInviteToken } from '../../types/admin.types';
 import { copyToClipboard } from '../../utils/clipboard';
+import { buildInviteUrl } from '../../utils/inviteUrl';
 
 interface InviteManagementModalProps {
   isOpen: boolean;
@@ -84,8 +85,7 @@ export const InviteManagementModal: React.FC<InviteManagementModalProps> = ({
   };
 
   const handleCopyLink = async (code: string) => {
-    const origin = window.location.origin;
-    const inviteUrl = `${origin}/invite/${code}`;
+    const inviteUrl = buildInviteUrl(code);
     await copyToClipboard(inviteUrl);
     setCopiedCode(`link-${code}`);
     setTimeout(() => setCopiedCode(null), 2000);

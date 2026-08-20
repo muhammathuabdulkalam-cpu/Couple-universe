@@ -19,6 +19,7 @@ import { AdminUserListItem, AdminRelationshipItem } from '../../types/admin.type
 import { useAdminAuthStore } from '../../store/adminAuthStore';
 import { adminApi } from '../../api/adminApi';
 import { copyToClipboard } from '../../utils/clipboard';
+import { buildInviteUrl } from '../../utils/inviteUrl';
 
 interface RelationshipMapProps {
   users: AdminUserListItem[];
@@ -433,7 +434,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
         const keyId = friend.relationshipId || friend.id || 'token';
         const finalTokenCode = tokenCode;
         setTokensMap((prev) => ({ ...prev, [keyId]: finalTokenCode }));
-        const inviteUrl = `${window.location.origin}/invite/${finalTokenCode}`;
+        const inviteUrl = buildInviteUrl(finalTokenCode);
         await copyToClipboard(inviteUrl);
         setCopiedTokenRelId(keyId);
         setTimeout(() => setCopiedTokenRelId(null), 2500);
