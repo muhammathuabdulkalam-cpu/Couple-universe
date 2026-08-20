@@ -27,6 +27,7 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
+import { useUIStore } from '../../store/uiStore.js';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
 
@@ -43,11 +44,11 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+  const { isActivityDrawerOpen, toggleActivityDrawer } = useUIStore();
 
   const { isSessionActive, partnerName, partnerAvatar, setDrawerOpen } = useListenTogetherStore();
   const { user } = useAuthStore();
 
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
 
@@ -163,7 +164,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <div className="relative">
             <button
               type="button"
-              onClick={() => setIsMobileDrawerOpen(true)}
+              onClick={() => toggleActivityDrawer(true)}
               className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
                 isPlayingSolo
                   ? 'border-amrin-glow ring-2 ring-amrin-glow/50 shadow-lg shadow-amrin-glow/30'
@@ -206,7 +207,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
       {/* Mobile Slide-Over Activity & Context Drawer */}
       <AnimatePresence>
-        {isMobileDrawerOpen && (
+        {isActivityDrawerOpen && (
           <div className="fixed inset-0 z-[250] flex justify-end bg-black/80 backdrop-blur-md md:hidden">
             <motion.div
               initial={{ x: '100%' }}
@@ -220,7 +221,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                   <Sparkles className="w-4 h-4 text-amrin-glow" /> Activity & Context Bar
                 </div>
                 <button
-                  onClick={() => setIsMobileDrawerOpen(false)}
+                  onClick={() => toggleActivityDrawer(false)}
                   className="p-1 rounded-lg text-slate-400 hover:text-white"
                 >
                   <X className="w-5 h-5" />

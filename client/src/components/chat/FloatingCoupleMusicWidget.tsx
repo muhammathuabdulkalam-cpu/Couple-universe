@@ -5,6 +5,7 @@ import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import { useUIStore } from '../../store/uiStore.js';
 import { Avatar } from '../ui/Avatar.js';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 
@@ -13,6 +14,7 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
   const { isPlaying, currentTrack } = useMusicPlayerStore();
   const { user } = useAuthStore();
   const { activeConversation, mobileView } = useChatStore();
+  const { toggleActivityDrawer } = useUIStore();
 
   // ONLY render inside an active chat thread (not on chat list page)
   if (!activeConversation || mobileView !== 'chat') {
@@ -23,6 +25,14 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
   const partnerDisplayName = partnerName || (isCoOwner ? 'Afzal' : 'Amrin');
   const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
   const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
+
+  const handleClick = () => {
+    if (isSessionActive) {
+      toggleDrawer(); // Opens Listen Together sidebar
+    } else {
+      toggleActivityDrawer(true); // Opens Activity sidebar
+    }
+  };
 
   return (
     <motion.div
@@ -38,7 +48,7 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
     >
       <button
         type="button"
-        onClick={() => toggleDrawer()}
+        onClick={handleClick}
         className={`w-12 h-12 rounded-full backdrop-blur-2xl border-2 ring-2 shadow-2xl active:scale-95 transition-all flex items-center justify-center relative group cursor-pointer shrink-0 overflow-visible ${
           isSessionActive
             ? 'bg-gradient-to-tr from-rose-950 via-obsidian-950 to-purple-950 border-rose-500/80 ring-rose-500/40 shadow-rose-500/40'

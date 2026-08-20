@@ -4,10 +4,12 @@ import { ToastMessage, ToastType } from '../types/index.js';
 interface UIState {
   theme: 'dark' | 'light';
   isSidebarOpen: boolean;
+  isActivityDrawerOpen: boolean;
   toasts: ToastMessage[];
   
   toggleTheme: () => void;
   toggleSidebar: () => void;
+  toggleActivityDrawer: (open?: boolean) => void;
   addToast: (title: string, message?: string, type?: ToastType, duration?: number) => void;
   removeToast: (id: string) => void;
 }
@@ -15,6 +17,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set, get) => ({
   theme: 'dark',
   isSidebarOpen: false,
+  isActivityDrawerOpen: false,
   toasts: [],
 
   toggleTheme: () => {
@@ -29,6 +32,9 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
 
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  toggleActivityDrawer: (open?: boolean) =>
+    set((state) => ({ isActivityDrawerOpen: open !== undefined ? open : !state.isActivityDrawerOpen })),
 
   addToast: (title, message, type = 'info', duration = 4000) => {
     const activeToasts = get().toasts;
