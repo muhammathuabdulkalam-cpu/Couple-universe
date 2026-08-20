@@ -116,23 +116,17 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
       document.body.appendChild(globalAudio);
     }
 
-    // Silent browser audio unlock on first user interaction for Socket.IO auto-playback
+    // Track whether audio context is unlocked (browsers require a user gesture before play)
+    // We do NOT play a silent WAV here because that would race with the first playTrack() call
+    // and overwrite the real song src. Instead, playTrack() itself is always called inside a
+    // click handler, which already satisfies the user-gesture requirement.
+    let audioUnlocked = false;
     const unlock = () => {
-      if (globalAudio) {
-        const oldSrc = globalAudio.src;
-        // Inject tiny silent 1-sample WAV data-URI to satisfy browsers and unlock play permissions
-        globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA";
-        globalAudio.play()
-          .then(() => {
-            globalAudio?.pause();
-            if (oldSrc && oldSrc.trim() !== '') {
-              globalAudio!.src = oldSrc;
-            } else {
-              globalAudio!.removeAttribute('src');
-            }
-          })
-          .catch(() => {});
+      if (!audioUnlocked && globalAudio && !globalAudio.src) {
+        // Only unlock if no real song is already loading
+        audioUnlocked = true;
       }
+      audioUnlocked = true;
       window.removeEventListener('click', unlock);
       window.removeEventListener('touchstart', unlock);
     };
@@ -140,6 +134,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
       window.addEventListener('click', unlock, { once: true });
       window.addEventListener('touchstart', unlock, { once: true });
     }
+
 
     globalAudio.addEventListener('timeupdate', () => {
       if (globalAudio) {
