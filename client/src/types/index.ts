@@ -522,6 +522,7 @@ export interface ActivityItem {
   title?: string;
   description?: string;
   imageUrl?: string;
+  aspectRatio?: string;
   isPublic: boolean;
   createdAt: string;
 }

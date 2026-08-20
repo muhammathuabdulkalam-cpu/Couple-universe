@@ -163,24 +163,86 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     return idSet;
   };
 
-  // Helper: get the owner ID for an invited user using two sources of truth
-  const getMyOwnerIdStr = async (userId: mongoose.Types.ObjectId): Promise<string | null> => {
-    // Source 1: Invite.createdBy where usedBy === this user
-    const myInvite = await Invite.findOne({
-      usedBy: userId,
-    }).select('createdBy');
+  // Helper: get the owner ID for an invited user using multi-level resolution
+  const getMyOwnerIdStr = async (userId: mongoose.Types.ObjectId): Promise<string> => {
+    const userDoc = await User.findById(userId).select('email name relationshipId role createdBy');
 
-    if (myInvite?.createdBy) return myInvite.createdBy.toString();
+    // Priority 1: InvitedUser doc matching name or email
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    if (userDoc?.email || userDoc?.name) {
+      const orConditions: any[] = [];
+      if (userDoc.email && userDoc.email.trim() !== '') {
+        orConditions.push({ email: userDoc.email.toLowerCase() });
+      }
+      if (userDoc.name && userDoc.name.trim() !== '') {
+        orConditions.push({ name: new RegExp(`^${userDoc.name.trim()}$`, 'i') });
+      }
+      if (orConditions.length > 0) {
+        const invitedDoc = await InvitedUser.findOne({
+          $or: orConditions,
+          isDeleted: false,
+        }).select('ownerUserId');
 
-    // Source 2: InvitedUser.ownerUserId matched by email
-    const userDoc = await User.findById(userId).select('email');
-    if (userDoc?.email) {
-      const { InvitedUser } = await import('../models/invitedUser.model');
-      const invitedDoc = await InvitedUser.findOne({ email: userDoc.email, isDeleted: false }).select('ownerUserId');
-      if (invitedDoc?.ownerUserId) return invitedDoc.ownerUserId.toString();
+        if (invitedDoc?.ownerUserId) {
+          const ownerDoc = await User.findById(invitedDoc.ownerUserId).select('role');
+          if (ownerDoc && ownerDoc.role !== 'ADMIN') {
+            return ownerDoc._id.toString();
+          }
+        }
+      }
     }
 
-    return null;
+    // Priority 2: Relationship membership owner (SUPER_OWNER or CO_OWNER)
+    if (userDoc?.relationshipId) {
+      const { Relationship } = await import('../models/relationship.model');
+      const rel = await Relationship.findById(userDoc.relationshipId);
+      if (rel && rel.members) {
+        const ownerMem = rel.members.find((m: any) => {
+          const roleUpper = (m.role || '').toUpperCase();
+          return roleUpper === 'SUPER_OWNER' || roleUpper === 'CO_OWNER';
+        });
+        if (ownerMem && ownerMem.user) {
+          const ownerUser = await User.findById(ownerMem.user).select('role');
+          if (ownerUser && ownerUser.role !== 'ADMIN') {
+            return ownerUser._id.toString();
+          }
+        }
+      }
+    }
+
+    // Priority 3: Invite token usedBy -> check createdBy (ignoring ADMIN users)
+    const myInvite = await Invite.findOne({ usedBy: userId }).select('createdBy relationship');
+    if (myInvite?.createdBy) {
+      const inviterDoc = await User.findById(myInvite.createdBy).select('role');
+      if (inviterDoc && inviterDoc.role !== 'ADMIN') {
+        return inviterDoc._id.toString();
+      }
+      if (myInvite.relationship) {
+        const { Relationship } = await import('../models/relationship.model');
+        const rel = await Relationship.findById(myInvite.relationship);
+        if (rel && rel.members) {
+          const ownerMem = rel.members.find((m: any) => {
+            const roleUpper = (m.role || '').toUpperCase();
+            return roleUpper === 'SUPER_OWNER' || roleUpper === 'CO_OWNER';
+          });
+          if (ownerMem && ownerMem.user) {
+            return ownerMem.user.toString();
+          }
+        }
+      }
+    }
+
+    // Priority 4: User doc createdBy (if not ADMIN)
+    if ((userDoc as any)?.createdBy) {
+      const creatorDoc = await User.findById((userDoc as any).createdBy).select('role');
+      if (creatorDoc && creatorDoc.role !== 'ADMIN') {
+        return creatorDoc._id.toString();
+      }
+    }
+
+    // Fallback: SUPER_OWNER (Afzal)
+    const superOwner = await User.findOne({ role: 'SUPER_OWNER', isDeleted: false }).select('_id');
+    return superOwner ? superOwner._id.toString() : '';
   };
 
   // 1. Auto-initialize 1-on-1 private conversations scoped by ownership
@@ -243,7 +305,7 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
   let filteredConvs = conversations;
 
   if (currentUser.role === 'INVITED_USER') {
-    // Invited users see ONLY the 1-on-1 chat with their specific owner (who invited them)
+    // Invited users see ONLY the 1-on-1 chat with their specific parent owner who invited them
     const myOwnerIdStr = await getMyOwnerIdStr(currentUser._id);
 
     filteredConvs = conversations.filter((conv) => {
@@ -252,13 +314,8 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
         (p: any) => (p._id || p.id || p)?.toString() !== currentUserIdStr
       );
       if (!otherPart) return false;
-      const otherRole = (otherPart as any).role;
       const otherIdStr = (otherPart as any)._id?.toString();
-      // Must be an owner role
-      if (otherRole !== 'SUPER_OWNER' && otherRole !== 'CO_OWNER') return false;
-      // Must be THIS user's specific owner
-      if (myOwnerIdStr && otherIdStr !== myOwnerIdStr) return false;
-      return true;
+      return Boolean(myOwnerIdStr && otherIdStr === myOwnerIdStr);
     });
 
     // Deduplicate: max 1 conversation per partner

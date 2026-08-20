@@ -15,11 +15,8 @@ import { getSocketServer } from '../utils/socketServer';
 import { CloudinaryService } from '../services/cloudinary.service';
 import { logger } from '../config/logger.config';
 
-const getDefaultAvatar = (name?: string, role?: string) => {
-  const isCoOwner = role === ROLES.CO_OWNER || name?.toLowerCase().includes('amrin');
-  return isCoOwner
-    ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80'
-    : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80';
+const getDefaultAvatar = (_name?: string, _role?: string) => {
+  return '';
 };
 
 /**

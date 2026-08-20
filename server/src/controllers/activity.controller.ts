@@ -30,9 +30,6 @@ export const getFeed = catchAsync(async (req: Request, res: Response) => {
     } catch {
       filter.userId = targetUserId;
     }
-  } else if (req.user?.role === ROLES.INVITED_USER) {
-    // Invited users see only their own activity posts in the feed
-    filter.userId = req.user._id;
   }
 
   // Filter posts with images/videos only if explicitly requested
@@ -79,7 +76,7 @@ export const getActivityById = catchAsync(async (req: Request, res: Response) =>
  * Create a Social Post Activity Entry (HTTP Controller)
  */
 export const createActivityHandler = catchAsync(async (req: Request, res: Response) => {
-  const { type, referenceId, refModel, title, description, imageUrl } = req.body;
+  const { type, referenceId, refModel, title, description, imageUrl, aspectRatio } = req.body;
   const user = req.user!;
 
   const activity = await Activity.create({
@@ -90,6 +87,7 @@ export const createActivityHandler = catchAsync(async (req: Request, res: Respon
     title: title || 'New Post',
     description,
     imageUrl,
+    aspectRatio: aspectRatio || '1:1',
     isPublic: true,
   });
 
@@ -146,10 +144,11 @@ export const createActivity = async (
   refModel?: string,
   title?: string,
   description?: string,
-  imageUrl?: string
+  imageUrl?: string,
+  aspectRatio?: string
 ) => {
   try {
-    await Activity.create({ userId, type, referenceId, refModel, title, description, imageUrl, isPublic: true });
+    await Activity.create({ userId, type, referenceId, refModel, title, description, imageUrl, aspectRatio: aspectRatio || '1:1', isPublic: true });
   } catch (_err) {
     // Non-critical — activity logging should not break other flows
   }

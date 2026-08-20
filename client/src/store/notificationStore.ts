@@ -60,6 +60,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       socket = socketClient.connect(token);
     }
 
+    if (socket) {
+      // Ensure Listen Together listeners are ALWAYS registered on socket connection
+      useListenTogetherStore.getState().initListenSocket(socket);
+    }
+
     if (get().isInitialized && socket?.connected) return () => { };
     set({ isInitialized: true });
 
@@ -67,9 +72,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     get().fetchUnreadCounts();
 
     if (!socket) return () => {};
-
-    // Initialize global Listen Together socket event handlers
-    useListenTogetherStore.getState().initListenSocket(socket);
 
     // Listen for new notifications
     const handleNewNotif = () => {

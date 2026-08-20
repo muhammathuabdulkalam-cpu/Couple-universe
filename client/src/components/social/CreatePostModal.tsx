@@ -5,6 +5,7 @@ import {
   Grid,
   Image as ImageIcon,
   MapPin,
+  Move,
   RotateCw,
   Tag,
   Upload,
@@ -12,7 +13,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { MediaPicker } from '../media/MediaPicker.js';
@@ -42,6 +43,14 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const [rotation, setRotation] = useState<number>(0);
   const [zoom, setZoom] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Cropped result state
+  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
+  const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
+  const [isApplyingCrop, setIsApplyingCrop] = useState<boolean>(false);
 
   // Post details state
   const [caption, setCaption] = useState('');
@@ -51,32 +60,113 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const cropContainerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const resetState = () => {
     setStep('SELECT');
     setCreateType('POST');
     setSelectedFile(null);
     setPreviewUrl(null);
+    setCroppedBlob(null);
+    setCroppedPreviewUrl(null);
     setSelectedMediaId(null);
     setAspectRatio('1:1');
     setRotation(0);
     setZoom(1);
+    setPan({ x: 0, y: 0 });
     setCaption('');
     setLocation('');
     setTags('');
     setVisibility('COUPLE');
   };
 
+  useEffect(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setRotation(0);
+    setCroppedBlob(null);
+    setCroppedPreviewUrl(null);
+  }, [previewUrl, aspectRatio]);
+
   const handleFileChange = (file: File) => {
     setSelectedFile(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
+    setCroppedBlob(null);
+    setCroppedPreviewUrl(null);
     setSelectedMediaId(null);
     setStep('CROP');
   };
 
-  // Helper to generate cropped image blob using Canvas
-  const getCroppedBlob = (): Promise<Blob> => {
+  const handleImageLoad = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Drag & Pan handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
+    }
+  };
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging) return;
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    },
+    [isDragging, dragStart]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      setPan({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y,
+      });
+    },
+    [isDragging, dragStart]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const zoomDelta = e.deltaY < 0 ? 0.08 : -0.08;
+    setZoom((prev) => Math.min(Math.max(0.5, prev + zoomDelta), 3.5));
+  };
+
+  // Canvas Crop Export Helper (Executes while CROP viewport is active)
+  const generateCroppedImage = (): Promise<{ blob: Blob; url: string }> => {
     return new Promise((resolve, reject) => {
       if (!previewUrl) return reject('No preview image');
 
@@ -85,47 +175,64 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
       image.src = previewUrl;
 
       image.onload = () => {
+        const naturalW = image.naturalWidth;
+        const naturalH = image.naturalHeight;
+
+        let targetW = 1080;
+        let targetH = 1080;
+
+        if (aspectRatio === '1:1') {
+          targetW = 1080;
+          targetH = 1080;
+        } else if (aspectRatio === '4:5') {
+          targetW = 1080;
+          targetH = 1350;
+        } else if (aspectRatio === '16:9') {
+          targetW = 1920;
+          targetH = 1080;
+        } else {
+          targetW = naturalW;
+          targetH = naturalH;
+        }
+
         const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d');
         if (!ctx) return reject('Canvas context missing');
 
-        let targetWidth = image.naturalWidth;
-        let targetHeight = image.naturalHeight;
-
-        if (aspectRatio === '1:1') {
-          const side = Math.min(targetWidth, targetHeight);
-          targetWidth = side;
-          targetHeight = side;
-        } else if (aspectRatio === '4:5') {
-          targetHeight = (targetWidth * 5) / 4;
-        } else if (aspectRatio === '16:9') {
-          targetHeight = (targetWidth * 9) / 16;
-        }
-
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-
         ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, targetW, targetH);
+
+        // Base dimension of rendered image in viewport (bounded box max 340px)
+        const baseScale = Math.min(340 / naturalW, 340 / naturalH);
+        const baseW = naturalW * baseScale;
+        const baseH = naturalH * baseScale;
+
+        const frameW = cropContainerRef.current?.clientWidth || (aspectRatio === '4:5' ? 280 : aspectRatio === '16:9' ? 400 : 320);
+
+        const scale = targetW / frameW;
 
         ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.translate(targetW / 2, targetH / 2);
+        ctx.translate(pan.x * scale, pan.y * scale);
         ctx.rotate((rotation * Math.PI) / 180);
         ctx.scale(zoom, zoom);
 
-        const drawWidth = image.naturalWidth;
-        const drawHeight = image.naturalHeight;
+        const drawW = baseW * scale;
+        const drawH = baseH * scale;
 
-        ctx.drawImage(image, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.drawImage(image, -drawW / 2, -drawH / 2, drawW, drawH);
         ctx.restore();
 
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
         canvas.toBlob(
           (blob) => {
-            if (blob) resolve(blob);
+            if (blob) resolve({ blob, url: dataUrl });
             else reject('Blob generation failed');
           },
           'image/jpeg',
-          0.92
+          0.95
         );
       };
 
@@ -133,20 +240,29 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
     });
   };
 
+  const handleNextFromCrop = async () => {
+    setIsApplyingCrop(true);
+    try {
+      const res = await generateCroppedImage();
+      setCroppedBlob(res.blob);
+      setCroppedPreviewUrl(res.url);
+      setStep('DETAILS');
+    } catch (_err) {
+      addToast('Crop Warning', 'Using default framing', 'warning');
+      setStep('DETAILS');
+    } finally {
+      setIsApplyingCrop(false);
+    }
+  };
+
   const createPostMutation = useMutation({
     mutationFn: async () => {
       let finalMediaId = selectedMediaId;
-      let finalImageUrl = previewUrl;
+      let finalImageUrl = croppedPreviewUrl || previewUrl;
 
-      // 1. Upload new image file if created from device/crop
-      if (selectedFile || (previewUrl && !selectedMediaId)) {
-        let uploadBlob: Blob;
-        try {
-          uploadBlob = await getCroppedBlob();
-        } catch {
-          uploadBlob = selectedFile!;
-        }
-
+      // Upload file if new image or cropped blob exists
+      if (croppedBlob || selectedFile || (previewUrl && !selectedMediaId)) {
+        const uploadBlob = croppedBlob || selectedFile!;
         const formData = new FormData();
         formData.append('file', uploadBlob, createType === 'STORY' ? 'story_media.jpg' : 'instagram_post.jpg');
         formData.append('title', caption.slice(0, 40) || (createType === 'STORY' ? '24h Story' : 'Instagram Post'));
@@ -182,6 +298,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
           title: caption.trim() || 'Shared a post ❤️',
           description: location ? `📍 ${location}` : undefined,
           imageUrl: finalImageUrl,
+          aspectRatio: aspectRatio,
         });
         return res.data;
       }
@@ -337,18 +454,64 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* STEP 2: CROP EDITOR */}
         {step === 'CROP' && previewUrl && (
           <div className="flex-1 flex flex-col overflow-hidden p-4 space-y-4">
-            <div className="relative flex-1 bg-black rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px] border border-white/10">
-              <img
-                src={previewUrl}
-                alt="Crop Preview"
+            {/* Interactive Viewport with Aspect Ratio Overlay Frame */}
+            <div
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onTouchStart={handleTouchStart}
+              className="w-full flex items-center justify-center flex-1 bg-obsidian-950 p-2 rounded-2xl border border-white/10 h-[380px] relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
+              style={{ touchAction: 'none' }}
+            >
+              {/* Full Image Layer (Visible underneath overlay mask) */}
+              <div
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
                 style={{
-                  transform: `rotate(${rotation}deg) scale(${zoom})`,
-                  transition: 'transform 0.15s ease-out',
+                  transform: `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${zoom})`,
+                  transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                 }}
-                className={`max-h-[350px] max-w-full object-contain ${
-                  aspectRatio === '1:1' ? 'aspect-square' : ''
+              >
+                <img
+                  ref={imageRef}
+                  src={previewUrl}
+                  alt="Crop preview"
+                  onLoad={handleImageLoad}
+                  className="max-h-[340px] max-w-[340px] w-auto h-auto object-contain select-none pointer-events-none"
+                  draggable={false}
+                />
+              </div>
+
+              {/* Aspect Ratio Layout Overlay Box Frame (Masks surrounding area & displays crop boundary) */}
+              <div
+                ref={cropContainerRef}
+                className={`pointer-events-none border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.65)] rounded-xl relative transition-all duration-300 flex items-center justify-center ${
+                  aspectRatio === '1:1'
+                    ? 'w-[320px] h-[320px]'
+                    : aspectRatio === '4:5'
+                    ? 'w-[280px] h-[350px]'
+                    : aspectRatio === '16:9'
+                    ? 'w-[400px] h-[225px]'
+                    : 'w-[320px] h-[320px]'
                 }`}
-              />
+              >
+                {/* Instagram 3x3 Rule of Thirds Grid Overlay */}
+                <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-40">
+                  <div className="border-r border-b border-white/40" />
+                  <div className="border-r border-b border-white/40" />
+                  <div className="border-b border-white/40" />
+                  <div className="border-r border-b border-white/40" />
+                  <div className="border-r border-b border-white/40" />
+                  <div className="border-b border-white/40" />
+                  <div className="border-r border-white/40" />
+                  <div className="border-r border-white/40" />
+                  <div className="" />
+                </div>
+
+                {/* Drag Hint Badge */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 pointer-events-none shadow-md border border-white/10 shrink-0">
+                  <Move className="w-3 h-3 text-amrin" />
+                  <span>Drag & Zoom to Align</span>
+                </div>
+              </div>
             </div>
 
             {/* Controls Bar */}
@@ -363,7 +526,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                       key={ratio}
                       type="button"
                       onClick={() => setAspectRatio(ratio)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
                         aspectRatio === ratio
                           ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
                           : 'bg-white/5 text-slate-400 hover:text-white'
@@ -376,19 +539,27 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="flex items-center justify-between gap-4 pt-1 border-t border-white/5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <button
                     type="button"
-                    onClick={() => setZoom(Math.max(0.8, zoom - 0.2))}
+                    onClick={() => setZoom(Math.max(0.5, zoom - 0.15))}
                     className="p-1.5 rounded-lg glass-panel text-slate-300 hover:text-white"
                     title="Zoom Out"
                   >
                     <ZoomOut className="w-4 h-4" />
                   </button>
-                  <span className="text-[11px] font-mono text-slate-400">{Math.round(zoom * 100)}%</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="3.5"
+                    step="0.05"
+                    value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="w-full accent-amrin bg-slate-800 h-1.5 rounded-lg cursor-pointer"
+                  />
                   <button
                     type="button"
-                    onClick={() => setZoom(Math.min(2.5, zoom + 0.2))}
+                    onClick={() => setZoom(Math.min(3.5, zoom + 0.15))}
                     className="p-1.5 rounded-lg glass-panel text-slate-300 hover:text-white"
                     title="Zoom In"
                   >
@@ -399,7 +570,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="px-3 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 shrink-0"
                 >
                   <RotateCw className="w-3.5 h-3.5 text-afzal" /> Rotate ({rotation}°)
                 </button>
@@ -409,10 +580,18 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div className="flex justify-end pt-1">
               <button
                 type="button"
-                onClick={() => setStep('DETAILS')}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-afzal to-amrin text-white text-xs font-bold shadow-lg hover:brightness-110"
+                disabled={isApplyingCrop}
+                onClick={handleNextFromCrop}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-afzal to-amrin text-white text-xs font-bold shadow-lg hover:brightness-110 disabled:opacity-50 flex items-center gap-2"
               >
-                Next
+                {isApplyingCrop ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Applying Crop...
+                  </>
+                ) : (
+                  'Next'
+                )}
               </button>
             </div>
           </div>
@@ -422,8 +601,22 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {step === 'DETAILS' && (
           <div className="p-6 space-y-4 overflow-y-auto flex-1">
             <div className="flex items-center gap-4 border-b border-white/10 pb-4">
-              <div className="w-20 h-20 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0">
-                <img src={previewUrl!} alt="" className="w-full h-full object-cover" />
+              <div
+                className={`w-20 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0 flex items-center justify-center shadow-md ${
+                  aspectRatio === '1:1'
+                    ? 'h-20 aspect-square'
+                    : aspectRatio === '4:5'
+                    ? 'h-24 aspect-[4/5]'
+                    : aspectRatio === '16:9'
+                    ? 'w-28 h-16 aspect-[16/9]'
+                    : 'h-20'
+                }`}
+              >
+                <img
+                  src={croppedPreviewUrl || previewUrl!}
+                  alt="Post preview"
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               <div className="flex-1 space-y-1">

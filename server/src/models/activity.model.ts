@@ -21,6 +21,7 @@ export interface IActivity extends Document {
   title?: string;
   description?: string;
   imageUrl?: string;
+  aspectRatio?: string;
   isPublic: boolean;
   createdAt: Date;
 }
@@ -42,14 +43,16 @@ const activitySchema = new Schema<IActivity>(
       ],
       required: true,
     },
-    referenceId: { type: Schema.Types.ObjectId, default: null },
+    referenceId: { type: Schema.Types.ObjectId, refPath: 'refModel', default: null },
     refModel: {
       type: String,
       enum: ['TimelineEvent', 'Story', 'CalendarEvent', 'User', 'Media'],
+      default: 'Media',
     },
     title: { type: String, maxlength: 300 },
     description: { type: String, maxlength: 1000 },
     imageUrl: { type: String },
+    aspectRatio: { type: String, default: '1:1' },
     isPublic: { type: Boolean, default: true },
   },
   {

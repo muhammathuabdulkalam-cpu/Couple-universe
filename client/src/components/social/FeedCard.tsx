@@ -10,6 +10,7 @@ import { ActivityItem, ApiResponse, ReactionEmoji, ReactionItem } from '../../ty
 import { CommentSection } from './CommentSection.js';
 import { ReactionPicker } from './ReactionPicker.js';
 import { ReportModal } from './ReportModal.js';
+import { LikedByModal } from './LikedByModal.js';
 
 interface Props {
   activity: ActivityItem;
@@ -26,6 +27,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
   const qc = useQueryClient();
   const [showComments, setShowComments] = useState(autoOpenComments);
   const [showPicker, setShowPicker] = useState(autoOpenLikes);
+  const [showLikesModal, setShowLikesModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
@@ -36,7 +38,16 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
     if (autoOpenLikes) setShowPicker(true);
   }, [autoOpenComments, autoOpenLikes]);
 
-  const targetId = activity.referenceId || activity._id;
+  const getTargetIdStr = (raw: any): string => {
+    if (!raw) return '';
+    if (typeof raw === 'string') return raw;
+    if (raw._id) return getTargetIdStr(raw._id);
+    if (raw.id) return getTargetIdStr(raw.id);
+    if (typeof raw.toString === 'function') return raw.toString();
+    return String(raw);
+  };
+
+  const targetId = getTargetIdStr(activity._id);
   const targetType = (activity.refModel === 'TimelineEvent' ? 'MEMORY' : activity.refModel === 'Story' ? 'STORY' : 'ACTIVITY') as 'MEMORY' | 'STORY' | 'ACTIVITY';
 
   // Fetch reactions
@@ -197,38 +208,63 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       </div>
 
       {/* 2. Media Image / Video with Double Tap Heart */}
-      {postImageUrl && !hasImageError && (
-        <div
-          onDoubleClick={handleDoubleTap}
-          className="relative w-full aspect-[4/3] max-h-[480px] bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer"
-        >
-          {isVideo ? (
-            <video src={postImageUrl} controls className="w-full h-full object-cover" />
-          ) : (
-            <img
-              src={postImageUrl}
-              alt={activity.title || 'Post media'}
-              onError={() => setHasImageError(true)}
-              className="w-full h-full object-cover"
-            />
-          )}
+      {postImageUrl && !hasImageError && (() => {
+        const postRatio = (() => {
+          if (activity.aspectRatio) return activity.aspectRatio;
+          const refObj = activity.referenceId as any;
+          if (refObj && typeof refObj === 'object' && refObj.width && refObj.height) {
+            const ratio = refObj.width / refObj.height;
+            if (Math.abs(ratio - 1) < 0.08) return '1:1';
+            if (ratio < 0.92) return '4:5';
+            if (ratio > 1.2) return '16:9';
+          }
+          return '1:1';
+        })();
 
-          {/* Animated Big Heart on Double Tap */}
-          <AnimatePresence>
-            {showBigHeart && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1.4, opacity: 1 }}
-                exit={{ scale: 2, opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-              >
-                <Heart className="w-24 h-24 text-heart fill-heart filter drop-shadow-2xl animate-pulse" />
-              </motion.div>
+        const aspectClass =
+          postRatio === '1:1'
+            ? 'aspect-square'
+            : postRatio === '4:5'
+            ? 'aspect-[4/5]'
+            : postRatio === '16:9'
+            ? 'aspect-[16/9]'
+            : 'max-h-[600px]';
+
+        const fitClass = postRatio === 'ORIGINAL' ? 'w-full h-full object-contain' : 'w-full h-full object-cover';
+
+        return (
+          <div
+            onDoubleClick={handleDoubleTap}
+            className={`relative w-full ${aspectClass} bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer`}
+          >
+            {isVideo ? (
+              <video src={postImageUrl} controls className={fitClass} />
+            ) : (
+              <img
+                src={postImageUrl}
+                alt={activity.title || 'Post media'}
+                onError={() => setHasImageError(true)}
+                className={fitClass}
+              />
             )}
-          </AnimatePresence>
-        </div>
-      )}
+
+            {/* Animated Big Heart on Double Tap */}
+            <AnimatePresence>
+              {showBigHeart && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1.4, opacity: 1 }}
+                  exit={{ scale: 2, opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
+                >
+                  <Heart className="w-24 h-24 text-heart fill-heart filter drop-shadow-2xl animate-pulse" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })()}
 
       {/* 3. Instagram Action Buttons Row */}
       <div className="px-4 py-2.5 flex items-center justify-between border-t border-white/5 relative">
@@ -283,8 +319,8 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
         {/* Instagram Style Likes Line */}
         <button
           type="button"
-          onClick={() => setShowPicker((v) => !v)}
-          className="text-xs font-bold text-white hover:underline block text-left"
+          onClick={() => setShowLikesModal(true)}
+          className="text-xs font-bold text-white hover:underline block text-left cursor-pointer"
         >
           {likesDisplay}
         </button>
@@ -303,7 +339,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}
-          className="text-slate-400 hover:text-slate-200 text-[11px] pt-1 block"
+          className="text-slate-400 hover:text-slate-200 text-[11px] pt-1 block cursor-pointer"
         >
           {showComments ? 'Hide comments' : 'View all comments'}
         </button>
@@ -315,6 +351,14 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           <CommentSection targetType={targetType} targetId={targetId} authorId={activity.userId._id} />
         </div>
       )}
+
+      {/* Liked By People Modal */}
+      <LikedByModal
+        targetType={targetType}
+        targetId={targetId}
+        isOpen={showLikesModal}
+        onClose={() => setShowLikesModal(false)}
+      />
 
       {/* Report Modal */}
       <ReportModal

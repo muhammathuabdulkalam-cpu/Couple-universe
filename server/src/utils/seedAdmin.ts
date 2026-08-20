@@ -18,7 +18,7 @@ export const seedAdminAccount = async (): Promise<void> => {
         role: ROLES.ADMIN,
         status: USER_STATUS.ACTIVE,
         isEmailVerified: true,
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+        avatar: '',
         bio: 'Enterprise Platform Administrator',
       });
       logger.info(`🛡️ Seeded Admin account successfully: ${adminEmail}`);

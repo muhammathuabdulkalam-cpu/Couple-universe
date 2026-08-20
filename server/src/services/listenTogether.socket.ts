@@ -7,21 +7,8 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   const user = (socket as any).user;
   if (!user) return;
 
-  // Only SUPER_OWNER and CO_OWNER can participate in Listen Together
-  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
-    return;
-  }
-
-  const getPartnerUser = async () => {
-    // Only SUPER_OWNER and CO_OWNER can use Listen Together
-    const partner = await User.findOne({
-      _id: { $ne: user._id },
-      role: { $in: ['SUPER_OWNER', 'CO_OWNER'] },
-    }).select('_id name email role avatar');
-    return partner;
-  };
-
-  // 1. Scope Listen Room per Relationship & Couple Room
+  // Join personal user room & couple rooms
+  socket.join(`user:${user._id.toString()}`);
   const roomName = `listen_room_${user.relationshipId ? user.relationshipId.toString() : 'couple_default'}`;
   socket.join(roomName);
   socket.join('listen_together_couple_room');

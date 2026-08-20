@@ -150,6 +150,9 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
       }
     >();
 
+    const registeredNamesSet = new Set<string>();
+    const registeredEmailsSet = new Set<string>();
+
     // 1. Registered member friends
     targetRelList.forEach((rel) => {
       rel.members?.forEach((m) => {
@@ -161,24 +164,56 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
             if (m.email && u.email && u.email.toLowerCase() === m.email.toLowerCase()) return true;
             return false;
           });
+
+          const name = matchedUser?.name || m.name || 'Friend';
+          const email = matchedUser?.email || m.email || '';
+          if (name) registeredNamesSet.add(name.toLowerCase().trim());
+          if (email) registeredEmailsSet.add(email.toLowerCase().trim());
+
+          const matchedInvite = invitedUsersList.find((inv) => {
+            if (!inv) return false;
+            if (inv._id === memberId || inv.relationshipId === rel.id) return true;
+            if (inv.email && email && inv.email.toLowerCase() === email.toLowerCase()) return true;
+            if (inv.name && name && inv.name.toLowerCase().trim() === name.toLowerCase().trim()) return true;
+            return false;
+          });
+
           friendsMap.set(memberId, {
             id: memberId,
-            name: matchedUser?.name || m.name || 'Friend',
-            email: matchedUser?.email || m.email || '',
+            name,
+            email,
             role: matchedUser?.role || m.role || 'INVITED_USER',
             avatar: matchedUser?.avatar || m.avatar || '',
             relName: rel.name,
             relType: rel.type,
             relationshipId: rel.id,
             status: matchedUser?.status || 'ACTIVE',
+            tokenCode: (matchedUser as any)?.tokenCode || matchedInvite?.tokenCode,
           });
         }
       });
     });
 
-    // 2. Pending invites strictly from dedicated invited_users MongoDB collection
+    // 2. Pending invites strictly from dedicated invited_users MongoDB collection for UNREGISTERED users only
     invitedUsersList.forEach((inv) => {
       if (!inv || !inv._id) return;
+      const invName = (inv.name || '').toLowerCase().trim();
+      const invEmail = (inv.email || '').toLowerCase().trim();
+      const invId = inv._id.toString();
+
+      if (friendsMap.has(invId)) return;
+      if (invEmail && registeredEmailsSet.has(invEmail)) return;
+      if (invName && registeredNamesSet.has(invName)) return;
+
+      const isAlreadyRegistered = users.some((u) => {
+        const uId = getUserId(u.id) || getUserId((u as any)._id);
+        if (uId === invId) return true;
+        if (invEmail && u.email && u.email.toLowerCase() === invEmail) return true;
+        if (invName && u.name && u.name.toLowerCase().trim() === invName) return true;
+        return false;
+      });
+
+      if (isAlreadyRegistered) return;
 
       const isMatch =
         ownerRoleFilter === 'SUPER_OWNER'
@@ -188,15 +223,15 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
             : inv.targetRole === 'FAMILY' || (inv.relationshipType || '').toUpperCase().includes('FAMILY');
 
       if (isMatch && inv.status !== 'REVOKED') {
-        friendsMap.set(inv._id, {
-          id: inv._id,
+        friendsMap.set(invId, {
+          id: invId,
           name: inv.name || inv.relationshipName || 'Invited User',
           email: inv.email || 'Pending Token (User has not registered yet)',
           role: inv.targetRole || 'INVITED_USER',
           avatar: inv.avatar || '',
           relName: inv.relationshipName || inv.name || 'Friendship',
           relType: inv.relationshipType || 'Friendship',
-          relationshipId: inv.relationshipId || inv._id,
+          relationshipId: inv.relationshipId || invId,
           tokenCode: inv.tokenCode,
           status: 'PENDING_INVITE',
         });
@@ -212,24 +247,31 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
   const coOwnerFriends = getCategoryFriends(coOwnerOnlyRelationships, primaryOwnerIds, 'CO_OWNER');
   const combinedFriends = getCategoryFriends(combinedRelationships, primaryOwnerIds, 'COMBINED');
 
-  // Mapped User IDs to identify standalone users
+  // Mapped User IDs & Names to identify standalone users without duplicates
   const mappedUserIds = new Set<string>();
+  const mappedUserNames = new Set<string>();
+
   if (superOwnerId) mappedUserIds.add(superOwnerId);
   if (coOwnerId) mappedUserIds.add(coOwnerId);
-  superOwnerFriends.forEach((f) => mappedUserIds.add(f.id));
-  coOwnerFriends.forEach((f) => mappedUserIds.add(f.id));
-  combinedFriends.forEach((f) => mappedUserIds.add(f.id));
 
-  // Automatically assign any non-primary registered users (standalone users) to their owner's line branch so both views show the EXACT SAME accounts
+  [...superOwnerFriends, ...coOwnerFriends, ...combinedFriends].forEach((f) => {
+    if (f.id) mappedUserIds.add(f.id);
+    if (f.name) mappedUserNames.add(f.name.toLowerCase().trim());
+  });
+
+  // Automatically assign any non-primary registered users (standalone users) to their owner's line branch
   users.forEach((u) => {
     const uid = getUserId(u.id) || getUserId((u as any)._id);
+    const uName = (u.name || '').toLowerCase().trim();
     const isSystemAdmin =
       u.role === 'ADMIN' ||
       u.email === 'admin@gmail.com' ||
       (u.name && u.name.toLowerCase().includes('system admin'));
 
-    if (uid && !mappedUserIds.has(uid) && !isSystemAdmin) {
+    if (uid && !mappedUserIds.has(uid) && !mappedUserNames.has(uName) && !isSystemAdmin) {
       mappedUserIds.add(uid);
+      if (uName) mappedUserNames.add(uName);
+
       const createdByStr = getUserId((u as any).createdBy);
       const partnerName = ((u as any).partnerName || '').toLowerCase();
       const isCoOwnerFriend = createdByStr === coOwnerId || (u as any).ownerRole === 'CO_OWNER' || partnerName.includes('amrin');
@@ -243,6 +285,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
         relName: (u as any).relationshipName || 'Friendship',
         relType: 'Friendship',
         relationshipId: (u as any).relationshipId || uid,
+        tokenCode: (u as any).tokenCode,
         status: u.status || 'ACTIVE',
       };
 
@@ -798,12 +841,12 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                         </div>
 
                         {/* Prominently Displayed Active Token Box */}
-                        {tokensMap[friend.relationshipId] && (
+                        {(tokensMap[friend.relationshipId] || friend.tokenCode) && (
                           <div className="pt-2 border-t border-purple-500/20 flex items-center justify-between gap-1 text-[10px]">
-                            <div className="flex items-center gap-1.5 font-mono font-black text-purple-300">
+                            <div className="flex items-center gap-1.5 font-mono font-black text-purple-300 min-w-0 flex-1">
                               <Key className="w-3 h-3 text-purple-400 shrink-0" />
-                              <span className="bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/30">
-                                TOKEN: {tokensMap[friend.relationshipId]}
+                              <span className="bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/30 truncate">
+                                TOKEN: {tokensMap[friend.relationshipId] || friend.tokenCode}
                               </span>
                             </div>
                             <button
@@ -813,7 +856,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               }}
                               className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-500/20 hover:bg-purple-500/40 text-purple-200 border border-purple-500/30 transition shrink-0"
                             >
-                              {copiedTokenRelId === friend.relationshipId ? '✓ Copied' : 'Copy'}
+                              {copiedTokenRelId === (friend.relationshipId || friend.id) ? '✓ Copied' : 'Copy'}
                             </button>
                           </div>
                         )}

@@ -61,13 +61,18 @@ export const musicApi = {
     return res.data;
   },
 
+  getListenTargets: async () => {
+    const res = await axiosClient.get('/music/listen-together/targets');
+    return (res.data.data || []) as Array<{ id: string; name: string; avatar: string; role: string; email?: string }>;
+  },
+
   getListenSessionStatus: async () => {
     const res = await axiosClient.get('/music/listen-together/status');
     return res.data.data as ListeningSession | null;
   },
 
-  createListenInvite: async () => {
-    const res = await axiosClient.post('/music/listen-together/invite');
+  createListenInvite: async (targetUserId?: string) => {
+    const res = await axiosClient.post('/music/listen-together/invite', { targetUserId });
     return res.data.data as ListeningSession;
   },
 

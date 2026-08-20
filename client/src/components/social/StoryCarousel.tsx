@@ -71,12 +71,13 @@ export const StoryCarousel: React.FC = () => {
               }`}
             >
               <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center overflow-hidden shrink-0">
-                {user?.avatar ? (
+                {user?.avatar && !user.avatar.includes('unsplash.com') ? (
                   <img
                     src={user.avatar}
                     alt={user.name}
                     className="w-full h-full object-cover rounded-full shrink-0"
-                   onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                 ) : (
                   <span className="text-base font-bold text-white">{user?.name?.[0] || 'U'}</span>
                 )}
@@ -116,12 +117,13 @@ export const StoryCarousel: React.FC = () => {
                 }`}
               >
                 <div className="w-full h-full rounded-full bg-obsidian-950 p-[2px] overflow-hidden shrink-0">
-                  {storyUser.avatar ? (
+                  {storyUser.avatar && !storyUser.avatar.includes('unsplash.com') ? (
                     <img
                       src={storyUser.avatar}
                       alt={storyUser.name}
                       className="w-full h-full object-cover rounded-full shrink-0"
-                     onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white font-bold text-base rounded-full bg-obsidian-900">
                       {storyUser.name?.[0]}

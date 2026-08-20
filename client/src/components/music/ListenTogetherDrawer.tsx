@@ -17,6 +17,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { musicApi } from '../../api/musicApi.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
@@ -27,6 +28,8 @@ import { MusicSearchTab } from './MusicSearchTab.js';
 export const ListenTogetherDrawer: React.FC = () => {
   const navigate = useNavigate();
   const [browseTab, setBrowseTab] = useState<'uploads' | 'search'>('uploads');
+  const [targets, setTargets] = useState<Array<{ id: string; name: string; avatar: string; role: string; email?: string }>>([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
 
   const {
     isSessionActive,
@@ -35,6 +38,8 @@ export const ListenTogetherDrawer: React.FC = () => {
     isDrawerOpen,
     setDrawerOpen,
     endSession,
+    isInviting,
+    sendInvite,
   } = useListenTogetherStore();
 
   const { user } = useAuthStore();
@@ -47,6 +52,17 @@ export const ListenTogetherDrawer: React.FC = () => {
   const nextTrack = useMusicPlayerStore((s) => s.nextTrack);
   const prevTrack = useMusicPlayerStore((s) => s.prevTrack);
   const seekTo = useMusicPlayerStore((s) => s.seekTo);
+
+  React.useEffect(() => {
+    if (isDrawerOpen && !isSessionActive) {
+      setLoadingTargets(true);
+      musicApi
+        .getListenTargets()
+        .then((res) => setTargets(res))
+        .catch(() => {})
+        .finally(() => setLoadingTargets(false));
+    }
+  }, [isDrawerOpen, isSessionActive]);
 
   if (!isDrawerOpen) return null;
 
@@ -98,7 +114,7 @@ export const ListenTogetherDrawer: React.FC = () => {
               </button>
             </div>
 
-            {/* Couple Sync Connection Status Banner */}
+            {/* Couple / User Sync Connection Status & Target Selector Banner */}
             {isSessionActive ? (
               <div className="p-3 rounded-2xl bg-gradient-to-r from-rose-950/80 via-slate-900/90 to-purple-950/80 border border-rose-500/30 flex items-center justify-between shadow-xl">
                 <div className="flex items-center gap-2.5">
@@ -129,8 +145,69 @@ export const ListenTogetherDrawer: React.FC = () => {
                 </span>
               </div>
             ) : (
-              <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/10 text-xs text-slate-400 text-center">
-                No active Listen Together session.
+              <div className="p-3 rounded-2xl bg-slate-900/80 border border-white/10 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-extrabold text-white flex items-center gap-1.5">
+                    <Radio className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Send Listen Invitation</span>
+                  </span>
+                  {user?.role === 'INVITED_USER' && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      Parent Owner Only
+                    </span>
+                  )}
+                </div>
+
+                {loadingTargets ? (
+                  <p className="text-[10px] text-slate-400 text-center py-2">Loading available targets...</p>
+                ) : targets.length === 0 ? (
+                  <div className="text-center py-2 space-y-1">
+                    <p className="text-xs text-slate-400">No active partner available.</p>
+                    <button
+                      type="button"
+                      disabled={isInviting}
+                      onClick={() => sendInvite()}
+                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition cursor-pointer"
+                    >
+                      {isInviting ? 'Sending Invite...' : 'Send Listen Invite'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {targets.map((t) => {
+                      const hasAvatar = Boolean(t.avatar && !t.avatar.includes('unsplash.com'));
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {hasAvatar ? (
+                              <img src={t.avatar} alt={t.name} className="w-7 h-7 rounded-full object-cover border border-white/20 shrink-0" onError={(e) => { e.currentTarget.style.display='none'; }}/>
+                            ) : (
+                              <div className="w-7 h-7 rounded-full bg-slate-700 border border-white/20 flex items-center justify-center shrink-0">
+                                <UserCircle2 className="w-3.5 h-3.5 text-slate-300" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <h5 className="text-xs font-bold text-white truncate">{t.name}</h5>
+                              <p className="text-[9px] text-slate-400 font-mono uppercase">{t.role === 'SUPER_OWNER' ? 'Super Owner' : t.role === 'CO_OWNER' ? 'Co Owner' : 'Invited User'}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={isInviting}
+                            onClick={() => sendInvite(t.id)}
+                            className="px-3 py-1 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-[10px] shadow-md transition active:scale-95 disabled:opacity-50 shrink-0 cursor-pointer"
+                          >
+                            {isInviting ? 'Inviting...' : 'Send Request 🎵'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

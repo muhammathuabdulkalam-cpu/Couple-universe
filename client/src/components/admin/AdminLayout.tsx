@@ -10,6 +10,8 @@ import {
   Menu,
   X,
   Disc,
+  Home,
+  Globe,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
 import { Avatar } from '../ui/Avatar';
@@ -117,8 +119,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
 
           <button
+            onClick={() => navigate('/welcome')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-300 text-xs font-bold transition cursor-pointer"
+          >
+            <Globe className="w-4 h-4 text-indigo-400" />
+            <span>Go to Welcome Page</span>
+          </button>
+
+          <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#16161E] hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-rose-400 text-xs font-bold transition"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-[#16161E] hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-rose-400 text-xs font-bold transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Admin Logout</span>
@@ -150,6 +160,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <span>Core Server Online</span>
             </div>
 
+            {/* Go to Welcome Page Button */}
+            <button
+              onClick={() => navigate('/welcome')}
+              className="px-4 py-2 rounded-full bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/30 text-xs font-black transition flex items-center gap-2 shadow-md cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Go to Welcome Page</span>
+            </button>
+
             {/* Quick Action Button */}
             <button className="px-4 py-2 rounded-full bg-white text-slate-950 hover:bg-slate-200 text-xs font-black transition shadow-md">
               Enterprise Verified
@@ -171,7 +190,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               />
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 rounded-full bg-[#16161E] hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/30 text-xs font-bold text-slate-300 hover:text-rose-300 transition"
+                className="px-4 py-2 rounded-full bg-[#16161E] hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/30 text-xs font-bold text-slate-300 hover:text-rose-300 transition cursor-pointer"
               >
                 Logout
               </button>

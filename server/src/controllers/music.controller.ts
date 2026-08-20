@@ -631,27 +631,211 @@ export const deleteUploadedSong = catchAsync(async (req: Request, res: Response)
 });
 
 /**
+ * Get Available Listen Together Targets for Current User
+ */
+export const getListenTargets = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const targets: Array<{ id: string; name: string; avatar: string; role: string; email?: string }> = [];
+
+  if (user.role === 'INVITED_USER') {
+    // Invited users can invite ONLY their direct parent owner
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    const { Relationship } = await import('../models/relationship.model');
+
+    let parentOwnerId: string | null = null;
+
+    // Source A: InvitedUser doc
+    const invitedDoc = await InvitedUser.findOne({
+      $or: [
+        { email: user.email?.toLowerCase() },
+        { name: new RegExp(`^${user.name}$`, 'i') },
+      ],
+      isDeleted: false,
+    }).select('ownerUserId');
+
+    if (invitedDoc?.ownerUserId) {
+      parentOwnerId = invitedDoc.ownerUserId.toString();
+    }
+
+    // Source B: Relationship membership owner
+    if (!parentOwnerId && user.relationshipId) {
+      const rel = await Relationship.findById(user.relationshipId);
+      if (rel && rel.members) {
+        const ownerMem = rel.members.find((m: any) => {
+          const r = (m.role || '').toUpperCase();
+          return r === 'SUPER_OWNER' || r === 'CO_OWNER';
+        });
+        if (ownerMem && ownerMem.user) {
+          parentOwnerId = ownerMem.user.toString();
+        }
+      }
+    }
+
+    // Fallback: Super Owner (Afzal)
+    if (!parentOwnerId) {
+      const superOwner = await User.findOne({ role: 'SUPER_OWNER', isDeleted: false }).select('_id');
+      if (superOwner) parentOwnerId = superOwner._id.toString();
+    }
+
+    if (parentOwnerId) {
+      const parentUser = await User.findById(parentOwnerId).select('_id name email avatar role');
+      if (parentUser && parentUser._id.toString() !== user._id.toString() && parentUser.role !== 'ADMIN') {
+        targets.push({
+          id: parentUser._id.toString(),
+          name: parentUser.name,
+          avatar: parentUser.avatar || '',
+          role: parentUser.role,
+          email: parentUser.email,
+        });
+      }
+    }
+  } else {
+    // Parent Owners (SUPER_OWNER / CO_OWNER):
+    // 1. Partner Owner (SUPER_OWNER or CO_OWNER)
+    const partnerRole = user.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER';
+    const partner = await User.findOne({
+      _id: { $ne: user._id },
+      role: partnerRole,
+      isDeleted: false,
+    }).select('_id name email avatar role');
+
+    if (partner) {
+      targets.push({
+        id: partner._id.toString(),
+        name: partner.name,
+        avatar: partner.avatar || '',
+        role: partner.role,
+        email: partner.email,
+      });
+    }
+
+    // 2. Sub-users strictly created/invited by THIS specific owner user
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    const subInvites = await InvitedUser.find({
+      ownerUserId: user._id,
+      isDeleted: false,
+    }).select('name email');
+
+    const subUserEmails = subInvites.map((i) => (i.email || '').toLowerCase()).filter(Boolean);
+    const subUserNames = subInvites.map((i) => (i.name || '').toLowerCase()).filter(Boolean);
+
+    let subUsers: any[] = [];
+    if (subUserEmails.length > 0 || subUserNames.length > 0) {
+      subUsers = await User.find({
+        _id: { $ne: user._id },
+        role: 'INVITED_USER',
+        isDeleted: false,
+        $or: [
+          { createdBy: user._id },
+          ...(subUserEmails.length > 0 ? [{ email: { $in: subUserEmails } }] : []),
+          ...(subUserNames.length > 0 ? [{ name: { $in: subUserNames.map((n) => new RegExp(`^${n}$`, 'i')) } }] : []),
+        ],
+      }).select('_id name email avatar role');
+    } else {
+      subUsers = await User.find({
+        _id: { $ne: user._id },
+        role: 'INVITED_USER',
+        createdBy: user._id,
+        isDeleted: false,
+      }).select('_id name email avatar role');
+    }
+
+    subUsers.forEach((su) => {
+      const suId = su._id.toString();
+      if (!targets.some((t) => t.id === suId)) {
+        targets.push({
+          id: suId,
+          name: su.name,
+          avatar: su.avatar || '',
+          role: su.role,
+          email: su.email,
+        });
+      }
+    });
+  }
+
+  return ApiResponse.success(res, 'Listen Together targets retrieved successfully', targets);
+});
+
+/**
  * Create Listen Together Invitation
  */
 export const createListenInvite = catchAsync(async (req: Request, res: Response) => {
   const host = req.user!;
-  if (host.role !== 'SUPER_OWNER' && host.role !== 'CO_OWNER') {
-    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
+  const { targetUserId } = req.body;
+  let targetUser: any = null;
+
+  if (host.role === 'INVITED_USER') {
+    // Target MUST be direct parent owner
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    const { Relationship } = await import('../models/relationship.model');
+
+    let parentOwnerId: string | null = null;
+    const invitedDoc = await InvitedUser.findOne({
+      $or: [{ email: host.email?.toLowerCase() }, { name: new RegExp(`^${host.name}$`, 'i') }],
+      isDeleted: false,
+    }).select('ownerUserId');
+
+    if (invitedDoc?.ownerUserId) parentOwnerId = invitedDoc.ownerUserId.toString();
+
+    if (!parentOwnerId && host.relationshipId) {
+      const rel = await Relationship.findById(host.relationshipId);
+      if (rel && rel.members) {
+        const ownerMem = rel.members.find((m: any) => m.role === 'SUPER_OWNER' || m.role === 'CO_OWNER');
+        if (ownerMem) parentOwnerId = ownerMem.user.toString();
+      }
+    }
+
+    if (!parentOwnerId) {
+      const superOwner = await User.findOne({ role: 'SUPER_OWNER', isDeleted: false }).select('_id');
+      if (superOwner) parentOwnerId = superOwner._id.toString();
+    }
+
+    if (!parentOwnerId) throw new AppError('Parent owner account not found', HTTP_STATUS.NOT_FOUND);
+    targetUser = await User.findById(parentOwnerId);
+  } else {
+    // Parent Owners (SUPER_OWNER / CO_OWNER)
+    if (targetUserId && mongoose.Types.ObjectId.isValid(targetUserId)) {
+      targetUser = await User.findById(targetUserId);
+      if (targetUser && targetUser.role === 'INVITED_USER') {
+        const { InvitedUser } = await import('../models/invitedUser.model');
+        const inviteDoc = await InvitedUser.findOne({
+          ownerUserId: host._id,
+          isDeleted: false,
+          $or: [
+            ...(targetUser.email ? [{ email: targetUser.email.toLowerCase() }] : []),
+            ...(targetUser.name ? [{ name: new RegExp(`^${targetUser.name}$`, 'i') }] : []),
+          ],
+        });
+        const isDirectCreator = targetUser.createdBy?.toString() === host._id.toString();
+        if (!inviteDoc && !isDirectCreator) {
+          throw new AppError('You can only invite sub-users created under your account', HTTP_STATUS.FORBIDDEN);
+        }
+      }
+    } else {
+      // Default to partner owner
+      const partnerRole = host.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER';
+      targetUser = await User.findOne({
+        _id: { $ne: host._id },
+        role: partnerRole,
+        isDeleted: false,
+      });
+    }
   }
 
-  const partner = await User.findOne({
-    _id: { $ne: host._id },
-    role: { $in: ['SUPER_OWNER', 'CO_OWNER'] },
-  });
-
-  if (!partner) {
-    throw new AppError('Partner account not found', HTTP_STATUS.NOT_FOUND);
+  if (!targetUser) {
+    throw new AppError('Target invitation recipient not found', HTTP_STATUS.NOT_FOUND);
   }
 
-  // Clear any old active/invited sessions for couple
+  // Clear any old active/invited sessions for couple/host/target
   await ListeningSession.updateMany(
     {
-      $or: [{ host: host._id }, { participant: host._id }],
+      $or: [
+        { host: host._id },
+        { participant: host._id },
+        { host: targetUser._id },
+        { participant: targetUser._id },
+      ],
       status: { $in: ['INVITED', 'ACTIVE'] },
     },
     { status: 'ENDED' }
@@ -663,7 +847,7 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
   const session = await ListeningSession.create({
     sessionId,
     host: host._id,
-    participant: partner._id,
+    participant: targetUser._id,
     status: 'INVITED',
     expiresAt,
   });
@@ -682,10 +866,11 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
       expiresAt,
       session,
     };
-    io.to(`user:${partner._id.toString()}`).emit('listen:invite', payload);
+    // Emit ONLY to target user's socket room (never broadcast to couple room so host doesn't receive self-invite)
+    io.to(`user:${targetUser._id.toString()}`).emit('listen:invite', payload);
   }
 
-  return ApiResponse.created(res, 'Listen Together invitation sent to partner', session);
+  return ApiResponse.created(res, `Listen Together invitation sent to ${targetUser.name}`, session);
 });
 
 /**
@@ -693,10 +878,6 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
  */
 export const respondListenInvite = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
-    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
-  }
-
   const { sessionId, action } = req.body; // action: 'accept' | 'decline'
 
   const session = await ListeningSession.findOne({ sessionId });
@@ -736,10 +917,9 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
         session,
       };
 
-      logger.info(`Emitting single listen:accept to couple room: listen_together_couple_room`);
       io.to('listen_together_couple_room').emit('listen:accept', payload);
-    } else {
-      logger.warn('Socket server instance (io) not available in respondListenInvite');
+      if (hostId) io.to(`user:${hostId}`).emit('listen:accept', payload);
+      if (partId) io.to(`user:${partId}`).emit('listen:accept', payload);
     }
     return ApiResponse.success(res, 'Listen Together session started ❤️', session);
   } else {
@@ -758,8 +938,8 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
 
       io.to('listen_together_couple_room').emit('listen:decline', payload);
       io.emit('listen:decline', payload);
-      if (hostId) io.to(hostId).emit('listen:decline', payload);
-      if (partId) io.to(partId).emit('listen:decline', payload);
+      if (hostId) io.to(`user:${hostId}`).emit('listen:decline', payload);
+      if (partId) io.to(`user:${partId}`).emit('listen:decline', payload);
     }
     return ApiResponse.success(res, 'Invitation declined', session);
   }
@@ -770,9 +950,6 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
  */
 export const getListenSessionStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
-    return ApiResponse.success(res, 'Session status retrieved', null);
-  }
 
   const session = await ListeningSession.findOne({
     $or: [{ host: user._id }, { participant: user._id }],
@@ -796,9 +973,6 @@ export const getListenSessionStatus = catchAsync(async (req: Request, res: Respo
  */
 export const endListenSession = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
-    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
-  }
 
   await ListeningSession.updateMany(
     {

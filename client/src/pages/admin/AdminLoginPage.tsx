@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, Loader2, Home, Globe } from 'lucide-react';
 import { adminApi } from '../../api/adminApi';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
 
@@ -38,6 +38,18 @@ export const AdminLoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#08080B] text-slate-100 font-sans flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Top Fixed Welcome Page Button */}
+      <div className="absolute top-6 right-6 z-20">
+        <button
+          type="button"
+          onClick={() => navigate('/welcome')}
+          className="px-4 py-2.5 rounded-full bg-[#16161E] hover:bg-white/10 text-white text-xs font-extrabold border border-white/15 flex items-center gap-2 shadow-xl backdrop-blur-md transition active:scale-95 cursor-pointer"
+        >
+          <Home className="w-4 h-4 text-indigo-400" />
+          <span>Go to Welcome Page</span>
+        </button>
+      </div>
+
       {/* Background Ambient Glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -96,7 +108,7 @@ export const AdminLoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-full bg-white hover:bg-slate-200 text-slate-950 font-black text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50 mt-2"
+            className="w-full py-3 rounded-full bg-white hover:bg-slate-200 text-slate-950 font-black text-xs shadow-xl flex items-center justify-center gap-2 transition disabled:opacity-50 mt-2 cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -112,7 +124,15 @@ export const AdminLoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="text-center pt-2 border-t border-white/5">
+        <div className="text-center pt-3 border-t border-white/5 space-y-3">
+          <button
+            type="button"
+            onClick={() => navigate('/welcome')}
+            className="w-full py-2.5 rounded-full bg-white/5 hover:bg-white/10 text-indigo-300 font-extrabold text-xs border border-white/10 flex items-center justify-center gap-2 transition cursor-pointer"
+          >
+            <Globe className="w-4 h-4 text-indigo-400" />
+            <span>Go to Welcome Page</span>
+          </button>
           <p className="text-[11px] text-slate-400">
             Restricted System Access. Only authorized ADMIN accounts permitted.
           </p>

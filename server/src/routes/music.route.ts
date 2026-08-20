@@ -11,6 +11,7 @@ import {
   getDedications,
   getFavorites,
   getListenSessionStatus,
+  getListenTargets,
   getLyrics,
   getPlaylistSongs,
   getPlaylists,
@@ -49,6 +50,7 @@ router.post(
 );
 
 // Listen Together
+router.get('/listen-together/targets', getListenTargets);
 router.get('/listen-together/status', getListenSessionStatus);
 router.post('/listen-together/invite', createListenInvite);
 router.post('/listen-together/respond', respondListenInvite);

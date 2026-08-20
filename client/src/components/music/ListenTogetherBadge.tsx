@@ -12,26 +12,29 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
   const partnerConnected = useListenTogetherStore((s) => s.partnerConnected);
   const partnerName = useListenTogetherStore((s) => s.partnerName);
   const partnerAvatar = useListenTogetherStore((s) => s.partnerAvatar);
-  const sendInvite = useListenTogetherStore((s) => s.sendInvite);
+  const setDrawerOpen = useListenTogetherStore((s) => s.setDrawerOpen);
   const endSession = useListenTogetherStore((s) => s.endSession);
   const clearInvite = useListenTogetherStore((s) => s.clearInvite);
 
   useEffect(() => {
-    if (user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') {
+    if (user) {
       if (!partnerName || partnerName === 'Partner' || !partnerAvatar) {
         fetchPartnerProfile();
       }
     }
-  }, [isSessionActive, partnerName, partnerAvatar, user?.role]);
+  }, [isSessionActive, partnerName, partnerAvatar, user]);
 
-  if (!user || (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER')) {
+  if (!user) {
     return null;
   }
 
   // State 1: Active Listen Together Session
   if (isSessionActive) {
     return (
-      <div className="flex items-center gap-1.5 sm:gap-3 bg-slate-900/90 border border-rose-500/40 rounded-full sm:rounded-2xl px-2.5 sm:px-4 py-1 sm:py-2 text-white backdrop-blur-xl shadow-xl shrink-0">
+      <div
+        onClick={() => setDrawerOpen(true)}
+        className="flex items-center gap-1.5 sm:gap-3 bg-slate-900/90 border border-rose-500/40 rounded-full sm:rounded-2xl px-2.5 sm:px-4 py-1 sm:py-2 text-white backdrop-blur-xl shadow-xl shrink-0 cursor-pointer hover:border-rose-400 transition"
+      >
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <div className="relative shrink-0">
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-rose-500 to-pink-600 p-[1.5px] overflow-hidden">
@@ -57,8 +60,11 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
         </div>
 
         <button
-          onClick={endSession}
-          className="p-1 sm:p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition shrink-0 ml-0.5 sm:ml-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            endSession();
+          }}
+          className="p-1 sm:p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition shrink-0 ml-0.5 sm:ml-0 cursor-pointer"
           title="End Session"
         >
           <Power className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -71,14 +77,20 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
   const isPendingInvite = !isSessionActive && (isInviting || (activeSession && activeSession.status === 'INVITED'));
   if (isPendingInvite) {
     return (
-      <div className="flex items-center gap-2 bg-purple-950/80 border border-purple-500/40 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-white backdrop-blur-xl shadow-lg shrink-0">
+      <div
+        onClick={() => setDrawerOpen(true)}
+        className="flex items-center gap-2 bg-purple-950/80 border border-purple-500/40 rounded-full px-3 sm:px-4 py-1 sm:py-1.5 text-white backdrop-blur-xl shadow-lg shrink-0 cursor-pointer hover:border-purple-400 transition"
+      >
         <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin shrink-0" />
         <span className="text-xs font-bold text-purple-200 truncate">
           {isInviting ? 'Sending Invite...' : `Inviting ${partnerName || 'Partner'}...`}
         </span>
         <button
-          onClick={clearInvite}
-          className="p-0.5 hover:bg-white/10 rounded-full text-purple-300 hover:text-white transition ml-1"
+          onClick={(e) => {
+            e.stopPropagation();
+            clearInvite();
+          }}
+          className="p-0.5 hover:bg-white/10 rounded-full text-purple-300 hover:text-white transition ml-1 cursor-pointer"
           title="Cancel Invitation"
         >
           <X className="w-3.5 h-3.5" />
@@ -87,12 +99,12 @@ export const ListenTogetherBadge: React.FC = React.memo(() => {
     );
   }
 
-  // State 3: Inactive - Prominent Trigger Button
+  // State 3: Inactive - Prominent Trigger Button (Opens Target Drawer)
   return (
     <button
-      onClick={() => sendInvite()}
-      className="h-8 sm:h-10 px-3.5 sm:px-5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-purple-500/25 hover:scale-105 active:scale-95 transition shrink-0 border border-white/10"
-      title="Invite partner to listen to music together in real-time sync"
+      onClick={() => setDrawerOpen(true)}
+      className="h-8 sm:h-10 px-3.5 sm:px-5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-500 hover:to-rose-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-purple-500/25 hover:scale-105 active:scale-95 transition shrink-0 border border-white/10 cursor-pointer"
+      title="Open Listen Together to select recipient and send invite"
     >
       <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200 animate-pulse stroke-[2.5]" />
       <span>Listen Together</span>

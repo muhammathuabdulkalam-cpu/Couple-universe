@@ -284,11 +284,22 @@ export class UserService {
     );
 
     // Append pending invitation tokens so UsersTable & RelationshipMap stay 100% identical in count & content
-    const registeredEmails = new Set(users.map((u) => u.email.toLowerCase()));
+    const registeredNames = new Set(users.map((u) => (u.name || '').toLowerCase().trim()));
+    const registeredEmails = new Set(users.map((u) => (u.email || '').toLowerCase().trim()));
     const registeredIds = new Set(users.map((u) => u._id.toString()));
 
     const pendingUserItems = pendingInvitedUsers
-      .filter((inv: any) => inv && inv._id && !registeredIds.has(inv._id.toString()) && (!inv.email || !registeredEmails.has(inv.email.toLowerCase())))
+      .filter((inv: any) => {
+        if (!inv || !inv._id) return false;
+        const invId = inv._id.toString();
+        const invEmail = (inv.email || '').toLowerCase().trim();
+        const invName = (inv.name || '').toLowerCase().trim();
+
+        if (registeredIds.has(invId)) return false;
+        if (invEmail && registeredEmails.has(invEmail)) return false;
+        if (invName && registeredNames.has(invName)) return false;
+        return true;
+      })
       .map((inv: any) => ({
         id: inv._id.toString(),
         name: inv.name || inv.relationshipName || 'Invited User',

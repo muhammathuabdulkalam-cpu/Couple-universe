@@ -19,7 +19,7 @@ interface ListenTogetherState {
 
   // Actions
   initListenSocket: (socket: any) => void;
-  sendInvite: () => Promise<void>;
+  sendInvite: (targetUserId?: string) => Promise<void>;
   acceptInvite: (sessionId: string) => Promise<void>;
   declineInvite: (sessionId: string) => Promise<void>;
   endSession: () => Promise<void>;
@@ -177,6 +177,19 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     // 1. Incoming Invite Notification
     socket.on('listen:invite', (payload: ListenInvitePayload & { session?: ListeningSession }) => {
       console.log('⚡ [Socket Client] Received listen:invite event:', payload);
+      const currentUser = useAuthStore.getState().user;
+      const rawUserId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawUserId === 'object' ? (rawUserId as any)?._id?.toString() || (rawUserId as any)?.toString() : String(rawUserId || '');
+
+      const hostObj = payload.session?.host;
+      const hostId = typeof hostObj === 'object' ? (hostObj as any)?._id?.toString() || (hostObj as any)?.id?.toString() : hostObj ? String(hostObj) : undefined;
+
+      // DO NOT display incoming invite modal to the sender host!
+      if (hostId && currentUserId && hostId === currentUserId) {
+        console.log('⚡ [Socket Client] Ignoring listen:invite event sent by current user as host.');
+        return;
+      }
+
       const expiresAt = new Date(payload.expiresAt).getTime();
       const secondsLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
 
@@ -394,10 +407,10 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     window.addEventListener('beforeunload', () => socketInstance?.emit('listen:end'));
   },
 
-  sendInvite: async () => {
+  sendInvite: async (targetUserId?: string) => {
     try {
       set({ isInviting: true });
-      const session = await musicApi.createListenInvite();
+      const session = await musicApi.createListenInvite(targetUserId);
       const partnerInfo = resolvePartner(session);
       const name = partnerInfo.name || get().partnerName || 'Partner';
       const avatar = partnerInfo.avatar || get().partnerAvatar;

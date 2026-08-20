@@ -18,16 +18,27 @@ export const connectDatabase = async (): Promise<void> => {
       logger.warn('⚠️ MongoDB connection lost. Reconnecting...');
     });
 
-    await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-    });
+    try {
+      logger.info(`🍃 Connecting to primary MongoDB URI...`);
+      await mongoose.connect(env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
+    } catch (primaryErr: any) {
+      logger.warn(`⚠️ Primary MongoDB connection failed (${primaryErr.message}). Attempting fallback to local MongoDB...`);
+      const localUri = 'mongodb://127.0.0.1:27017/afrin_universe';
+      await mongoose.connect(localUri, {
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+      });
+      logger.info('🍃 Connected to local MongoDB fallback successfully.');
+    }
 
     // Seed initial Admin Account if missing
     const { seedAdminAccount } = await import('../utils/seedAdmin');
     await seedAdminAccount();
   } catch (error) {
-    logger.error(`❌ Initial MongoDB connection failed: ${(error as Error).message}`);
+    logger.error(`❌ MongoDB connection failed: ${(error as Error).message}`);
     if (env.NODE_ENV === 'production') {
       process.exit(1);
     }

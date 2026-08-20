@@ -58,10 +58,6 @@ export const getActiveStories = catchAsync(async (req: Request, res: Response) =
     expiresAt: { $gt: now },
   };
 
-  if (user.role === ROLES.INVITED_USER) {
-    filter.userId = user._id;
-  }
-
   const stories = await Story.find(filter)
     .populate('userId', 'name email avatar')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl width height mimeType duration')
