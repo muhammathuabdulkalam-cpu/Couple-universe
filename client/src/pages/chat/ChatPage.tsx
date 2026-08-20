@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { socketClient } from '../../api/socketClient.js';
 import { ChatLayout } from '../../components/chat/ChatLayout.js';
 import { MediaViewerModal } from '../../components/media/MediaViewerModal.js';
+import { FloatingCoupleMusicWidget } from '../../components/chat/FloatingCoupleMusicWidget.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 
@@ -78,9 +79,10 @@ export const ChatPage: React.FC = () => {
 
 
   return (
-    <div className="w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden">
+    <div className="w-full h-full flex-1 min-h-0 flex flex-col overflow-hidden relative">
       <ChatLayout />
       <MediaViewerModal />
+      <FloatingCoupleMusicWidget />
     </div>
   );
 };
