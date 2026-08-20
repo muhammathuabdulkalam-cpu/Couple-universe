@@ -28,7 +28,14 @@ export const RegisterPage: React.FC = () => {
 
   useEffect(() => {
     fetchSystemStatus();
-  }, [fetchSystemStatus]);
+    if (urlInvite || pendingInvite?.token) {
+      if (useAuthStore.getState().isAuthenticated) {
+        useAuthStore.getState().logout().catch(() => {
+          useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false });
+        });
+      }
+    }
+  }, [fetchSystemStatus, urlInvite, pendingInvite]);
 
   useEffect(() => {
     if (pendingInvite?.token) {

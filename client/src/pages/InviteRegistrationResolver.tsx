@@ -70,11 +70,15 @@ export const InviteRegistrationResolver: React.FC = () => {
       });
   }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
 
-  const handleAcceptInvite = () => {
+  const handleAcceptInvite = async () => {
     if (!token) return;
-    // Clear any previous session so the invited user registers with a fresh session
-    useAuthStore.getState().logout().catch(() => {});
-    navigate(`/register?invite=${token}`);
+    setStage('loading');
+    try {
+      await useAuthStore.getState().logout();
+    } catch (_err) {
+      useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false });
+    }
+    navigate(`/register?invite=${token}`, { replace: true });
   };
 
   if (stage === 'loading') {
