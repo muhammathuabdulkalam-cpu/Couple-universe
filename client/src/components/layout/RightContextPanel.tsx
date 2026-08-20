@@ -101,15 +101,10 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   return (
     <>
-      {/* Floating Listen Together Circle Button (Draggable everywhere) */}
-      {(isSessionActive || user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') && (
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.05}
-          whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
-          className="fixed right-3 bottom-20 z-50 md:hidden flex flex-col gap-3 items-center select-none touch-none cursor-grab"
-          style={{ touchAction: 'none' }}
+      {/* Floating Listen Together Circle Button (Outside Chat Only) */}
+      {!isInsideChatThread && (isSessionActive || user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') && (
+        <div
+          className="fixed right-3 bottom-20 z-50 md:hidden flex flex-col gap-3 items-center select-none"
         >
           {/* Mobile Apps Launcher Grid Button (Hidden in Active Chat Thread) */}
           {!isInsideChatThread && (
@@ -158,7 +153,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               <Headphones className="w-2.5 h-2.5 text-white animate-pulse" />
             </div>
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Mobile Apps Grid Launcher Modal */}
