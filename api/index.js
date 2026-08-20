@@ -1,5 +1,6 @@
-const app = require('../server/dist/app').default;
-const { connectDatabase } = require('../server/dist/config/db.config');
+const path = require('path');
+const app = require(path.join(__dirname, '../server/dist/app')).default;
+const { connectDatabase } = require(path.join(__dirname, '../server/dist/config/db.config'));
 
 let isConnected = false;
 
@@ -9,7 +10,7 @@ module.exports = async (req, res) => {
       await connectDatabase();
       isConnected = true;
     } catch (err) {
-      console.error('Vercel Serverless Database connection error:', err);
+      console.error('Vercel Serverless DB Error:', err);
     }
   }
   return app(req, res);

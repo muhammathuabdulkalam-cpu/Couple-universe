@@ -6,17 +6,17 @@ import { z } from 'zod';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Allow both MONGODB_URI and MONGO_URI for hosting platforms
-const rawMongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/afrin_universe';
+const rawMongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://afzal:Afrin1234@cluster0.6ajof6j.mongodb.net/afrin_universe?retryWrites=true&w=majority&appName=Cluster0';
 
 const envSchema = z.object({
   PORT: z.string().transform((val) => parseInt(val, 10)).default('5000'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
   MONGODB_URI: z.string().default(rawMongoUri),
-  JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 characters long'),
+  JWT_ACCESS_SECRET: z.string().default(process.env.JWT_ACCESS_SECRET || 'afrin_universe_jwt_access_secret_super_secure_key_2026'),
   JWT_ACCESS_EXPIRATION: z.string().default('15m'),
-  JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 characters long'),
+  JWT_REFRESH_SECRET: z.string().default(process.env.JWT_REFRESH_SECRET || 'afrin_universe_jwt_refresh_secret_super_secure_key_2026'),
   JWT_REFRESH_EXPIRATION: z.string().default('7d'),
-  CORS_ORIGIN: z.string().default('http://localhost:5174'),
+  CORS_ORIGIN: z.string().default('*'),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
