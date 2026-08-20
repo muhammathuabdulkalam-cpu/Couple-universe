@@ -24,8 +24,6 @@ export const InviteRegistrationResolver: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const setPendingInvite = useInviteRegistrationStore((state) => state.setPendingInvite);
-  const currentUser = useAuthStore((state) => state.user);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [stage, setStage] = useState<Stage>('loading');
   const [invite, setInvite] = useState<InviteValidationResult | null>(null);
@@ -38,20 +36,30 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
-    // Allow all visitors (including logged-in admins/users) to view and preview the invitation details
-
     inviteApi
       .validateInvite(token)
       .then((data: InviteValidationResult) => {
         setInvite(data);
 
-        // 2. If invitation code is already fully used, revoked or expired:
-        if (data.status === 'FULLY_USED' || data.status === 'REVOKED' || data.remainingUses === 0) {
+        // 2nd time onwards: If invitation code is already fully consumed after registration:
+        if (data.status === 'FULLY_USED' || data.remainingUses === 0) {
           navigate('/login', { replace: true });
           return;
         }
 
-        // Store pending invite for first-time registration context
+        if (data.status === 'REVOKED') {
+          setStage('invalid');
+          setErrorMsg('This invitation token has been revoked by the administrator.');
+          return;
+        }
+
+        if (data.status === 'EXPIRED') {
+          setStage('invalid');
+          setErrorMsg('This invitation token has expired.');
+          return;
+        }
+
+        // 1st time: Store pending invite and render Invitation Card Preview
         setPendingInvite({
           token,
           relationshipId: data.relationshipId || '',
@@ -65,10 +73,11 @@ export const InviteRegistrationResolver: React.FC = () => {
 
         setStage('valid');
       })
-      .catch((_err: any) => {
-        navigate('/login', { replace: true });
+      .catch((err: any) => {
+        setStage('invalid');
+        setErrorMsg(err?.response?.data?.message || err?.message || 'Invitation token is invalid or expired.');
       });
-  }, [token, isAuthenticated, currentUser, navigate, setPendingInvite]);
+  }, [token, navigate, setPendingInvite]);
 
   const handleAcceptInvite = async () => {
     if (!token) return;
