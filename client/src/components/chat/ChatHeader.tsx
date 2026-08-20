@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, Check, Palette, Phone, Video, X } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Palette, Phone, Video, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
@@ -19,14 +19,15 @@ const WALLPAPER_PRESETS = [
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
   const { user } = useAuthStore();
+  const isInvitedUser = user?.role === 'INVITED_USER';
   const { activeConversation, onlineUsers, wallpaper, setWallpaper } = useChatStore();
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
 
   if (!activeConversation) return null;
 
-  // Identify partner participant
+  const currentUserIdStr = (user?._id || user?.id)?.toString();
   const otherParticipant = activeConversation.participants?.find(
-    (p) => p._id !== user?.id && p.id !== user?.id && p._id !== user?._id
+    (p) => (p._id || p.id)?.toString() !== currentUserIdStr
   );
   const targetId = otherParticipant ? (otherParticipant._id || otherParticipant.id) : null;
   const isOnline = targetId ? onlineUsers.has(targetId.toString()) : false;
@@ -74,6 +75,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
                 Princess 👸
               </span>
             )}
+            <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border shrink-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
+              <Lock className="w-2 h-2" /> Encrypted
+            </span>
           </div>
           <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
             {isOnline ? (

@@ -304,7 +304,8 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
             </div>
 
             {/* Right: Volume, Lyrics & Extra Controls */}
-            <div className="hidden md:flex items-center justify-end gap-3 w-1/4">
+            <div className="hidden md:flex items-center justify-end gap-3 w-1/3">
+
               <button
                 onClick={() => toggleLyricsModal(true)}
                 className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold"

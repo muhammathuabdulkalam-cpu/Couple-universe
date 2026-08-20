@@ -70,8 +70,16 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
         {coverMedia && (
           <div className="w-full h-56 bg-obsidian-950 relative overflow-hidden flex items-center justify-center border-b border-white/10">
             <img
-              src={coverMedia.optimizedUrl || coverMedia.thumbnailUrl || coverMedia.secureUrl}
+              src={coverMedia.optimizedUrl || coverMedia.secureUrl || coverMedia.thumbnailUrl || coverMedia.url}
               alt={event.title}
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (coverMedia.secureUrl && target.src !== coverMedia.secureUrl) {
+                  target.src = coverMedia.secureUrl;
+                } else if (coverMedia.url && target.src !== coverMedia.url) {
+                  target.src = coverMedia.url;
+                }
+              }}
               className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               loading="lazy"
             />

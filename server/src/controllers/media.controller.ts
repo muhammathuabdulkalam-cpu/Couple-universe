@@ -102,6 +102,10 @@ export const uploadMedia = catchAsync(async (req: Request, res: Response) => {
     duration: uploadResult.duration,
   });
 
+  if (isProfileUpload) {
+    await User.findByIdAndUpdate(user._id, { avatar: uploadResult.secureUrl });
+  }
+
   if (album) {
     await Album.findByIdAndUpdate(album, {
       $inc: { mediaCount: 1 },
@@ -351,21 +355,33 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Role & relationship visibility isolation (Gallery & Vault)
-  if (user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER || user.role === ROLES.ADMIN) {
-    // Platform Owners & Admins see all gallery media
-    filter.$or = [
-      { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS', 'PRIVATE'] } },
-      { visibility: { $exists: false } },
-      { visibility: null },
-      { visibility: '' },
-    ];
+  const isSuperOwner = user.role === ROLES.SUPER_OWNER || user.email === 'afzal@afrinuniverse.com';
+  const isCoOwner = user.role === ROLES.CO_OWNER || user.email === 'amrin@afrinuniverse.com';
+  const isPrimaryCouple = isSuperOwner || isCoOwner || user.role === ROLES.ADMIN;
+
+  if (isPrimaryCouple) {
+    // Primary couple (Afzal & Amrin) see media owned by Afzal, Amrin, or System Admin (the primary couple space)
+    const primaryUsers = await User.find({
+      $or: [
+        { role: ROLES.SUPER_OWNER },
+        { role: ROLES.CO_OWNER },
+        { email: 'afzal@afrinuniverse.com' },
+        { email: 'amrin@afrinuniverse.com' },
+      ],
+      isDeleted: false,
+    }).select('_id');
+    const primaryUserIds = primaryUsers.map((u) => u._id);
+
+    filter.owner = { $in: primaryUserIds };
   } else {
-    // INVITED_USER & Members see all shared couple & public gallery media
+    // Invited users / friends strictly see media uploaded by themselves OR their linked relationship creator/partner
+    const allowedOwnerIds: any[] = [user._id];
+    if ((user as any).createdBy) {
+      allowedOwnerIds.push((user as any).createdBy);
+    }
     filter.$or = [
-      { visibility: { $in: ['COUPLE', 'PUBLIC', 'FRIENDS'] } },
-      { visibility: { $exists: false } },
-      { visibility: null },
-      { visibility: '' },
+      { owner: { $in: allowedOwnerIds } },
+      { createdBy: { $in: allowedOwnerIds } },
     ];
   }
 
@@ -375,8 +391,8 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
   try {
     total = await Media.countDocuments(filter);
 
-    // Auto-sync Cloudinary gallery assets if DB count is low or if sync=true is requested
-    if (total < 10 || req.query.sync === 'true') {
+    // Auto-sync Cloudinary gallery assets ONLY for primary couple
+    if (isPrimaryCouple && (total < 10 || req.query.sync === 'true')) {
       const syncedCount = await syncCloudinaryGalleryToDb(req.user?._id as mongoose.Types.ObjectId);
       if (syncedCount > 0 || total < 10) {
         total = await Media.countDocuments(filter);
@@ -385,15 +401,20 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
 
     mediaList = await Media.find(filter)
       .populate('owner', 'name email avatar role')
+      .populate('createdBy', 'name email avatar role')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
   } catch (err: any) {
-    // Fail-safe fallback query: return all non-deleted gallery assets
-    const fallbackFilter = { isDeleted: false, tags: { $ne: 'profile' } };
+    // Fail-safe fallback query
+    const fallbackFilter: any = { isDeleted: false, tags: { $ne: 'profile' } };
+    if (!isPrimaryCouple) {
+      fallbackFilter.owner = user._id;
+    }
     total = await Media.countDocuments(fallbackFilter);
     mediaList = await Media.find(fallbackFilter)
       .populate('owner', 'name email avatar role')
+      .populate('createdBy', 'name email avatar role')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -411,6 +432,7 @@ export const getMedia = catchAsync(async (req: Request, res: Response) => {
  * Get Media By ID
  */
 export const getMediaById = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user!;
   const media = await Media.findOne({ _id: req.params.id, isDeleted: false }).populate(
     'owner',
     'name email avatar role'
@@ -418,6 +440,13 @@ export const getMediaById = catchAsync(async (req: Request, res: Response) => {
 
   if (!media) {
     throw new AppError('Media asset not found.', HTTP_STATUS.NOT_FOUND);
+  }
+
+  const isPlatformOwner = user.role === ROLES.SUPER_OWNER || user.role === ROLES.CO_OWNER || user.role === ROLES.ADMIN;
+  const mediaOwnerId = media.owner?._id ? media.owner._id.toString() : media.owner?.toString();
+
+  if (!isPlatformOwner && mediaOwnerId !== user._id.toString()) {
+    throw new AppError('Permission denied to view this media asset.', HTTP_STATUS.FORBIDDEN);
   }
 
   return ApiResponse.success(res, 'Media retrieved successfully', media);
@@ -508,7 +537,7 @@ export const softDeleteMedia = catchAsync(async (req: Request, res: Response) =>
   if (media.cloudinaryPublicId) {
     try {
       await CloudinaryService.deleteAsset(media.cloudinaryPublicId);
-    } catch (_e) {}
+    } catch (_e) { }
   }
 
   await media.deleteOne();

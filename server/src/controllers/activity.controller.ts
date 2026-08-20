@@ -30,6 +30,9 @@ export const getFeed = catchAsync(async (req: Request, res: Response) => {
     } catch {
       filter.userId = targetUserId;
     }
+  } else if (req.user?.role === ROLES.INVITED_USER) {
+    // Invited users see only their own activity posts in the feed
+    filter.userId = req.user._id;
   }
 
   // Filter posts with images/videos only if explicitly requested

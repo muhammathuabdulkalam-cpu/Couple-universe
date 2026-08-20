@@ -109,6 +109,38 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     globalAudio.preload = 'auto';
     globalAudio.volume = get().volume;
 
+    // Attach to DOM body to bypass strict browser sandboxing on detached audio nodes
+    if (typeof document !== 'undefined' && !document.getElementById('global-music-player-element')) {
+      globalAudio.id = 'global-music-player-element';
+      globalAudio.style.display = 'none';
+      document.body.appendChild(globalAudio);
+    }
+
+    // Silent browser audio unlock on first user interaction for Socket.IO auto-playback
+    const unlock = () => {
+      if (globalAudio) {
+        const oldSrc = globalAudio.src;
+        // Inject tiny silent 1-sample WAV data-URI to satisfy browsers and unlock play permissions
+        globalAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA";
+        globalAudio.play()
+          .then(() => {
+            globalAudio?.pause();
+            if (oldSrc && oldSrc.trim() !== '') {
+              globalAudio!.src = oldSrc;
+            } else {
+              globalAudio!.removeAttribute('src');
+            }
+          })
+          .catch(() => {});
+      }
+      window.removeEventListener('click', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('click', unlock, { once: true });
+      window.addEventListener('touchstart', unlock, { once: true });
+    }
+
     globalAudio.addEventListener('timeupdate', () => {
       if (globalAudio) {
         const newTime = globalAudio.currentTime || 0;
@@ -138,6 +170,13 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     globalAudio.addEventListener('playing', () => {
       clearLoadingTimer();
       set({ isPlaying: true, isLoading: false });
+    });
+
+    globalAudio.addEventListener('pause', () => {
+      clearLoadingTimer();
+      if (!get().isLoading) {
+        set({ isPlaying: false });
+      }
     });
 
     globalAudio.addEventListener('waiting', () => {
@@ -182,7 +221,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   },
 
   playTrack: (track: NormalizedSong, queueList?: NormalizedSong[], skipSocketSync?: boolean, startTime?: number) => {
-    let { audioElement, currentTrack, isPlaying } = get();
+    let { audioElement, currentTrack } = get();
     if (!audioElement) {
       get().initAudio();
       audioElement = globalAudio;
@@ -195,39 +234,31 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
     clearLoadingTimer();
 
-    // 1. Instant Playback optimization: If clicking play on currently loaded song, toggle without changing src
+    // 1. Instant Playback optimization: If clicking play on currently loaded song, play without re-setting src
     if (currentTrack?.providerSongId === songId && audioElement.src) {
-      if (!isPlaying) {
-        if (startTime !== undefined) {
-          audioElement.currentTime = startTime;
-        }
-        audioElement
-          .play()
-          .then(() => {
-            if (currentRequestId === activePlayRequestId) {
-              clearLoadingTimer();
-              set({ isPlaying: true, isLoading: false });
-            }
-          })
-          .catch(() => {
-            if (currentRequestId === activePlayRequestId) {
-              clearLoadingTimer();
-              set({ isPlaying: false, isLoading: false });
-            }
-          });
-      } else {
-        audioElement.pause();
-        clearLoadingTimer();
-        set({ isPlaying: false, isLoading: false });
+      if (startTime !== undefined && startTime > 0) {
+        try { audioElement.currentTime = startTime; } catch (_e) {}
       }
+      audioElement
+        .play()
+        .then(() => {
+          if (currentRequestId === activePlayRequestId) {
+            clearLoadingTimer();
+            set({ isPlaying: true, isLoading: false });
+            if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
+              useListenTogetherStore.getState().syncPlay(currentTrack, audioElement?.currentTime || 0);
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('Playback error on currently loaded track:', err);
+          if (currentRequestId === activePlayRequestId) {
+            clearLoadingTimer();
+            set({ isPlaying: false, isLoading: false });
+          }
+        });
       return;
     }
-
-    // Stop old song immediately so audio buffer doesn't keep outputting old track
-    try {
-      audioElement.pause();
-      audioElement.currentTime = startTime !== undefined ? startTime : 0;
-    } catch (_err) { }
 
     // Determine target queue & queue index synchronously
     const newQueue = queueList && queueList.length > 0 ? queueList : get().queue.length > 0 ? get().queue : [track];
@@ -261,12 +292,22 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
     // Preload next track in background for instant transition
     preloadNextTrack(newQueue, queueIndex, get().isShuffle);
 
+    // Helper to broadcast socket play event after local playback succeeds
+    const triggerPartnerSync = (trackToSync: NormalizedSong, timeToSync: number) => {
+      if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
+        useListenTogetherStore.getState().syncPlay(trackToSync, timeToSync);
+      }
+    };
+
     // 4. INSTANT NATIVE AUDIO PLAYBACK
     if (targetUrl && targetUrl.trim() !== '' && !targetUrl.includes('cloudinary.com/demo/')) {
-      if (audioElement.src !== targetUrl) {
+      const absoluteTargetUrl = new URL(targetUrl, window.location.origin).href;
+      if (audioElement.src !== absoluteTargetUrl && audioElement.src !== targetUrl) {
         audioElement.src = targetUrl;
       }
-      audioElement.currentTime = startTime !== undefined ? startTime : 0;
+      if (startTime !== undefined && startTime > 0) {
+        try { audioElement.currentTime = startTime; } catch (_e) {}
+      }
       audioElement.volume = get().isMuted ? 0 : get().volume;
 
       audioElement
@@ -276,10 +317,11 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
             clearLoadingTimer();
             resolvedUrlCache.set(songId, targetUrl);
             set({ isPlaying: true, isLoading: false });
+            triggerPartnerSync(resolvedTrack, audioElement?.currentTime || startTime || 0);
           }
         })
         .catch((err: any) => {
-          if (currentRequestId !== activePlayRequestId || err?.name === 'AbortError') return;
+          if (currentRequestId !== activePlayRequestId) return;
           console.warn('Native play failed or blocked:', err);
 
           // Fast Cloudinary MP3 transcode fallback
@@ -294,6 +336,7 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
                     clearLoadingTimer();
                     resolvedUrlCache.set(songId, mp3Url);
                     set({ isPlaying: true, isLoading: false });
+                    triggerPartnerSync(resolvedTrack, audioElement?.currentTime || startTime || 0);
                   }
                 })
                 .catch(() => {
@@ -326,13 +369,13 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
 
             if (audioElement) {
               audioElement.src = fallbackUrl;
-              audioElement.currentTime = 0;
               audioElement
                 .play()
                 .then(() => {
                   if (currentRequestId === activePlayRequestId) {
                     clearLoadingTimer();
                     set({ isPlaying: true, isLoading: false });
+                    triggerPartnerSync(resolvedTrack, audioElement?.currentTime || 0);
                   }
                 })
                 .catch(() => {
@@ -362,11 +405,6 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
         });
     }
 
-    // Broadcast Listen Together Socket Sync in background
-    if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
-      useListenTogetherStore.getState().syncPlay(resolvedTrack, 0);
-    }
-
     // Record recently played API ONLY ONCE per song
     if (lastRecordedSongId !== songId) {
       lastRecordedSongId = songId;
@@ -375,55 +413,63 @@ export const useMusicPlayerStore = create<MusicPlayerState>((set, get) => ({
   },
 
   togglePlay: (skipSocketSync?: boolean) => {
-    const { audioElement, isPlaying, currentTrack } = get();
+    const audio = get().audioElement || globalAudio;
+    const { isPlaying, currentTrack } = get();
     if (!currentTrack) return;
-    if (!audioElement) {
+    if (!audio) {
       get().initAudio();
       return;
     }
 
     if (isPlaying) {
-      audioElement.pause();
-      set({ isPlaying: false });
+      try { audio.pause(); } catch (_e) {}
+      set({ isPlaying: false, isLoading: false });
       if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
-        useListenTogetherStore.getState().syncPause(audioElement.currentTime);
+        useListenTogetherStore.getState().syncPause(audio.currentTime || 0);
       }
     } else {
-      audioElement
+      audio
         .play()
         .then(() => {
-          set({ isPlaying: true });
+          set({ isPlaying: true, isLoading: false });
           if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
-            useListenTogetherStore.getState().syncPlay(currentTrack, audioElement?.currentTime || 0);
+            useListenTogetherStore.getState().syncPlay(currentTrack, audio.currentTime || 0);
           }
         })
-        .catch(console.error);
+        .catch(() => {
+          set({ isPlaying: false, isLoading: false });
+        });
     }
   },
 
   pause: (skipSocketSync?: boolean) => {
-    const { audioElement } = get();
-    if (audioElement) {
-      audioElement.pause();
-      set({ isPlaying: false });
+    const audio = get().audioElement || globalAudio;
+    if (audio) {
+      try { audio.pause(); } catch (_e) {}
+      set({ isPlaying: false, isLoading: false });
       if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
-        useListenTogetherStore.getState().syncPause(audioElement.currentTime);
+        useListenTogetherStore.getState().syncPause(audio.currentTime || 0);
       }
+    } else {
+      set({ isPlaying: false, isLoading: false });
     }
   },
 
   resume: (skipSocketSync?: boolean) => {
-    const { audioElement, currentTrack } = get();
-    if (audioElement && currentTrack) {
-      audioElement
+    const audio = get().audioElement || globalAudio;
+    const { currentTrack } = get();
+    if (audio && currentTrack) {
+      audio
         .play()
         .then(() => {
-          set({ isPlaying: true });
+          set({ isPlaying: true, isLoading: false });
           if (!skipSocketSync && useListenTogetherStore.getState().isSessionActive) {
-            useListenTogetherStore.getState().syncPlay(currentTrack, audioElement.currentTime);
+            useListenTogetherStore.getState().syncPlay(currentTrack, audio.currentTime || 0);
           }
         })
-        .catch(console.error);
+        .catch(() => {
+          set({ isPlaying: false, isLoading: false });
+        });
     }
   },
 

@@ -128,7 +128,7 @@ export const getTimelineEvents = catchAsync(async (req: Request, res: Response) 
 
   // Role permissions
   if (user.role === ROLES.INVITED_USER) {
-    filter.visibility = { $in: ['COUPLE', 'FAMILY', 'FRIENDS', 'PUBLIC'] };
+    filter.createdBy = user._id;
   }
 
   const total = await TimelineEvent.countDocuments(filter);

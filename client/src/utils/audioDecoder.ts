@@ -126,7 +126,7 @@ export function getNormalizedAudioUrl(rawUrl?: string): string {
   if (!rawUrl) return '';
 
   let url = rawUrl.trim();
-  const token = getMemoryAccessToken();
+  const token = getMemoryAccessToken() || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
 
   // If it's a relative API path like /api/v1/music/songs/.../play, prepend backend origin if needed
   if (url.startsWith('/')) {
@@ -140,9 +140,13 @@ export function getNormalizedAudioUrl(rawUrl?: string): string {
   }
 
   // Attach auth token query parameter for internal API audio streaming endpoints if available
-  if (token && url.includes('/api/v1/music/songs/') && url.includes('/play') && !url.includes('token=')) {
-    const separator = url.includes('?') ? '&' : '?';
-    url = `${url}${separator}token=${encodeURIComponent(token)}`;
+  if (url.includes('/api/v1/music/songs/')) {
+    // Strip existing token parameter if present
+    url = url.replace(/[\?&]token=[^&]*/g, '');
+    if (token) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}token=${encodeURIComponent(token)}`;
+    }
   }
 
   // Cloudinary MP3 auto-transcoding

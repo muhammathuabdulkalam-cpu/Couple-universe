@@ -4,15 +4,18 @@ import { musicApi } from '../api/musicApi';
 import { ListenInvitePayload, ListeningSession, NormalizedSong } from '../types/music.types';
 import { useAuthStore } from './authStore';
 import { useMusicPlayerStore } from './musicPlayerStore';
+import { useUIStore } from './uiStore';
 
 interface ListenTogetherState {
   activeSession: ListeningSession | null;
   incomingInvite: ListenInvitePayload | null;
   inviteCountdown: number; // seconds left (max 600)
   isSessionActive: boolean;
+  isInviting: boolean;
   partnerConnected: boolean;
   partnerName: string | null;
   partnerAvatar: string | null;
+  isDrawerOpen: boolean;
 
   // Actions
   initListenSocket: (socket: any) => void;
@@ -21,6 +24,8 @@ interface ListenTogetherState {
   declineInvite: (sessionId: string) => Promise<void>;
   endSession: () => Promise<void>;
   clearInvite: () => void;
+  setDrawerOpen: (open: boolean) => void;
+  toggleDrawer: () => void;
   syncPlay: (track?: NormalizedSong, currentTime?: number) => void;
   syncPause: (currentTime?: number) => void;
   syncSeek: (currentTime: number) => void;
@@ -41,7 +46,11 @@ export const fetchPartnerProfile = async (): Promise<{ name: string | null; avat
     const partner = res.data?.data?.partner;
     if (partner) {
       const pName = partner.name || 'Partner';
-      const pAvatar = partner.avatar || null;
+      const defaultPartnerAvatar = pName.toLowerCase().includes('amrin')
+        ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
+        : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+      const pAvatar = partner.avatar && partner.avatar.trim() !== '' ? partner.avatar : defaultPartnerAvatar;
+
       useListenTogetherStore.setState({
         partnerName: pName,
         partnerAvatar: pAvatar,
@@ -62,7 +71,12 @@ const resolvePartner = (session: ListeningSession | null) => {
   const partnerObj = isHost ? session.participant : session.host;
 
   if (typeof partnerObj === 'object' && partnerObj && partnerObj !== null) {
-    return { name: (partnerObj as any).name || 'Partner', avatar: (partnerObj as any).avatar || null };
+    const pName = (partnerObj as any).name || 'Partner';
+    const defaultPartnerAvatar = pName.toLowerCase().includes('amrin')
+      ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
+      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+    const pAvatar = (partnerObj as any).avatar && (partnerObj as any).avatar.trim() !== '' ? (partnerObj as any).avatar : defaultPartnerAvatar;
+    return { name: pName, avatar: pAvatar };
   }
   return { name: null, avatar: null };
 };
@@ -72,13 +86,41 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
   incomingInvite: null,
   inviteCountdown: 0,
   isSessionActive: false,
+  isInviting: false,
   partnerConnected: false,
   partnerName: null,
   partnerAvatar: null,
+  isDrawerOpen: false,
+
+  setDrawerOpen: (isDrawerOpen: boolean) => set({ isDrawerOpen }),
+  toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
 
   initListenSocket: (socket: any) => {
     if (!socket) return;
+    if (socketInstance === socket) {
+      console.log('⚡ [Socket Client] initListenSocket called with identical socket instance. Skipping duplicate registrations.');
+      return;
+    }
+
+    // Clean up old listeners from previous socket instance to avoid memory leaks
+    if (socketInstance) {
+      console.log('⚡ [Socket Client] Cleaning up listeners on old socket instance.');
+      socketInstance.off('profile_updated');
+      socketInstance.off('user:profile_updated');
+      socketInstance.off('listen:invite');
+      socketInstance.off('listen:accept');
+      socketInstance.off('listen:decline');
+      socketInstance.off('listen:play');
+      socketInstance.off('listen:pause');
+      socketInstance.off('listen:seek');
+      socketInstance.off('listen:next');
+      socketInstance.off('listen:previous');
+      socketInstance.off('listen:end');
+      socketInstance.off('listen:inactive');
+    }
+
     socketInstance = socket;
+    console.log('⚡ [Socket Client] Initializing Listen Together socket listeners.');
 
     // Fetch initial partner profile in background for real-time state
     fetchPartnerProfile();
@@ -88,6 +130,7 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       .getListenSessionStatus()
       .then((session) => {
         if (session && session.status === 'ACTIVE') {
+          console.log('⚡ [Socket Client] Existing ACTIVE session restored:', session.sessionId);
           const partnerInfo = resolvePartner(session);
           const name = partnerInfo.name || get().partnerName;
           const avatar = partnerInfo.avatar || get().partnerAvatar;
@@ -132,6 +175,7 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
     // 1. Incoming Invite Notification
     socket.on('listen:invite', (payload: ListenInvitePayload & { session?: ListeningSession }) => {
+      console.log('⚡ [Socket Client] Received listen:invite event:', payload);
       const expiresAt = new Date(payload.expiresAt).getTime();
       const secondsLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
 
@@ -158,7 +202,18 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
     // 2. Invite Accepted
     socket.on('listen:accept', (data: { sessionId: string; acceptedBy: string; acceptedByAvatar?: string; session?: ListeningSession }) => {
-      const active = data.session || get().activeSession;
+      console.log('⚡ [Socket Client] Received listen:accept event:', data);
+      const now = Date.now();
+      const win = window as any;
+      if (win.__lastAcceptSessionId === data.sessionId && now - (win.__lastAcceptTime || 0) < 4000) {
+        console.log('⚡ [Socket Client] Deduplicated duplicate listen:accept event.');
+        return;
+      }
+      win.__lastAcceptSessionId = data.sessionId;
+      win.__lastAcceptTime = now;
+
+      const rawSession = data.session || get().activeSession;
+      const active = rawSession ? { ...rawSession, status: 'ACTIVE' as const } : null;
       const partnerInfo = resolvePartner(active);
 
       const resolvedName = partnerInfo.name || data.acceptedBy || get().partnerName || 'Partner';
@@ -167,6 +222,7 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       set({
         activeSession: active,
         isSessionActive: true,
+        isInviting: false,
         partnerConnected: true,
         partnerName: resolvedName,
         partnerAvatar: resolvedAvatar,
@@ -179,11 +235,15 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
       if (countdownInterval) clearInterval(countdownInterval);
 
-      // Trigger instant playback sync if current track is available
-      const currentTrack = useMusicPlayerStore.getState().currentTrack;
-      const currentTime = useMusicPlayerStore.getState().currentTime;
-      if (currentTrack) {
-        get().syncPlay(currentTrack, currentTime);
+      useUIStore.getState().addToast('Listen Together Connected! 🎵', `${resolvedName} joined the session`, 'success');
+      try {
+        window.dispatchEvent(new CustomEvent('navigate-shared-music'));
+      } catch (_e) {}
+
+      // Sync current track queue if available without forcing auto-play on connect
+      const playerStore = useMusicPlayerStore.getState();
+      if (playerStore.queue.length > 0) {
+        get().syncQueue(playerStore.queue);
       }
 
       // Start 10s Heartbeat
@@ -195,16 +255,20 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
     // 3. Invite Declined
     socket.on('listen:decline', () => {
-      set({ incomingInvite: null });
+      console.log('⚡ [Socket Client] Received listen:decline event.');
+      set({ incomingInvite: null, isInviting: false });
       if (countdownInterval) clearInterval(countdownInterval);
     });
 
     // 4. Play Sync Event Handler (0ms Lag Playback)
     socket.on('listen:play', (data: { senderId: string; currentTime?: number; track?: NormalizedSong }) => {
+      console.log('⚡ [Socket Client] Received listen:play event:', data);
       const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      const rawId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawId === 'object' ? (rawId as any)?.toString() : String(rawId || '');
 
-      if (data.senderId !== currentUserId) {
+      if (data.senderId && String(data.senderId) !== currentUserId) {
+        console.log('⚡ [Socket Client] Applying partner play event.');
         const playerStore = useMusicPlayerStore.getState();
         if (data.track) {
           playerStore.playTrack(data.track, undefined, true, data.currentTime || 0);
@@ -219,10 +283,13 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
     // 5. Pause Sync Event Handler
     socket.on('listen:pause', (data: { senderId: string; currentTime?: number }) => {
+      console.log('⚡ [Socket Client] Received listen:pause event:', data);
       const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      const rawId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawId === 'object' ? (rawId as any)?.toString() : String(rawId || '');
 
-      if (data.senderId !== currentUserId) {
+      if (data.senderId && String(data.senderId) !== currentUserId) {
+        console.log('⚡ [Socket Client] Applying partner pause event.');
         const playerStore = useMusicPlayerStore.getState();
         playerStore.pause(true);
         if (data.currentTime !== undefined) {
@@ -233,35 +300,52 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
     // 6. Seek Sync Event Handler
     socket.on('listen:seek', (data: { senderId: string; currentTime: number }) => {
+      console.log('⚡ [Socket Client] Received listen:seek event:', data);
       const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      const rawId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawId === 'object' ? (rawId as any)?.toString() : String(rawId || '');
 
-      if (data.senderId !== currentUserId) {
+      if (data.senderId && String(data.senderId) !== currentUserId) {
+        console.log('⚡ [Socket Client] Applying partner seek event to time:', data.currentTime);
         useMusicPlayerStore.getState().seekTo(data.currentTime, true);
       }
     });
 
     // 7. Next & Prev Track Handlers
     socket.on('listen:next', (data: { senderId: string; track: NormalizedSong }) => {
+      console.log('⚡ [Socket Client] Received listen:next event:', data);
       const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      const rawId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawId === 'object' ? (rawId as any)?.toString() : String(rawId || '');
 
-      if (data.senderId !== currentUserId && data.track) {
+      if (data.senderId && String(data.senderId) !== currentUserId && data.track) {
+        console.log('⚡ [Socket Client] Applying partner next track event.');
         useMusicPlayerStore.getState().playTrack(data.track, undefined, true);
       }
     });
 
     socket.on('listen:previous', (data: { senderId: string; track: NormalizedSong }) => {
+      console.log('⚡ [Socket Client] Received listen:previous event:', data);
       const currentUser = useAuthStore.getState().user;
-      const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
+      const rawId = currentUser?._id || currentUser?.id;
+      const currentUserId = typeof rawId === 'object' ? (rawId as any)?.toString() : String(rawId || '');
 
-      if (data.senderId !== currentUserId && data.track) {
+      if (data.senderId && String(data.senderId) !== currentUserId && data.track) {
+        console.log('⚡ [Socket Client] Applying partner previous track event.');
         useMusicPlayerStore.getState().playTrack(data.track, undefined, true);
       }
     });
 
     // 8. Session Ended / Disconnect
-    socket.on('listen:end', () => {
+    socket.on('listen:end', (data?: any) => {
+      console.log('⚡ [Socket Client] Received listen:end event:', data);
+      const now = Date.now();
+      const win = window as any;
+      if (now - (win.__lastEndTime || 0) < 3000) return;
+      win.__lastEndTime = now;
+
+      const wasActive = get().isSessionActive;
+
       set({
         activeSession: null,
         isSessionActive: false,
@@ -270,11 +354,23 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       });
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       if (countdownInterval) clearInterval(countdownInterval);
+
+      if (wasActive) {
+        const reason = data?.reason || 'Listen Together session ended.';
+        useUIStore.getState().addToast('Listen Together Ended 💔', reason, 'info');
+      }
     });
 
     // 9. Inactive alert
-    socket.on('listen:inactive', () => {
+    socket.on('listen:inactive', (data?: any) => {
+      console.log('⚡ [Socket Client] Received listen:inactive event:', data);
       set({ partnerConnected: false });
+      const pName = get().partnerName || 'Partner';
+      useUIStore.getState().addToast(
+        'Partner Offline ⚠️',
+        `${pName} has disconnected or closed their browser.`,
+        'warning'
+      );
     });
 
     // Feature 8: Mobile Background / Visibility Handlers
@@ -299,23 +395,28 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
 
   sendInvite: async () => {
     try {
+      set({ isInviting: true });
       const session = await musicApi.createListenInvite();
       const partnerInfo = resolvePartner(session);
-      const name = partnerInfo.name || get().partnerName;
+      const name = partnerInfo.name || get().partnerName || 'Partner';
       const avatar = partnerInfo.avatar || get().partnerAvatar;
-      set({ activeSession: session, partnerName: name, partnerAvatar: avatar });
+      set({ activeSession: session, partnerName: name, partnerAvatar: avatar, isInviting: false });
 
       if (!name || name === 'Partner' || !avatar) {
         fetchPartnerProfile();
       }
-    } catch (_err) {
-      // Gracefully handle
+      useUIStore.getState().addToast('Invitation Sent 🎵', `Sent Listen Together invite to ${name}`, 'success');
+    } catch (err: any) {
+      set({ isInviting: false });
+      const message = err?.response?.data?.message || err?.message || 'Failed to send invite';
+      useUIStore.getState().addToast('Listen Together', message, 'error');
     }
   },
 
   acceptInvite: async (sessionId: string) => {
     try {
-      const session = await musicApi.respondListenInvite(sessionId, 'accept');
+      const rawSession = await musicApi.respondListenInvite(sessionId, 'accept');
+      const session = rawSession ? { ...rawSession, status: 'ACTIVE' as const } : null;
       const partnerInfo = resolvePartner(session);
       const name = partnerInfo.name || get().partnerName;
       const avatar = partnerInfo.avatar || get().partnerAvatar;
@@ -323,6 +424,7 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       set({
         activeSession: session,
         isSessionActive: true,
+        isInviting: false,
         partnerConnected: true,
         partnerName: name,
         partnerAvatar: avatar,
@@ -334,11 +436,16 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       }
       if (countdownInterval) clearInterval(countdownInterval);
 
-      // Trigger instant play sync
-      const currentTrack = useMusicPlayerStore.getState().currentTrack;
-      const currentTime = useMusicPlayerStore.getState().currentTime;
-      if (currentTrack) {
-        get().syncPlay(currentTrack, currentTime);
+      const pName = name || 'Partner';
+      useUIStore.getState().addToast('Listen Together Connected! 🎵', `Connected session with ${pName}`, 'success');
+      try {
+        window.dispatchEvent(new CustomEvent('navigate-shared-music'));
+      } catch (_e) {}
+
+      // Sync current track queue if available without forcing auto-play on connect
+      const playerStore = useMusicPlayerStore.getState();
+      if (playerStore.queue.length > 0) {
+        get().syncQueue(playerStore.queue);
       }
 
       // Start Heartbeat
@@ -366,18 +473,25 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       set({
         activeSession: null,
         isSessionActive: false,
+        isInviting: false,
         partnerConnected: false,
         incomingInvite: null,
       });
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       if (countdownInterval) clearInterval(countdownInterval);
+
+      useUIStore.getState().addToast(
+        'Listen Together Ended 💔',
+        'You disconnected the Listen Together session.',
+        'info'
+      );
     } catch (_err) {
       // Gracefully handle
     }
   },
 
   clearInvite: () => {
-    set({ incomingInvite: null, inviteCountdown: 0 });
+    set({ incomingInvite: null, isInviting: false, inviteCountdown: 0 });
     if (countdownInterval) clearInterval(countdownInterval);
   },
 

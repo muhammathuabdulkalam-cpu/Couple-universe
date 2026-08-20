@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { HTTP_STATUS } from '../constants';
+import { HTTP_STATUS, ROLES } from '../constants';
 import { Album } from '../models/album.model';
 import { Media } from '../models/media.model';
 import { ApiResponse } from '../utils/ApiResponse';
@@ -32,7 +32,14 @@ export const createAlbum = catchAsync(async (req: Request, res: Response) => {
  * Get Albums List
  */
 export const getAlbums = catchAsync(async (req: Request, res: Response) => {
-  const albums = await Album.find({ isDeleted: false })
+  const user = req.user!;
+  const filter: any = { isDeleted: false };
+
+  if (user.role === ROLES.INVITED_USER) {
+    filter.owner = user._id;
+  }
+
+  const albums = await Album.find(filter)
     .populate('createdBy', 'name email avatar')
     .sort({ createdAt: -1 });
 

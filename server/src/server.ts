@@ -9,6 +9,7 @@ import { PLATFORM_CONSTANTS } from './constants';
 import { socketService } from './services/socket.service';
 import { syncCloudinaryAudioToDb } from './controllers/music.controller';
 import { syncCloudinaryGalleryToDb } from './controllers/media.controller';
+import { syncCloudinaryProfilesToDb } from './controllers/profile.controller';
 
 import { User } from './models/user.model';
 import { ROLES, USER_STATUS } from './constants';
@@ -49,6 +50,48 @@ async function ensureSystemAdminUserExists(): Promise<void> {
   }
 }
 
+import { Media } from './models/media.model';
+
+async function ensureDefaultAvatarsPopulated(): Promise<void> {
+  try {
+    // Reset any broken 404 Cloudinary avatar strings to empty string so user's real uploaded media can be linked
+    await User.updateMany(
+      { avatar: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+      { $set: { avatar: '' } }
+    );
+
+    await Media.deleteMany({
+      $or: [
+        { cloudinaryPublicId: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+        { secureUrl: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+        { url: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+      ],
+    });
+
+    const usersWithoutAvatar = await User.find({
+      $or: [
+        { avatar: '' },
+        { avatar: null },
+        { avatar: { $exists: false } },
+      ],
+    });
+
+    for (const u of usersWithoutAvatar) {
+      const userMedia = await Media.findOne({
+        owner: u._id,
+        $or: [{ tags: 'profile' }, { title: 'Profile Picture' }],
+      }).sort({ createdAt: -1 });
+
+      if (userMedia && userMedia.secureUrl) {
+        u.avatar = userMedia.secureUrl;
+        await u.save();
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`⚠️ Avatar auto-populate warning: ${err.message}`);
+  }
+}
+
 const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB Database
@@ -57,18 +100,25 @@ const startServer = async (): Promise<void> => {
     // Ensure System Admin Account is Active & Restored
     await ensureSystemAdminUserExists();
 
-    // Auto-sync Cloudinary audio & gallery libraries asynchronously on startup
+    // Ensure Default Profile Avatars are Populated in MongoDB
+    await ensureDefaultAvatarsPopulated();
+
+    // Auto-sync Cloudinary audio, gallery & profile libraries asynchronously on startup
     syncCloudinaryAudioToDb().catch((syncErr) => {
       logger.warn(`⚠️ Startup Cloudinary audio sync non-fatal error: ${syncErr.message}`);
     });
     syncCloudinaryGalleryToDb().catch((syncErr) => {
       logger.warn(`⚠️ Startup Cloudinary gallery sync non-fatal error: ${syncErr.message}`);
     });
+    syncCloudinaryProfilesToDb().catch((syncErr) => {
+      logger.warn(`⚠️ Startup Cloudinary profile sync non-fatal error: ${syncErr.message}`);
+    });
 
     // Background Cloudinary auto-sync every 5 minutes
     setInterval(() => {
       syncCloudinaryAudioToDb().catch(() => {});
       syncCloudinaryGalleryToDb().catch(() => {});
+      syncCloudinaryProfilesToDb().catch(() => {});
     }, 5 * 60 * 1000);
 
     // Start Express HTTP Server

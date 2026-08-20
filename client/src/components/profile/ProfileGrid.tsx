@@ -189,6 +189,14 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({ activeTab, targetUser 
                 <img
                   src={imageUrl}
                   alt={item.title || 'Post thumbnail'}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (item.referenceId?.secureUrl && target.src !== item.referenceId.secureUrl) {
+                      target.src = item.referenceId.secureUrl;
+                    } else if (item.referenceId?.url && target.src !== item.referenceId.url) {
+                      target.src = item.referenceId.url;
+                    }
+                  }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
                 />

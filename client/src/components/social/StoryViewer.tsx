@@ -109,8 +109,8 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
 
   if (!current) return null;
 
-  const mediaUrl = current.mediaId?.secureUrl || current.mediaId?.optimizedUrl || '';
-  const isVideo = current.mediaId?.mimeType?.startsWith('video');
+  const mediaUrl = current.mediaId?.secureUrl || current.mediaId?.optimizedUrl || current.mediaId?.url || (current as any).mediaUrl || '';
+  const isVideo = current.mediaId?.mimeType?.startsWith('video') || (typeof mediaUrl === 'string' && (mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.webm')));
 
   // Unified Story Activity Aggregator: 1 row bar per non-author user with watch count & emoji in SAME BAR
   const consolidatedUserActivities = React.useMemo(() => {
@@ -270,7 +270,16 @@ export const StoryViewer: React.FC<Props> = ({ story, allStories, onClose, openA
           {isVideo ? (
             <video src={mediaUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
           ) : (
-            <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
+            <img
+              src={mediaUrl}
+              alt=""
+              onError={(e) => {
+                if (current.mediaId?.secureUrl && e.currentTarget.src !== current.mediaId.secureUrl) {
+                  e.currentTarget.src = current.mediaId.secureUrl;
+                }
+              }}
+              className="w-full h-full object-cover"
+            />
           )}
         </div>
 

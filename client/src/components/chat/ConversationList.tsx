@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Heart, MessageSquare, Search } from 'lucide-react';
+import { Heart, Lock, MessageSquare, RefreshCw, Search, Shield } from 'lucide-react';
 import React, { useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -36,6 +36,9 @@ const getRecentMessagePreview = (lastMsg: MessageItem | null | undefined, isSend
 
 export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConversation }) => {
   const { user } = useAuthStore();
+  const currentUserId = user?._id || user?.id || '';
+  const currentUserIdStr = currentUserId ? currentUserId.toString() : '';
+  const isInvitedUser = user?.role === 'INVITED_USER';
   const { addToast } = useUIStore();
   const {
     conversations,
@@ -48,7 +51,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
   const [search, setSearch] = useState('');
 
   // Fetch Conversations via React Query with 3s background auto-sync
-  const { data: convData, refetch } = useQuery<ConversationItem[]>({
+  const { data: convData, refetch, isRefetching } = useQuery<ConversationItem[]>({
     queryKey: ['userConversations'],
     queryFn: async () => {
       const res = await axiosClient.get<ApiResponse<ConversationItem[]>>('/chat/conversations');
@@ -117,8 +120,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
   const filteredConversations = (conversations || [])
     .filter((c) => {
       if (c.type === 'RELATIONSHIP') return true;
-      const otherParticipant = c.participants?.find((p) => p._id !== user?.id && p.id !== user?.id);
-      return otherParticipant?.name.toLowerCase().includes(search.toLowerCase());
+      const otherParticipant = c.participants?.find((p) => (p._id || p.id)?.toString() !== currentUserIdStr);
+      return (otherParticipant?.name || '').toLowerCase().includes(search.toLowerCase());
     })
     .sort((a, b) => {
       const dateA = new Date(a.lastMessageId?.createdAt || a.updatedAt || a.createdAt).getTime();
@@ -128,14 +131,19 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
   return (
     <Card variant="glass" className="p-4 h-full flex flex-col space-y-4 border-none select-none rounded-none">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-amrin" />
           <h3 className="text-base font-bold text-white tracking-tight">Chats</h3>
+          {isInvitedUser && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> End-to-End Encrypted
+            </span>
+          )}
         </div>
-        {user?.role !== 'INVITED_USER' && (
+        {!isInvitedUser && (
           <Button
             variant="glass"
             size="sm"
@@ -164,8 +172,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
         {filteredConversations.length > 0 ? (
           filteredConversations.map((c) => {
             const isActive = activeConversation?._id === c._id;
-            const currentUserId = user?._id || user?.id;
-            const otherParticipant = c.participants?.find((p) => (p._id || p.id) !== currentUserId);
+            const otherParticipant = c.participants?.find((p) => (p._id || p.id)?.toString() !== currentUserIdStr);
             const partnerId = otherParticipant ? (otherParticipant._id || otherParticipant.id) : null;
             const isOnline = partnerId ? onlineUsers.has(partnerId.toString()) : false;
 
@@ -193,7 +200,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
 
               // Mark as read immediately
               if (isUnread && lastMsg?._id) {
-                axiosClient.patch(`/chat/messages/${lastMsg._id}/read`).catch(() => {});
+                axiosClient.patch(`/chat/messages/${lastMsg._id}/read`).catch(() => { });
                 const updatedReadBy = [...(lastMsg.readBy || []), { userId: currentUserId || '', readAt: new Date().toISOString() }];
                 const updatedLastMsg = { ...lastMsg, readBy: updatedReadBy };
                 const updatedConvs = (conversations || []).map((item) =>
@@ -209,13 +216,12 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
               <div
                 key={c._id}
                 onClick={handleCardClick}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                  isActive
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isActive
                     ? 'bg-gradient-to-r from-afzal/20 via-amrin/20 to-heart/20 border-amrin/40 shadow-lg ring-1 ring-amrin/30'
                     : isUnread
-                    ? 'bg-gradient-to-r from-afzal/15 via-amrin/15 to-heart/15 border-amrin/30 shadow-md'
-                    : 'glass-card border-white/5 hover:border-white/20'
-                }`}
+                      ? 'bg-gradient-to-r from-afzal/15 via-amrin/15 to-heart/15 border-amrin/30 shadow-md'
+                      : 'glass-card border-white/5 hover:border-white/20'
+                  }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="relative shrink-0">
@@ -238,6 +244,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                         {isCoOwner && (
                           <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-amrin/20 text-amrin-glow border-amrin/40">
                             Princess 👸
+                          </span>
+                        )}
+                        {isInvitedUser && (
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
+                            <Lock className="w-2 h-2" /> Encrypted
                           </span>
                         )}
                       </h4>
@@ -266,8 +277,29 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
             );
           })
         ) : (
-          <div className="text-center py-8 text-xs text-slate-400">
-            No active chats. Click above to open Relationship Room.
+          <div className="text-center py-8 px-3 space-y-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+              <Lock className="w-5 h-5" />
+            </div>
+            <p className="text-xs text-slate-300 font-semibold">
+              {isInvitedUser
+                ? '🔒 Private End-to-End Encrypted Chat'
+                : 'No active chats.'}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              {isInvitedUser
+                ? 'Your 1-on-1 private encrypted chat with your space owner will appear here.'
+                : 'Click above to open Relationship Room.'}
+            </p>
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => refetch()}
+              isLoading={isRefetching}
+              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            >
+              Sync Encrypted Chat
+            </Button>
           </div>
         )}
       </div>

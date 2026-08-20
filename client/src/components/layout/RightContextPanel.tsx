@@ -3,6 +3,7 @@ import {
   Bell,
   ChevronRight,
   CloudSun,
+  Headphones,
   Heart,
   LayoutGrid,
   Music,
@@ -21,7 +22,9 @@ import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
+import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import { useListenTogetherStore } from '../../store/listenTogetherStore.js';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore.js';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder.js';
 import { SuperOwnerProfileModal } from '../profile/SuperOwnerProfileModal.js';
@@ -37,9 +40,18 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
   const isInsideChatThread = location.pathname.startsWith('/chat') && mobileView === 'chat';
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
+
+  const { isSessionActive, partnerName, partnerAvatar, setDrawerOpen } = useListenTogetherStore();
+  const { user } = useAuthStore();
+
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isAppLauncherOpen, setIsAppLauncherOpen] = useState(false);
   const [isSuperOwnerModalOpen, setIsSuperOwnerModalOpen] = useState(false);
+
+  const myAvatar = user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+  const pAvatar = partnerAvatar || (partnerName?.toLowerCase().includes('amrin')
+    ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
+    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
 
   const panelContent = (
     <div className="space-y-4">
@@ -93,6 +105,8 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
     </div>
   );
 
+  const isPlayingSolo = isPlaying && !isSessionActive;
+
   return (
     <>
       {/* Floating Trigger Buttons on Mobile Viewports */}
@@ -117,7 +131,36 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             </button>
           )}
 
-          {/* 2. Activity Context Circular Button with Top-Right Music Bubble Badge */}
+          {/* 2. Listen Together Active Dual-Avatar Floating Button */}
+          {isSessionActive && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="w-11 h-11 rounded-full bg-gradient-to-tr from-rose-950 via-slate-950 to-purple-950 backdrop-blur-xl border-2 border-rose-500/80 ring-2 ring-rose-500/40 shadow-xl shadow-rose-500/30 active:scale-95 transition-all flex items-center justify-center relative group cursor-pointer shrink-0"
+              title={`Listening Together with ${partnerName || 'Partner'} 💖`}
+            >
+              {/* Combined Overlapping Dual Avatars */}
+              <div className="flex items-center justify-center -space-x-2">
+                <img
+                  src={myAvatar}
+                  alt="Me"
+                  className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm"
+                />
+                <img
+                  src={pAvatar}
+                  alt={partnerName || 'Partner'}
+                  className="w-5 h-5 rounded-full object-cover border border-white/40 shadow-sm"
+                />
+              </div>
+
+              {/* Glowing Heartbeat Headphones Badge */}
+              <div className="absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-500 border border-white/30 shadow-lg flex items-center justify-center animate-bounce">
+                <Headphones className="w-2.5 h-2.5 text-white animate-pulse" />
+              </div>
+            </button>
+          )}
+
+          {/* 3. Activity Context Circular Button (Shows default Sparkles icon during Listen Together, or music icon when playing solo) */}
           <div className="relative">
             <button
               type="button"
@@ -125,14 +168,14 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
                 isInsideChatThread ? 'cursor-grab active:cursor-grabbing' : ''
               } ${
-                isPlaying
+                isPlayingSolo
                   ? 'border-amrin-glow ring-2 ring-amrin-glow/50 shadow-lg shadow-amrin-glow/30'
                   : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
               }`}
               aria-label="Open Activity Bar"
-              title={isPlaying ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
+              title={isPlayingSolo ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
             >
-              {isPlaying && currentTrack ? (
+              {isPlayingSolo && currentTrack ? (
                 <img
                   src={getNormalizedCoverUrl(currentTrack.coverUrl)}
                   alt={currentTrack.title}
@@ -143,15 +186,15 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                     }
                   }}
                 />
-              ) : isPlaying ? (
+              ) : isPlayingSolo ? (
                 <Music className="w-5 h-5 text-amrin-glow" />
               ) : (
                 <Sparkles className="w-5 h-5 text-amber-300" />
               )}
             </button>
 
-            {/* Top-Right Glowing Animated Music Note Bubble Badge while Playing */}
-            {isPlaying && (
+            {/* Top-Right Glowing Animated Music Note Bubble Badge while Playing Solo */}
+            {isPlayingSolo && (
               <div
                 className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-afzal via-rose-500 to-amrin border-2 border-obsidian-950 shadow-lg shadow-rose-500/60 flex items-center justify-center pointer-events-none animate-bounce"
                 title="Playing Shared Music"

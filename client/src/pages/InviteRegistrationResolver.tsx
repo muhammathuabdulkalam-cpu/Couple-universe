@@ -38,16 +38,7 @@ export const InviteRegistrationResolver: React.FC = () => {
       return;
     }
 
-    // 1. If user ALREADY has an active session, route directly to Dashboard or Onboarding
-    if (isAuthenticated) {
-      if (currentUser?.onboardingCompleted === false) {
-        navigate('/onboarding', { replace: true });
-        return;
-      } else {
-        navigate('/dashboard', { replace: true });
-        return;
-      }
-    }
+    // Allow all visitors (including logged-in admins/users) to view and preview the invitation details
 
     inviteApi
       .validateInvite(token)
@@ -81,6 +72,8 @@ export const InviteRegistrationResolver: React.FC = () => {
 
   const handleAcceptInvite = () => {
     if (!token) return;
+    // Clear any previous session so the invited user registers with a fresh session
+    useAuthStore.getState().logout().catch(() => {});
     navigate(`/register?invite=${token}`);
   };
 

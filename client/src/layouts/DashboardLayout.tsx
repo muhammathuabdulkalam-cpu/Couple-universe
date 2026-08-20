@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { InAppChatNotificationBanner } from '../components/chat/InAppChatNotificationBanner.js';
 import { BottomNav } from '../components/layout/BottomNav.js';
 import { Breadcrumb } from '../components/layout/Breadcrumb.js';
@@ -8,6 +8,8 @@ import { Navbar } from '../components/layout/Navbar.js';
 import { RightContextPanel } from '../components/layout/RightContextPanel.js';
 import { Sidebar } from '../components/layout/Sidebar.js';
 import { ToastContainer } from '../components/layout/ToastContainer.js';
+import { ListenTogetherDrawer } from '../components/music/ListenTogetherDrawer.js';
+import { ListenTogetherInviteBanner } from '../components/music/ListenTogetherInviteBanner.js';
 import { MusicPlayerFloating } from '../components/music/MusicPlayerFloating.js';
 import { NotificationPanel } from '../components/social/NotificationPanel.js';
 import { useAuthStore } from '../store/authStore.js';
@@ -21,12 +23,23 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isChatRoute = location.pathname.startsWith('/chat');
 
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const { accessToken } = useAuthStore();
   const { initSocketListeners, fetchUnreadCounts } = useNotificationStore();
+
+  useEffect(() => {
+    const handleNavigateMusic = () => {
+      if (location.pathname !== '/shared-music') {
+        navigate('/shared-music');
+      }
+    };
+    window.addEventListener('navigate-shared-music', handleNavigateMusic);
+    return () => window.removeEventListener('navigate-shared-music', handleNavigateMusic);
+  }, [navigate, location.pathname]);
 
   React.useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -55,6 +68,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
       {/* Background Ambient Glow Spheres (Hidden on mobile to prevent overflow bleeding) */}
       <div className="pointer-events-none absolute top-0 left-1/4 w-[600px] h-[600px] bg-afzal/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-amrin/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" style={{ animationDelay: '2s' }} />
+
+      {/* Global Listen Together Invite Banner */}
+      <ListenTogetherInviteBanner />
 
       {/* Top Navigation Bar & Instagram Mobile Header */}
       {!fullViewport && (
@@ -104,6 +120,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
 
       {/* Global Floating Mini / Desktop Audio Player */}
       <MusicPlayerFloating />
+
+      {/* Global Listen Together Control Drawer */}
+      <ListenTogetherDrawer />
 
       {/* Dynamic Toast Notifications */}
       <ToastContainer />

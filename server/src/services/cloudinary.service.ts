@@ -45,21 +45,17 @@ export class CloudinaryService {
           let thumbnailUrl = result.secure_url;
 
           if (result.resource_type === 'image') {
-            optimizedUrl = cloudinary.url(result.public_id, {
-              fetch_format: 'auto',
-              quality: 'auto',
-              secure: true,
-            });
+            optimizedUrl = result.secure_url.includes('/upload/')
+              ? result.secure_url.replace('/upload/', '/upload/f_auto,q_auto/')
+              : result.secure_url;
 
-            thumbnailUrl = cloudinary.url(result.public_id, {
-              width: 400,
-              height: 400,
-              crop: 'fill',
-              gravity: 'auto',
-              fetch_format: 'auto',
-              quality: 'auto',
-              secure: true,
-            });
+            thumbnailUrl = result.secure_url.includes('/upload/')
+              ? result.secure_url.replace('/upload/', '/upload/w_400,h_400,c_fill,g_auto,f_auto,q_auto/')
+              : result.secure_url;
+          } else if (result.resource_type === 'video') {
+            thumbnailUrl = result.secure_url.includes('/upload/')
+              ? result.secure_url.replace(/\.[^/.]+$/, '.jpg').replace('/upload/', '/upload/w_400,h_400,c_fill,g_auto,f_auto,q_auto/')
+              : result.secure_url;
           }
 
           resolve({

@@ -92,15 +92,23 @@ axiosClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
         const refreshResponse = await axios.post<ApiResponse>(
           `${API_BASE_URL}/auth/refresh-token`,
-          {},
+          { refreshToken: storedRefreshToken },
           { withCredentials: true }
         );
 
         const newAccessToken = refreshResponse.data.data?.accessToken;
+        const newRefreshToken = refreshResponse.data.data?.refreshToken;
         if (newAccessToken) {
           setMemoryAccessToken(newAccessToken);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', newAccessToken);
+            if (newRefreshToken) {
+              localStorage.setItem('refresh_token', newRefreshToken);
+            }
+          }
           axiosClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           processQueue(null, newAccessToken);

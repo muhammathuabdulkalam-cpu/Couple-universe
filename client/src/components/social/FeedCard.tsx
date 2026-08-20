@@ -29,6 +29,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showBigHeart, setShowBigHeart] = useState(false);
+  const [hasImageError, setHasImageError] = useState(false);
 
   React.useEffect(() => {
     if (autoOpenComments) setShowComments(true);
@@ -117,6 +118,13 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       : `${totalLikes} likes`;
   }
 
+  const refObj = activity.referenceId as any;
+  const postImageUrl = activity.imageUrl;
+
+  const isVideo =
+    typeof postImageUrl === 'string' &&
+    (postImageUrl.endsWith('.mp4') || postImageUrl.endsWith('.webm') || refObj?.mimeType?.startsWith('video'));
+
   return (
     <div
       className={`transition-all select-none w-full max-w-full ${
@@ -189,12 +197,21 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       </div>
 
       {/* 2. Media Image / Video with Double Tap Heart */}
-      {activity.imageUrl && (
+      {postImageUrl && !hasImageError && (
         <div
           onDoubleClick={handleDoubleTap}
           className="relative w-full aspect-[4/3] max-h-[480px] bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer"
         >
-          <img src={activity.imageUrl} alt={activity.title || 'Post media'} className="w-full h-full object-cover" />
+          {isVideo ? (
+            <video src={postImageUrl} controls className="w-full h-full object-cover" />
+          ) : (
+            <img
+              src={postImageUrl}
+              alt={activity.title || 'Post media'}
+              onError={() => setHasImageError(true)}
+              className="w-full h-full object-cover"
+            />
+          )}
 
           {/* Animated Big Heart on Double Tap */}
           <AnimatePresence>

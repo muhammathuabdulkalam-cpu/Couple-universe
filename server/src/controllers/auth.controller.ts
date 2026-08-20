@@ -226,6 +226,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       onboardingCompleted: registeredUser.onboardingCompleted,
     },
     accessToken,
+    refreshToken,
   });
 });
 
@@ -301,6 +302,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
       lastLoginAt: user.lastLoginAt,
     },
     accessToken,
+    refreshToken,
   });
 });
 
@@ -324,7 +326,10 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
  * Refresh Access Token
  */
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const rawRefreshToken = req.cookies[PLATFORM_CONSTANTS.COOKIE_REFRESH_TOKEN_KEY] || req.body.refreshToken;
+  const rawRefreshToken = req.cookies[PLATFORM_CONSTANTS.COOKIE_REFRESH_TOKEN_KEY] ||
+                          req.body.refreshToken ||
+                          req.headers['x-refresh-token'] ||
+                          req.headers['authorization']?.toString().replace('Bearer ', '');
 
   if (!rawRefreshToken) {
     throw new AppError('Refresh token is missing. Please log in again.', HTTP_STATUS.UNAUTHORIZED);
@@ -366,6 +371,7 @@ export const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
   return ApiResponse.success(res, 'Token refreshed successfully', {
     accessToken: newAccessToken,
+    refreshToken: rawRefreshToken,
     user: {
       id: user._id,
       name: user.name,

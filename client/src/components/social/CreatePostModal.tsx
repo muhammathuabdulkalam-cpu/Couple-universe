@@ -152,6 +152,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         formData.append('title', caption.slice(0, 40) || (createType === 'STORY' ? '24h Story' : 'Instagram Post'));
         formData.append('caption', caption);
         formData.append('visibility', visibility);
+        formData.append('targetFolder', createType === 'STORY' ? 'afrin-universe/stories' : 'afrin-universe/posts');
         if (tags) formData.append('tags', tags);
 
         const mediaRes = await axiosClient.post('/media/upload', formData, {

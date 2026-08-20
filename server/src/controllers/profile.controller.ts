@@ -3,12 +3,92 @@ import mongoose from 'mongoose';
 import { HTTP_STATUS, ROLES, UserRole } from '../constants';
 import { Activity } from '../models/activity.model';
 import { CalendarEvent } from '../models/calendarEvent.model';
+import { Media } from '../models/media.model';
+import { Relationship } from '../models/relationship.model';
 import { TimelineEvent } from '../models/timelineEvent.model';
 import { User } from '../models/user.model';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
 import { catchAsync } from '../utils/catchAsync';
 import { getSocketServer } from '../utils/socketServer';
+
+import { CloudinaryService } from '../services/cloudinary.service';
+import { logger } from '../config/logger.config';
+
+const getDefaultAvatar = (name?: string, role?: string) => {
+  const isCoOwner = role === ROLES.CO_OWNER || name?.toLowerCase().includes('amrin');
+  return isCoOwner
+    ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=80'
+    : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80';
+};
+
+/**
+ * Sync Cloudinary Profile Upload Assets into MongoDB User & Media documents
+ */
+export async function syncCloudinaryProfilesToDb(): Promise<void> {
+  try {
+    const profileAssets = await CloudinaryService.listGalleryAssets('afrin-universe/profiles');
+    if (!profileAssets || profileAssets.length === 0) return;
+
+    const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: false });
+    const coOwner = await User.findOne({ role: ROLES.CO_OWNER, isDeleted: false });
+
+    // Sort assets by creation date ascending so latest asset applies last
+    const sortedAssets = [...profileAssets].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
+    for (const asset of sortedAssets) {
+      if (!asset.secure_url) continue;
+
+      const filename = asset.public_id.toLowerCase();
+      const isCoOwnerAsset = filename.includes('amrin') || filename.includes('co');
+      const ownerId = isCoOwnerAsset ? coOwner?._id : superOwner?._id;
+
+      if (ownerId) {
+        await Media.updateOne(
+          { cloudinaryPublicId: asset.public_id },
+          {
+            $setOnInsert: {
+              owner: ownerId,
+              createdBy: ownerId,
+              updatedBy: ownerId,
+              title: 'Profile Picture',
+              tags: ['profile'],
+              visibility: 'PUBLIC',
+              memoryDate: new Date(asset.created_at || Date.now()),
+              cloudinaryPublicId: asset.public_id,
+              cloudinaryFolder: asset.folder || 'afrin-universe/profiles',
+              url: asset.secure_url,
+              secureUrl: asset.secure_url,
+              optimizedUrl: asset.secure_url,
+              thumbnailUrl: asset.secure_url,
+              width: asset.width || 400,
+              height: asset.height || 400,
+              aspectRatio: 1,
+              orientation: 'SQUARE',
+              mimeType: `image/${asset.format || 'png'}`,
+              fileSize: asset.bytes || 50000,
+            },
+          },
+          { upsert: true }
+        );
+      }
+
+      if (isCoOwnerAsset && coOwner) {
+        if (!coOwner.avatar || coOwner.avatar.trim() === '' || coOwner.avatar.includes('unsplash')) {
+          coOwner.avatar = asset.secure_url;
+          await coOwner.save();
+        }
+      } else if (!isCoOwnerAsset && superOwner) {
+        if (!superOwner.avatar || superOwner.avatar.trim() === '' || superOwner.avatar.includes('unsplash')) {
+          superOwner.avatar = asset.secure_url;
+          await superOwner.save();
+        }
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`⚠️ Cloudinary profile sync warning: ${err.message}`);
+  }
+}
 
 /**
  * Get Profile Details with Activity Metrics & Partner Information
@@ -21,7 +101,7 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     if (mongoose.Types.ObjectId.isValid(paramId)) {
       user = await User.findById(paramId).select('-password');
     }
-    
+
     if (!user) {
       const lower = String(paramId).toLowerCase();
       if (lower.includes('co') || lower.includes('amrin')) {
@@ -44,12 +124,129 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     throw new AppError('User profile not found.', HTTP_STATUS.NOT_FOUND);
   }
 
-  // Find partner user (if current user is SUPER_OWNER, partner is CO_OWNER; if CO_OWNER, partner is SUPER_OWNER)
-  let partnerRole: UserRole = ROLES.SUPER_OWNER;
+  // 1. Partner Resolution: For SUPER_OWNER and CO_OWNER, their partner is always the other owner
+  let partner: any = null;
   if (user.role === ROLES.SUPER_OWNER) {
-    partnerRole = ROLES.CO_OWNER;
+    partner = await User.findOne({ role: ROLES.CO_OWNER }).select('name email role avatar bio birthday');
+  } else if (user.role === ROLES.CO_OWNER) {
+    partner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('name email role avatar bio birthday');
   }
-  const partner = await User.findOne({ role: partnerRole }).select('name email role avatar bio birthday');
+
+  // 2. Fallback to Relationship membership for other users
+  if (!partner) {
+    const rel = await Relationship.findOne({ 'members.user': user._id, isDeleted: { $ne: true } });
+    if (rel && rel.members && rel.members.length > 0) {
+      const partnerMember = rel.members.find((m) => m.user.toString() !== user._id.toString());
+      if (partnerMember) {
+        partner = await User.findById(partnerMember.user).select('name email role avatar bio birthday');
+      }
+    }
+  }
+
+  // 3. Fallback to any other registered user
+  if (!partner) {
+    partner = await User.findOne({ _id: { $ne: user._id }, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
+  }
+
+  // Resolve original profile avatar from user's uploaded Media or Activity posts
+  const isUserAvatarNeedsResolution =
+    !user.avatar ||
+    user.avatar.trim() === '' ||
+    user.avatar.includes('unsplash') ||
+    user.avatar.includes('profile_avatar_e77eul');
+
+  if (isUserAvatarNeedsResolution) {
+    let realAvatarUrl = '';
+
+    // 1. Try explicit profile media
+    const userProfileMedia = await Media.findOne({
+      owner: user._id,
+      $or: [{ tags: 'profile' }, { title: 'Profile Picture' }],
+      secureUrl: { $not: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+    }).sort({ createdAt: -1 });
+
+    if (userProfileMedia && userProfileMedia.secureUrl) {
+      realAvatarUrl = userProfileMedia.secureUrl;
+    }
+
+    // 2. Try latest uploaded image media
+    if (!realAvatarUrl) {
+      const latestMedia = await Media.findOne({
+        owner: user._id,
+        mimeType: /^image\//,
+      }).sort({ createdAt: -1 });
+      if (latestMedia && latestMedia.secureUrl) {
+        realAvatarUrl = latestMedia.secureUrl;
+      }
+    }
+
+    // 3. Try latest activity post image
+    if (!realAvatarUrl) {
+      const latestActivity = await Activity.findOne({
+        userId: user._id,
+        imageUrl: { $exists: true, $ne: null },
+      }).sort({ createdAt: -1 });
+      if (latestActivity && latestActivity.imageUrl && typeof latestActivity.imageUrl === 'string') {
+        realAvatarUrl = latestActivity.imageUrl;
+      }
+    }
+
+    if (realAvatarUrl) {
+      user.avatar = realAvatarUrl;
+      await User.findByIdAndUpdate(user._id, { avatar: realAvatarUrl });
+    } else {
+      user.avatar = getDefaultAvatar(user.name, user.role);
+    }
+  }
+
+  if (partner) {
+    const isPartnerAvatarNeedsResolution =
+      !partner.avatar ||
+      partner.avatar.trim() === '' ||
+      partner.avatar.includes('unsplash') ||
+      partner.avatar.includes('profile_avatar_e77eul');
+
+    if (isPartnerAvatarNeedsResolution) {
+      let realPartnerAvatarUrl = '';
+
+      const partnerProfileMedia = await Media.findOne({
+        owner: partner._id,
+        $or: [{ tags: 'profile' }, { title: 'Profile Picture' }],
+        secureUrl: { $not: { $regex: 'profile_avatar_e77eul', $options: 'i' } },
+      }).sort({ createdAt: -1 });
+
+      if (partnerProfileMedia && partnerProfileMedia.secureUrl) {
+        realPartnerAvatarUrl = partnerProfileMedia.secureUrl;
+      }
+
+      if (!realPartnerAvatarUrl) {
+        const latestPartnerMedia = await Media.findOne({
+          owner: partner._id,
+          mimeType: /^image\//,
+        }).sort({ createdAt: -1 });
+        if (latestPartnerMedia && latestPartnerMedia.secureUrl) {
+          realPartnerAvatarUrl = latestPartnerMedia.secureUrl;
+        }
+      }
+
+      if (!realPartnerAvatarUrl) {
+        const latestPartnerActivity = await Activity.findOne({
+          userId: partner._id,
+          imageUrl: { $exists: true, $ne: null },
+        }).sort({ createdAt: -1 });
+        if (latestPartnerActivity && latestPartnerActivity.imageUrl && typeof latestPartnerActivity.imageUrl === 'string') {
+          realPartnerAvatarUrl = latestPartnerActivity.imageUrl;
+        }
+      }
+
+      if (realPartnerAvatarUrl) {
+        partner.avatar = realPartnerAvatarUrl;
+        await User.findByIdAndUpdate(partner._id, { avatar: realPartnerAvatarUrl });
+      } else {
+        partner.avatar = getDefaultAvatar(partner.name, partner.role);
+      }
+    }
+  }
 
   // Calculate stats (Social Posts created by this user, memories count, events count)
   const postsCount = await Activity.countDocuments({
@@ -61,7 +258,11 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
 
   const profileData = {
     ...user.toObject(),
-    partner: partner ? partner.toObject() : null,
+    avatar: user.avatar || getDefaultAvatar(user.name, user.role),
+    partner: partner ? {
+      ...partner.toObject(),
+      avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role),
+    } : null,
     stats: {
       postsCount,
       memoriesCount,
@@ -69,8 +270,8 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
       followersCount: partner ? 1 : 0,
       followingCount: partner ? 1 : 0,
     },
-    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
-    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
+    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role), role: partner.role }] : [],
+    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role), role: partner.role }] : [],
     relationshipStartDate: '2026-03-26T00:00:00.000Z',
   };
 
@@ -86,7 +287,13 @@ export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Respons
     throw new AppError('Super Owner profile not found.', HTTP_STATUS.NOT_FOUND);
   }
 
-  const partner = await User.findOne({ role: ROLES.CO_OWNER }).select('name email role avatar bio birthday');
+  let partner: any = await User.findOne({ role: ROLES.CO_OWNER }).select('name email role avatar bio birthday');
+  if (!partner) {
+    partner = await User.findOne({ _id: { $ne: superOwner._id }, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
+  }
+
+  if (!superOwner.avatar) superOwner.avatar = getDefaultAvatar(superOwner.name, superOwner.role);
+  if (partner && !partner.avatar) partner.avatar = getDefaultAvatar(partner.name, partner.role);
 
   const postsCount = await Activity.countDocuments({
     userId: superOwner._id,
@@ -97,7 +304,11 @@ export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Respons
 
   const profileData = {
     ...superOwner.toObject(),
-    partner: partner ? partner.toObject() : null,
+    avatar: superOwner.avatar,
+    partner: partner ? {
+      ...partner.toObject(),
+      avatar: partner.avatar,
+    } : null,
     stats: {
       postsCount,
       memoriesCount,

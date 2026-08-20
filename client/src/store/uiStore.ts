@@ -31,6 +31,12 @@ export const useUIStore = create<UIState>((set, get) => ({
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
 
   addToast: (title, message, type = 'info', duration = 4000) => {
+    const activeToasts = get().toasts;
+    const isDuplicate = activeToasts.some(
+      (t) => t.title === title
+    );
+    if (isDuplicate) return;
+
     const id = Math.random().toString(36).substring(2, 9);
     const newToast: ToastMessage = { id, title, message, type, duration };
 

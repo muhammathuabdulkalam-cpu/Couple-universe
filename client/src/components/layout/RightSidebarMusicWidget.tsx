@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Pause, Play, Music, Disc, SkipBack, SkipForward } from 'lucide-react';
+import { Pause, Play, Music, Disc, SkipBack, SkipForward, Headphones } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../../store/authStore';
+import { useListenTogetherStore } from '../../store/listenTogetherStore';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { getNormalizedCoverUrl } from '../../utils/audioDecoder';
 import { musicApi } from '../../api/musicApi';
@@ -14,6 +16,14 @@ export const RightSidebarMusicWidget: React.FC = () => {
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTime = useMusicPlayerStore((s) => s.currentTime);
   const duration = useMusicPlayerStore((s) => s.duration);
+
+  const { isSessionActive, partnerName, partnerAvatar } = useListenTogetherStore();
+  const { user } = useAuthStore();
+
+  const myAvatar = user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400';
+  const pAvatar = partnerAvatar || (partnerName?.toLowerCase().includes('amrin')
+    ? 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400'
+    : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400');
 
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
@@ -77,6 +87,25 @@ export const RightSidebarMusicWidget: React.FC = () => {
       onClick={handleCardClick}
       className="p-3.5 space-y-3 border-rose-500/20 hover:border-rose-500/40 cursor-pointer transition-all duration-300 group shadow-lg"
     >
+      {/* Listen Together Active Session Banner */}
+      {isSessionActive && (
+        <div className="p-2 rounded-xl bg-gradient-to-r from-rose-950/60 via-slate-950/80 to-purple-950/60 border border-rose-500/40 flex items-center justify-between gap-2 shadow-inner">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center -space-x-2 shrink-0">
+              <img src={myAvatar} alt="Me" className="w-5 h-5 rounded-full border border-white/40 object-cover" />
+              <img src={pAvatar} alt={partnerName || 'Partner'} className="w-5 h-5 rounded-full border border-white/40 object-cover" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[11px] font-extrabold text-rose-300 truncate block">Listening Together 💖</span>
+              <span className="text-[9px] text-slate-300 truncate block">Synced with {partnerName || 'Partner'}</span>
+            </div>
+          </div>
+          <span className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0 animate-pulse">
+            <Headphones className="w-2.5 h-2.5" /> SYNCED
+          </span>
+        </div>
+      )}
+
       {/* Widget Header */}
       <div className="flex items-center justify-between text-xs font-bold text-white">
         <span className="flex items-center gap-1.5">

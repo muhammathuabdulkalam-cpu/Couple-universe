@@ -49,12 +49,12 @@ export const listRelationships = catchAsync(async (req: Request, res: Response) 
       { 'members.0': { $exists: false } },
       { name: { $in: ['Swetha', 'surya', 'sueya', 'Surya', 'Afzal & Swetha', 'Afzal & surya', 'Afzal & sueya', 'Afzal & Surya'] } },
     ],
-  }).catch(() => {});
+  }).catch(() => { });
   await Invite.deleteMany({
     $or: [
       { code: { $in: ['173146E7E60CE426B6D5F687F1348969', '4EE9B3DBCBE909A3101979592107B560', 'BECC945339E5A60340A93216DD3B7BE8', '542455DCA5601A1A623F86E6847C37E9'] } },
     ],
-  }).catch(() => {});
+  }).catch(() => { });
 
   const rels = await RelationshipService.getRelationships(
     req.query.search as string,
@@ -172,8 +172,8 @@ export const createStandaloneInvite = catchAsync(async (req: Request, res: Respo
     relationshipName && relationshipName.trim()
       ? relationshipName.trim()
       : inviteDisplayName && inviteDisplayName.trim()
-      ? `${inviteDisplayName.trim()} Relationship`
-      : 'Friendship Relationship';
+        ? `${inviteDisplayName.trim()} Relationship`
+        : 'Friendship Relationship';
 
   // Atomic Relationship + Invitation creation inside MongoDB transaction (with standalone fallback)
   let partnerUserDoc: any = null;
@@ -258,7 +258,7 @@ export const createStandaloneInvite = catchAsync(async (req: Request, res: Respo
       status: 'PENDING',
       avatar: '',
       isDeleted: false,
-    }).catch(() => {});
+    }).catch(() => { });
 
     return generatedToken;
   });

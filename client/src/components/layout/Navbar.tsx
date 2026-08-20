@@ -13,7 +13,7 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useNotificationStore } from '../../store/notificationStore.js';
 import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse } from '../../types/index.js';
+import { Avatar } from '../ui/Avatar.js';
 import { Badge } from '../ui/Badge.js';
 import { Button } from '../ui/Button.js';
 
@@ -41,6 +42,14 @@ export const Navbar: React.FC = () => {
     },
     enabled: isAuthenticated,
   });
+
+  useEffect(() => {
+    if (profileData?.avatar && user && profileData.avatar !== user.avatar) {
+      useAuthStore.getState().updateUser({ avatar: profileData.avatar });
+    }
+  }, [profileData?.avatar, user]);
+
+  const userAvatar = profileData?.avatar || user?.avatar;
 
   const handleLogout = async () => {
     setIsDropdownOpen(false);
@@ -149,15 +158,7 @@ export const Navbar: React.FC = () => {
                             className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all group"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] overflow-hidden shrink-0 shadow-md">
-                                {matchedUser.avatar ? (
-                                  <img src={matchedUser.avatar} alt={matchedUser.name} className="w-full h-full object-cover rounded-full" />
-                                ) : (
-                                  <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                                    {matchedUser.name?.[0] || '❤️'}
-                                  </div>
-                                )}
-                              </div>
+                              <Avatar src={matchedUser.avatar} name={matchedUser.name} size="sm" />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs font-extrabold text-white group-hover:text-amrin-glow transition-colors truncate">
@@ -240,13 +241,7 @@ export const Navbar: React.FC = () => {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2.5 p-1 rounded-xl glass-card border border-white/10 hover:border-amrin/40 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center text-white font-bold text-xs shadow-md overflow-hidden">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                    ) : (
-                      user.name.charAt(0).toUpperCase()
-                    )}
-                  </div>
+                  <Avatar src={userAvatar} name={user.name} size="sm" />
                   <div className="hidden lg:block text-left text-xs pr-1">
                     <div className="font-semibold text-white leading-tight">{user.name}</div>
                     {user.role !== 'INVITED_USER' && (
@@ -268,15 +263,7 @@ export const Navbar: React.FC = () => {
                       className="absolute right-0 mt-2 w-56 rounded-2xl glass-panel border border-white/10 shadow-2xl p-2 z-50 space-y-1 bg-obsidian-950/95 backdrop-blur-2xl"
                     >
                       <div className="px-3 py-2 border-b border-white/5 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal to-amrin p-[2px] shrink-0">
-                          <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
-                            {user.avatar ? (
-                              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
-                            )}
-                          </div>
-                        </div>
+                        <Avatar src={userAvatar} name={user.name} size="sm" />
                         <div className="min-w-0">
                           <div className="text-xs font-bold text-white truncate">{user.name}</div>
                           <div className="text-[11px] text-slate-400 truncate">{user.email}</div>

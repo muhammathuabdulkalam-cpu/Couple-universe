@@ -10,7 +10,7 @@ interface AuthState {
   isLoading: boolean;
 
   fetchSystemStatus: () => Promise<SystemAuthStatus | null>;
-  setAuth: (user: User, accessToken: string) => void;
+  setAuth: (user: User, accessToken: string, refreshToken?: string) => void;
   logout: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
   updateUser: (updatedFields: Partial<User>) => void;
@@ -35,8 +35,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  setAuth: (user, accessToken) => {
+  setAuth: (user, accessToken, refreshToken) => {
     setMemoryAccessToken(accessToken);
+    if (typeof window !== 'undefined') {
+      if (accessToken) {
+        localStorage.setItem('access_token', accessToken);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refresh_token', refreshToken);
+      }
+    }
+
     set({
       user,
       accessToken,
@@ -51,6 +60,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
       // Module X: Reset stealth state on logout and return to calculator link if available
       let stealthTokenToReturn: string | null = null;
       try {
@@ -77,12 +90,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   checkAuth: async () => {
     set({ isLoading: true });
+
+    // Pre-populate memory token from localStorage if present
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    if (storedToken) {
+      setMemoryAccessToken(storedToken);
+    }
+
     try {
-      const response = await axiosClient.post<ApiResponse>('/auth/refresh-token');
-      const { user, accessToken } = response.data.data!;
-      get().setAuth(user, accessToken);
+      const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+      const response = await axiosClient.post<ApiResponse>('/auth/refresh-token', {
+        refreshToken: storedRefreshToken
+      });
+      const { user, accessToken, refreshToken: newRefreshToken } = response.data.data!;
+      get().setAuth(user, accessToken, newRefreshToken);
       return true;
     } catch (error) {
+      // Fallback: If refresh token cookie fails (cross-site/CORS restriction on secondary browsers), test stored token against /profile
+      if (storedToken) {
+        try {
+          const profileRes = await axiosClient.get<ApiResponse>('/profile');
+          if (profileRes.data.success && profileRes.data.data) {
+            get().setAuth(profileRes.data.data, storedToken);
+            return true;
+          }
+        } catch (_e) {
+          // Token expired or invalid
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
       setMemoryAccessToken(null);
       set({
         user: null,

@@ -96,29 +96,9 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
     return Array.from(subFriendsMap.values());
   };
 
-  const [deletedRelIds, setDeletedRelIds] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('afrin_admin_deleted_rels');
-      return saved ? new Set(JSON.parse(saved)) : new Set();
-    } catch (_e) {
-      return new Set();
-    }
-  });
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem('afrin_admin_deleted_rels', JSON.stringify(Array.from(deletedRelIds)));
-    } catch (_e) {}
-  }, [deletedRelIds]);
-
   const activeRelationships = React.useMemo(() => {
-    return relationships.filter((rel: AdminRelationshipItem) => {
-      if (!rel || !rel.id) return false;
-      if (deletedRelIds.has(rel.id)) return false;
-      if (deletedRelIds.has(`rel-pending-${rel.id}`)) return false;
-      return true;
-    });
-  }, [relationships, deletedRelIds]);
+    return relationships.filter((rel: AdminRelationshipItem) => rel && rel.id);
+  }, [relationships]);
 
   // Categorize Relationships into 3 distinct line branches:
   // 1. COMBINED & FAMILY RELATIONSHIPS (Both Super Owner & Co Owner are members, or relType is 'FAMILY')
@@ -150,7 +130,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
   React.useEffect(() => {
     adminApi.getInvitedUsers().then((list) => {
       if (Array.isArray(list)) setInvitedUsersList(list);
-    }).catch(() => {});
+    }).catch(() => { });
   }, [relationships]);
 
   // Extract Friend Nodes for each category
@@ -199,14 +179,14 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
 
     // 2. Pending invites strictly from dedicated invited_users MongoDB collection
     invitedUsersList.forEach((inv) => {
-      if (!inv || !inv._id || deletedRelIds.has(inv._id) || deletedRelIds.has(inv.tokenCode)) return;
+      if (!inv || !inv._id) return;
 
       const isMatch =
         ownerRoleFilter === 'SUPER_OWNER'
           ? (inv.ownerRole === 'SUPER_OWNER' || (inv.ownerName || '').toLowerCase().includes('afzal'))
           : ownerRoleFilter === 'CO_OWNER'
-          ? (inv.ownerRole === 'CO_OWNER' || (inv.ownerName || '').toLowerCase().includes('amrin'))
-          : inv.targetRole === 'FAMILY' || (inv.relationshipType || '').toUpperCase().includes('FAMILY');
+            ? (inv.ownerRole === 'CO_OWNER' || (inv.ownerName || '').toLowerCase().includes('amrin'))
+            : inv.targetRole === 'FAMILY' || (inv.relationshipType || '').toUpperCase().includes('FAMILY');
 
       if (isMatch && inv.status !== 'REVOKED') {
         friendsMap.set(inv._id, {
@@ -233,7 +213,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
   const coOwnerFriends = getCategoryFriends(coOwnerOnlyRelationships, primaryOwnerIds, 'CO_OWNER');
   const combinedFriends = getCategoryFriends(combinedRelationships, primaryOwnerIds, 'COMBINED');
 
-  // Mapped User IDs to filter standalone users
+  // Mapped User IDs to identify standalone users
   const mappedUserIds = new Set<string>();
   if (superOwnerId) mappedUserIds.add(superOwnerId);
   if (coOwnerId) mappedUserIds.add(coOwnerId);
@@ -241,13 +221,38 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
   coOwnerFriends.forEach((f) => mappedUserIds.add(f.id));
   combinedFriends.forEach((f) => mappedUserIds.add(f.id));
 
-  const standaloneUsers = users.filter((u) => {
+  // Automatically assign any non-primary registered users (standalone users) to their owner's line branch so both views show the EXACT SAME accounts
+  users.forEach((u) => {
     const uid = getUserId(u.id) || getUserId((u as any)._id);
     const isSystemAdmin =
       u.role === 'ADMIN' ||
       u.email === 'admin@gmail.com' ||
       (u.name && u.name.toLowerCase().includes('system admin'));
-    return !mappedUserIds.has(uid) && !isSystemAdmin;
+
+    if (uid && !mappedUserIds.has(uid) && !isSystemAdmin) {
+      mappedUserIds.add(uid);
+      const createdByStr = getUserId((u as any).createdBy);
+      const partnerName = ((u as any).partnerName || '').toLowerCase();
+      const isCoOwnerFriend = createdByStr === coOwnerId || (u as any).ownerRole === 'CO_OWNER' || partnerName.includes('amrin');
+
+      const friendObj = {
+        id: uid,
+        name: u.name || 'Friend',
+        email: u.email || '',
+        role: u.role || 'INVITED_USER',
+        avatar: u.avatar || '',
+        relName: (u as any).relationshipName || 'Friendship',
+        relType: 'Friendship',
+        relationshipId: (u as any).relationshipId || uid,
+        status: u.status || 'ACTIVE',
+      };
+
+      if (isCoOwnerFriend) {
+        coOwnerFriends.push(friendObj);
+      } else {
+        superOwnerFriends.push(friendObj);
+      }
+    }
   });
 
   // Helper to get friend's clean display name (stripping super owner prefixes)
@@ -283,7 +288,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
           if (activeInvite?.code) {
             setTokensMap((prev) => ({ ...prev, [rel.id]: activeInvite.code }));
           }
-        } catch (_err) {}
+        } catch (_err) { }
       }
     });
   }, [relationships]);
@@ -295,43 +300,26 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
         `Are you sure you want to PERMANENTLY DELETE "${dispName}"?\n\nThis will delete their account and relationship document from the database and permanently disable all tokens.`
       )
     ) {
-      // 1. Immediately hide card from Relationship Map in React state
-      setDeletedRelIds((prev) => {
-        const next = new Set(prev);
-        if (friend.relationshipId) {
-          next.add(friend.relationshipId);
-          next.add(`rel-pending-${friend.relationshipId}`);
-        }
-        if (friend.id) {
-          next.add(friend.id);
-          next.add(`rel-pending-${friend.id}`);
-        }
-        return next;
-      });
-
       try {
-        // 2. Execute dedicated collection deletion APIs
         if (friend.id) {
-          await adminApi.deleteInvitedUser(friend.id).catch(() => {});
+          await adminApi.deleteInvitedUser(friend.id).catch(() => { });
           if (!friend.id.startsWith('rel-pending-')) {
-            await adminApi.deleteUser(friend.id).catch(() => {});
-            await adminApi.bulkAction('delete', [friend.id]).catch(() => {});
+            await adminApi.softDeleteUser(friend.id).catch(() => { });
+            await adminApi.bulkAction('delete', [friend.id]).catch(() => { });
           }
         }
         if (friend.relationshipId) {
-          await adminApi.deleteInvitedUser(friend.relationshipId).catch(() => {});
+          await adminApi.deleteInvitedUser(friend.relationshipId).catch(() => { });
           await adminApi.deleteRelationship(friend.relationshipId).catch(() => ({}));
         }
 
-        // 3. Trigger map refresh
         if (onRefresh) {
-          onRefresh();
+          await onRefresh();
         }
 
-        // 4. Show success confirmation popup
-        alert(`✅ User "${dispName}" has been successfully deleted from everywhere!`);
+        alert(`✅ User "${dispName}" has been successfully deleted!`);
       } catch (_err: any) {
-        if (onRefresh) onRefresh();
+        if (onRefresh) await onRefresh();
         alert(`✅ User "${dispName}" has been removed from the platform.`);
       }
     }
@@ -373,38 +361,40 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
     }
   };
 
-  const handleCopyFriendToken = async (friend: { relationshipId: string; name: string; relType?: string }) => {
-    if (!friend.relationshipId) return;
+  const handleCopyFriendToken = async (friend: { id?: string; relationshipId?: string; tokenCode?: string; name: string; relType?: string; role?: string }) => {
+    let tokenCode = friend.tokenCode || (friend.relationshipId ? tokensMap[friend.relationshipId] : null);
 
     try {
-      // Fetch existing invites for this relationship
-      const invites = await adminApi.getRelationshipInvites(friend.relationshipId);
-      const activeInvite = invites?.find((i) => !i.isRevoked && i.status === 'UNUSED' && new Date(i.expiresAt) > new Date()) || invites?.[0];
+      if (!tokenCode && friend.relationshipId) {
+        const invites = await adminApi.getRelationshipInvites(friend.relationshipId).catch(() => []);
+        const activeInvite = invites?.find((i: any) => !i.isRevoked && i.status === 'UNUSED' && new Date(i.expiresAt) > new Date()) || invites?.[0];
+        if (activeInvite?.code) {
+          tokenCode = activeInvite.code;
+        }
+      }
 
-      let tokenCode = activeInvite?.code;
-
-      // If no active token exists yet, generate a new valid invite token on the fly
       if (!tokenCode) {
-        const freshInvite = await adminApi.generateRelationshipInvite(friend.relationshipId, {
-          targetRole: 'INVITED_USER',
+        const freshInvite = await adminApi.createStandaloneInvite({
+          relationshipName: `${getDisplayName(friend)} Relationship`,
+          relationshipType: friend.relType || 'Friendship',
+          targetRole: friend.role || 'INVITED_USER',
+          enabledFeatures: ['GALLERY', 'TIMELINE', 'CALENDAR', 'STORIES', 'CHAT', 'MUSIC', 'LISTEN_TOGETHER'],
           expiryDays: 36500,
           maxUses: 1,
-          enabledFeatures: ['GALLERY', 'TIMELINE', 'CALENDAR', 'STORIES', 'CHAT', 'MUSIC', 'LISTEN_TOGETHER'],
           inviteDisplayName: getDisplayName(friend),
-          relationshipType: friend.relType || 'Friendship',
+          partnerUserId: superOwnerId,
         });
         tokenCode = freshInvite.code;
       }
 
       if (tokenCode) {
-        setTokensMap((prev) => ({ ...prev, [friend.relationshipId]: tokenCode }));
+        const keyId = friend.relationshipId || friend.id || 'token';
+        setTokensMap((prev) => ({ ...prev, [keyId]: tokenCode }));
+        const inviteUrl = `${window.location.origin}/invite/${tokenCode}`;
+        await copyToClipboard(inviteUrl);
+        setCopiedTokenRelId(keyId);
+        setTimeout(() => setCopiedTokenRelId(null), 2500);
       }
-
-      const inviteUrl = `${window.location.origin}/invite/${tokenCode}`;
-      await copyToClipboard(inviteUrl);
-
-      setCopiedTokenRelId(friend.relationshipId);
-      setTimeout(() => setCopiedTokenRelId(null), 2500);
     } catch (err: any) {
       alert(err?.response?.data?.message || err?.message || 'Failed to copy invitation token.');
     }
@@ -583,11 +573,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
               {/* Partner 1: Super Owner (Afzal) */}
               <div
                 onClick={() => superOwner?.id && setSelectedUserIdForDrawer(superOwner.id)}
-                className={`text-center flex-1 p-3.5 rounded-2xl border transition cursor-pointer hover:scale-105 ${
-                  superOwner && isMatch(superOwner)
+                className={`text-center flex-1 p-3.5 rounded-2xl border transition cursor-pointer hover:scale-105 ${superOwner && isMatch(superOwner)
                     ? 'bg-slate-900/90 border-rose-500/50 shadow-rose-950/40 shadow-lg'
                     : 'bg-slate-900/40 border-white/5 opacity-60'
-                }`}
+                  }`}
               >
                 <div className="relative w-16 h-16 mx-auto mb-2 rounded-2xl overflow-hidden border-2 border-rose-500/40 shadow-lg">
                   <img
@@ -599,9 +588,8 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                     className="w-full h-full object-cover"
                   />
                   <span
-                    className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${
-                      superOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                    }`}
+                    className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${superOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                      }`}
                   />
                 </div>
                 <h4 className="font-extrabold text-sm text-white truncate">
@@ -626,11 +614,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
               {/* Partner 2: Co Owner (Amrin) */}
               <div
                 onClick={() => coOwner?.id && setSelectedUserIdForDrawer(coOwner.id)}
-                className={`text-center flex-1 p-3.5 rounded-2xl border transition cursor-pointer hover:scale-105 ${
-                  coOwner && isMatch(coOwner)
+                className={`text-center flex-1 p-3.5 rounded-2xl border transition cursor-pointer hover:scale-105 ${coOwner && isMatch(coOwner)
                     ? 'bg-slate-900/90 border-pink-500/50 shadow-pink-950/40 shadow-lg'
                     : 'bg-slate-900/40 border-white/5 opacity-60'
-                }`}
+                  }`}
               >
                 <div className="relative w-16 h-16 mx-auto mb-2 rounded-2xl overflow-hidden border-2 border-pink-500/40 shadow-lg">
                   <img
@@ -642,9 +629,8 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                     className="w-full h-full object-cover"
                   />
                   <span
-                    className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${
-                      coOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                    }`}
+                    className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 ${coOwner?.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
+                      }`}
                   />
                 </div>
                 <h4 className="font-extrabold text-sm text-white truncate">
@@ -724,11 +710,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                         key={`so-${friend.relationshipId}-${friend.id}-${fIdx}`}
                         whileHover={{ scale: 1.02 }}
                         onClick={() => friend.id && setSelectedUserIdForDrawer(friend.id)}
-                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${
-                          isMatch(friend)
+                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${isMatch(friend)
                             ? 'border-white/10 hover:border-indigo-500/50'
                             : 'border-white/5 opacity-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="relative w-10 h-10 shrink-0">
@@ -750,11 +735,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               </h5>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${
-                                    friend.status === 'ACTIVE'
+                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${friend.status === 'ACTIVE'
                                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                       : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                  }`}
+                                    }`}
                                 >
                                   {friend.status === 'PENDING_INVITE' ? 'TOKEN PENDING' : friend.status}
                                 </span>
@@ -764,11 +748,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                     handleCopyFriendToken(friend);
                                   }}
                                   title="Copy Active Invitation Token / Link"
-                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${
-                                    copiedTokenRelId === friend.relationshipId
+                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${copiedTokenRelId === friend.relationshipId
                                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                       : 'bg-[#1E1E28] hover:bg-white/10 text-indigo-400 hover:text-indigo-200 border-white/10'
-                                  }`}
+                                    }`}
                                 >
                                   <Key className="w-3.5 h-3.5" />
                                   {copiedTokenRelId === friend.relationshipId && (
@@ -923,11 +906,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                         key={`cb-${friend.relationshipId}-${friend.id}-${fIdx}`}
                         whileHover={{ scale: 1.02 }}
                         onClick={() => friend.id && setSelectedUserIdForDrawer(friend.id)}
-                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${
-                          isMatch(friend)
+                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${isMatch(friend)
                             ? 'border-white/10 hover:border-amber-500/50'
                             : 'border-white/5 opacity-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="relative w-10 h-10 shrink-0">
@@ -949,11 +931,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               </h5>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${
-                                    friend.status === 'ACTIVE'
+                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${friend.status === 'ACTIVE'
                                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                       : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                  }`}
+                                    }`}
                                 >
                                   {friend.status === 'PENDING_INVITE' ? 'TOKEN PENDING' : friend.status}
                                 </span>
@@ -963,11 +944,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                     handleCopyFriendToken(friend);
                                   }}
                                   title="Copy Active Invitation Token / Link"
-                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${
-                                    copiedTokenRelId === friend.relationshipId
+                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${copiedTokenRelId === friend.relationshipId
                                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                       : 'bg-[#1E1E28] hover:bg-white/10 text-indigo-400 hover:text-indigo-200 border-white/10'
-                                  }`}
+                                    }`}
                                 >
                                   <Key className="w-3.5 h-3.5" />
                                   {copiedTokenRelId === friend.relationshipId && (
@@ -1122,11 +1102,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                         key={`co-${friend.relationshipId}-${friend.id}-${fIdx}`}
                         whileHover={{ scale: 1.02 }}
                         onClick={() => friend.id && setSelectedUserIdForDrawer(friend.id)}
-                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${
-                          isMatch(friend)
+                        className={`p-5 rounded-3xl bg-[#16161E] border transition-all cursor-pointer shadow-xl space-y-3 ${isMatch(friend)
                             ? 'border-white/10 hover:border-pink-500/50'
                             : 'border-white/5 opacity-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="relative w-10 h-10 shrink-0">
@@ -1148,11 +1127,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                               </h5>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <span
-                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${
-                                    friend.status === 'ACTIVE'
+                                  className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border uppercase ${friend.status === 'ACTIVE'
                                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                                       : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                  }`}
+                                    }`}
                                 >
                                   {friend.status === 'PENDING_INVITE' ? 'TOKEN PENDING' : friend.status}
                                 </span>
@@ -1162,11 +1140,10 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                                     handleCopyFriendToken(friend);
                                   }}
                                   title="Copy Active Invitation Token / Link"
-                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${
-                                    copiedTokenRelId === friend.relationshipId
+                                  className={`p-1.5 rounded-full border transition flex items-center gap-1 shrink-0 ${copiedTokenRelId === friend.relationshipId
                                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                       : 'bg-[#1E1E28] hover:bg-white/10 text-indigo-400 hover:text-indigo-200 border-white/10'
-                                  }`}
+                                    }`}
                                 >
                                   <Key className="w-3.5 h-3.5" />
                                   {copiedTokenRelId === friend.relationshipId && (
@@ -1275,65 +1252,7 @@ export const RelationshipMap: React.FC<RelationshipMapProps> = ({
                 </div>
               )}
             </div>
-
           </div>
-
-          {/* -------------------------------------------------------- */}
-          {/* BOTTOM SECTION: UNLINKED / STANDALONE PLATFORM ACCOUNTS */}
-          {/* -------------------------------------------------------- */}
-          {standaloneUsers.length > 0 && (
-            <div className="pt-8 border-t border-white/10 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-slate-400" />
-                  <h4 className="font-extrabold text-xs text-slate-300 uppercase tracking-wider">
-                    Unlinked / Independent Accounts ({standaloneUsers.length})
-                  </h4>
-                </div>
-                <span className="text-[10px] text-slate-500">Standalone Accounts</span>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {standaloneUsers.map((user) => (
-                  <motion.div
-                    key={user.id}
-                    whileHover={{ scale: 1.03 }}
-                    onClick={() => setSelectedUserIdForDrawer(user.id)}
-                    className={`px-4 py-3 rounded-2xl bg-slate-900 border cursor-pointer transition flex items-center gap-3 ${
-                      isMatch(user)
-                        ? 'border-white/20 hover:border-rose-500/50'
-                        : 'border-white/5 opacity-50'
-                    }`}
-                  >
-                    <div className="relative w-8 h-8 rounded-xl overflow-hidden border border-white/10 shrink-0">
-                      <img
-                        src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                        alt={user.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-bold text-xs text-white truncate">{user.name}</h5>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${getRoleBadgeClass(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteFriend({ id: user.id, name: user.name, relationshipId: (user as any).relationshipId || user.id });
-                      }}
-                      title="Permanently Delete Account & Revoke Credentials"
-                      className="p-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 transition shrink-0 ml-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

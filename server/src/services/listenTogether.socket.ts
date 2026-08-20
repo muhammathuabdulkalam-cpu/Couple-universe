@@ -7,6 +7,11 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   const user = (socket as any).user;
   if (!user) return;
 
+  // Only SUPER_OWNER and CO_OWNER can participate in Listen Together
+  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
+    return;
+  }
+
   const getPartnerUser = async () => {
     // Only SUPER_OWNER and CO_OWNER can use Listen Together
     const partner = await User.findOne({
@@ -16,9 +21,15 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
     return partner;
   };
 
-  // 1. Scope Listen Room per Relationship
+  // 1. Scope Listen Room per Relationship & Couple Room
   const roomName = `listen_room_${user.relationshipId ? user.relationshipId.toString() : 'couple_default'}`;
   socket.join(roomName);
+  socket.join('listen_together_couple_room');
+
+  const broadcastListenEvent = (event: string, payload: any) => {
+    io.to(roomName).emit(event, payload);
+    io.to('listen_together_couple_room').emit(event, payload);
+  };
 
   // 2. Heartbeat Ping Handler (Every 10s from client)
   socket.on('listen:heartbeat', async () => {
@@ -48,7 +59,7 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
         activeSession.status = 'ENDED';
         await activeSession.save();
 
-        io.to(roomName).emit('listen:end', {
+        broadcastListenEvent('listen:end', {
           reason: 'Listening session ended because your partner became inactive.',
           sessionId: activeSession.sessionId,
         });
@@ -59,10 +70,10 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   });
 
   // 3. Play Event Sync
-  // 3. Play Event Sync
   socket.on('listen:play', (data: { sessionId: string; currentTime?: number; track?: any }) => {
     try {
-      io.to(roomName).emit('listen:play', {
+      logger.info(`[Socket Server] Received listen:play from ${user.name} (${user._id}), time=${data.currentTime}, track=${data.track?.title || 'unknown'}`);
+      broadcastListenEvent('listen:play', {
         senderId: user._id.toString(),
         currentTime: data.currentTime || 0,
         track: data.track,
@@ -80,7 +91,8 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   // 4. Pause Event Sync
   socket.on('listen:pause', (data: { sessionId: string; currentTime?: number }) => {
     try {
-      io.to(roomName).emit('listen:pause', {
+      logger.info(`[Socket Server] Received listen:pause from ${user.name} (${user._id}), time=${data.currentTime}`);
+      broadcastListenEvent('listen:pause', {
         senderId: user._id.toString(),
         currentTime: data.currentTime || 0,
       });
@@ -97,7 +109,8 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
   // 5. Seek Event Sync
   socket.on('listen:seek', (data: { sessionId: string; currentTime: number }) => {
     try {
-      io.to(roomName).emit('listen:seek', {
+      logger.info(`[Socket Server] Received listen:seek from ${user.name} (${user._id}), time=${data.currentTime}`);
+      broadcastListenEvent('listen:seek', {
         senderId: user._id.toString(),
         currentTime: data.currentTime,
       });
@@ -113,14 +126,14 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
 
   // 6. Next & Previous Track Sync
   socket.on('listen:next', (data: { sessionId: string; track: any }) => {
-    io.to(roomName).emit('listen:next', {
+    broadcastListenEvent('listen:next', {
       senderId: user._id.toString(),
       track: data.track,
     });
   });
 
   socket.on('listen:previous', (data: { sessionId: string; track: any }) => {
-    io.to(roomName).emit('listen:previous', {
+    broadcastListenEvent('listen:previous', {
       senderId: user._id.toString(),
       track: data.track,
     });
@@ -128,7 +141,7 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
 
   // 7. Queue Update Sync
   socket.on('listen:queue:update', (data: { sessionId: string; queue: any[] }) => {
-    io.to(roomName).emit('listen:queue:update', {
+    broadcastListenEvent('listen:queue:update', {
       senderId: user._id.toString(),
       queue: data.queue,
     });
@@ -136,14 +149,14 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
 
   // 8. Shuffle & Repeat Sync
   socket.on('listen:shuffle', (data: { sessionId: string; shuffle: boolean }) => {
-    io.to(roomName).emit('listen:shuffle', {
+    broadcastListenEvent('listen:shuffle', {
       senderId: user._id.toString(),
       shuffle: data.shuffle,
     });
   });
 
   socket.on('listen:repeat', (data: { sessionId: string; repeat: string }) => {
-    io.to(roomName).emit('listen:repeat', {
+    broadcastListenEvent('listen:repeat', {
       senderId: user._id.toString(),
       repeat: data.repeat,
     });
@@ -158,7 +171,7 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
         { status: 'ENDED' }
       );
 
-      io.to(roomName).emit('listen:end', {
+      broadcastListenEvent('listen:end', {
         reason: 'Session ended by host',
         sessionId: data.sessionId,
       });
@@ -172,14 +185,21 @@ export const registerListenTogetherHandlers = (io: Server, socket: Socket) => {
     try {
       const activeSession = await ListeningSession.findOne({
         $or: [{ host: user._id }, { participant: user._id }],
-        status: 'ACTIVE',
+        status: { $in: ['INVITED', 'ACTIVE'] },
       });
 
       if (activeSession) {
-        // Broadcast temporary disconnection / inactivity alert
-        io.to(roomName).emit('listen:inactive', {
+        activeSession.status = 'ENDED';
+        await activeSession.save();
+
+        broadcastListenEvent('listen:inactive', {
           userId: user._id.toString(),
-          message: 'Partner disconnected or switched tabs',
+          message: 'Partner disconnected or closed browser',
+        });
+
+        broadcastListenEvent('listen:end', {
+          reason: 'Partner disconnected',
+          sessionId: activeSession.sessionId,
         });
       }
     } catch (err) {

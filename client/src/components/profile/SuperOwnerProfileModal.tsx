@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { axiosClient } from '../../api/axiosClient.js';
 import { ActivityItem, ApiResponse } from '../../types/index.js';
 import { FeedCard } from '../social/FeedCard.js';
+import { Avatar } from '../ui/Avatar.js';
 import { Badge } from '../ui/Badge.js';
 import { Skeleton } from '../ui/Skeleton.js';
 

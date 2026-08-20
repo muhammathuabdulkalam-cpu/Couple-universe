@@ -12,27 +12,13 @@ export const helmetMiddleware = helmet({
   crossOriginEmbedderPolicy: false,
 });
 
-// Flexible CORS Configuration for Vercel Frontend & Localhost
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+    // Allow requests with no origin (like mobile native apps, curl, or server-to-server)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [
-      env.CORS_ORIGIN,
-      'http://localhost:5174',
-      'http://localhost:3000',
-      'https://couple-universe.vercel.app',
-    ].filter(Boolean);
-
-    const isVercelDomain = origin.endsWith('.vercel.app');
-    const isAllowedOrigin = allowedOrigins.includes(origin);
-
-    if (isAllowedOrigin || isVercelDomain || env.NODE_ENV === 'development') {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS policy blocked access for origin: ${origin}`));
-    }
+    // Reflect origin to allow all HTTP/HTTPS web clients (mobile devices, secondary browsers, local IP network, hosted domains)
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

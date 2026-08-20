@@ -19,6 +19,7 @@ import { useListenTogetherStore } from '../../store/listenTogetherStore';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
 import { useUIStore } from '../../store/uiStore';
 import { extractDominantColor } from '../../utils/colorExtractor';
+import { Avatar } from '../ui/Avatar';
 import { MusicWaveform } from './MusicWaveform';
 
 export const MobileFullPlayerModal: React.FC = React.memo(() => {
@@ -123,9 +124,7 @@ export const MobileFullPlayerModal: React.FC = React.memo(() => {
             <div className="flex justify-center my-2">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold shadow-lg">
                 <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
-                {partnerAvatar && (
-                  <img src={partnerAvatar} alt="" className="w-4 h-4 rounded-full object-cover" />
-                )}
+                <Avatar src={partnerAvatar} name={partnerName} size="xs" className="w-4 h-4" />
                 <span>Synced with {partnerName || 'Partner'} ❤️</span>
               </div>
             </div>

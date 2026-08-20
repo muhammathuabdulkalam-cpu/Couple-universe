@@ -4,6 +4,8 @@ import { socketClient } from '../api/socketClient.js';
 import { ApiResponse } from '../types/index.js';
 import { useChatStore } from './chatStore.js';
 
+import { useListenTogetherStore } from './listenTogetherStore.js';
+
 interface NotificationState {
   unreadNotifCount: number;
   unreadChatCount: number;
@@ -65,6 +67,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     get().fetchUnreadCounts();
 
     if (!socket) return () => {};
+
+    // Initialize global Listen Together socket event handlers
+    useListenTogetherStore.getState().initListenSocket(socket);
 
     // Listen for new notifications
     const handleNewNotif = () => {

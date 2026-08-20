@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Cake, Sparkles } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { ApiResponse } from '../../types/index.js';
+
+import { Avatar } from '../ui/Avatar.js';
 
 interface BirthdayCountdownProps {
   variant?: 'compact' | 'banner';
@@ -23,15 +25,56 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
   });
 
   const partner = profileData?.partner;
+
   const isUserAfzal = user?.role === 'SUPER_OWNER' || user?.name?.toLowerCase().includes('afzal');
+  const isUserAmrin = user?.role === 'CO_OWNER' || user?.name?.toLowerCase().includes('amrin');
 
-  // Partner Info
-  const partnerName = partner?.name || (isUserAfzal ? 'Amrin' : 'Afzal');
-  const partnerRole = isUserAfzal ? 'My Princess 👸' : 'My Prince 👑';
-  const partnerAvatar = partner?.avatar;
+  // Activity Bar (compact variant) MUST ONLY show the partner if they are the other owner.
+  // If the user is not SUPER_OWNER or CO_OWNER, hide from the activity bar entirely.
+  if (variant === 'compact') {
+    if (!isUserAfzal && !isUserAmrin) {
+      return null;
+    }
+  }
 
-  // Default Birthday Dates: Amrin (Nov 24), Afzal (Oct 15) if not set in DB
-  const rawBirthday = partner?.birthday || (isUserAfzal ? '2026-11-24T00:00:00.000Z' : '2026-10-15T00:00:00.000Z');
+  // Determine target info
+  let targetName = 'Partner';
+  let targetRole = 'Partner';
+  let targetAvatar = '';
+  let targetBirthday = '';
+
+  if (isUserAfzal) {
+    // Afzal sees Amrin's birthday only
+    const isPartnerAmrin = partner?.role === 'CO_OWNER' || partner?.name?.toLowerCase().includes('amrin');
+    targetName = isPartnerAmrin ? partner.name : 'Amrin';
+    targetRole = 'My Princess 👸';
+    targetAvatar = isPartnerAmrin ? partner.avatar : 'https://res.cloudinary.com/ps3wxidk/image/upload/v1787072949/afrin-universe/profiles/profile_avatar_cfnbor.jpg';
+    targetBirthday = (isPartnerAmrin && partner.birthday) ? partner.birthday : '2007-10-16T00:00:00.000Z';
+  } else if (isUserAmrin) {
+    // Amrin sees Afzal's birthday only
+    const isPartnerAfzal = partner?.role === 'SUPER_OWNER' || partner?.name?.toLowerCase().includes('afzal');
+    targetName = isPartnerAfzal ? partner.name : 'Afzal';
+    targetRole = 'My Prince 👑';
+    targetAvatar = isPartnerAfzal ? partner.avatar : 'https://res.cloudinary.com/ps3wxidk/image/upload/v1787199988/afrin-universe/profiles/profile_avatar_zhdf7f.jpg';
+    targetBirthday = (isPartnerAfzal && partner.birthday) ? partner.birthday : '2002-07-02T00:00:00.000Z';
+  } else {
+    // Other users see whatever partner they have
+    if (variant === 'compact') {
+      return null;
+    }
+    targetName = partner?.name || 'Partner';
+    targetRole = 'Partner';
+    targetAvatar = partner?.avatar || '';
+    targetBirthday = partner?.birthday || '2002-07-02T00:00:00.000Z';
+  }
+
+  // Dismiss Banner state (Home Page only)
+  const [isDismissed, setIsDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(`hide_birthday_${targetName}`) === 'true';
+    }
+    return false;
+  });
 
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
@@ -41,8 +84,9 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
   });
 
   useEffect(() => {
+    if (!targetBirthday) return;
     const calculateCountdown = () => {
-      const birthDate = new Date(rawBirthday);
+      const birthDate = new Date(targetBirthday);
       const now = new Date();
 
       // Determine next upcoming birthday year
@@ -64,16 +108,20 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
     calculateCountdown();
     const interval = setInterval(calculateCountdown, 1000);
     return () => clearInterval(interval);
-  }, [rawBirthday]);
+  }, [targetBirthday]);
+
+  if (isDismissed) {
+    return null;
+  }
 
   // Dynamic Wording
   const getHeadingText = () => {
-    if (timeLeft.days === 0) return `🎉 Happy Birthday ${partnerName}! ❤️`;
-    if (timeLeft.days <= 7) return `🎂 ${partnerName}'s Special Day is Coming Soon!`;
+    if (timeLeft.days === 0) return `🎉 Happy Birthday ${targetName}! ❤️`;
+    if (timeLeft.days <= 7) return `🎂 ${targetName}'s Special Day is Coming Soon!`;
     return `❤️ Your Love's Birthday is in ${timeLeft.days} Days`;
   };
 
-  // 1. Compact Sidebar / Activity Bar Mode (100% vertical column layout for 300px container)
+  // 1. Compact Sidebar / Activity Bar Mode
   if (variant === 'compact') {
     return (
       <motion.div
@@ -85,11 +133,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-md shrink-0">
             <div className="w-full h-full bg-obsidian-950 rounded-[10px] flex items-center justify-center overflow-hidden">
-              {partnerAvatar ? (
-                <img src={partnerAvatar} alt={partnerName} className="w-full h-full object-cover" />
-              ) : (
-                <Cake className="w-4 h-4 text-amber-400" />
-              )}
+              <Avatar src={targetAvatar} name={targetName} size="sm" />
             </div>
           </div>
 
@@ -99,7 +143,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
                 <Sparkles className="w-3 h-3 text-amber-400" /> Birthday
               </span>
               <span className="px-1.5 py-0.2 rounded-full text-[8px] font-bold bg-amrin/20 text-amrin-glow border border-amrin/30">
-                {partnerRole}
+                {targetRole}
               </span>
             </div>
             <h4 className="text-xs font-extrabold text-white truncate mt-0.5">
@@ -108,7 +152,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
           </div>
         </div>
 
-        {/* 4 Stat Pills Grid (2x2 or 4-col inside sidebar) */}
+        {/* 4 Stat Pills Grid */}
         <div className="grid grid-cols-4 gap-1.5 text-center pt-1 border-t border-white/5">
           <div className="glass-card py-1.5 rounded-xl border border-white/10">
             <div className="text-xs font-extrabold text-amber-400 font-mono">{timeLeft.days}</div>
@@ -134,7 +178,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
     );
   }
 
-  // 2. Wide Featured Banner Mode (for Home Dashboard when days <= 10)
+  // 2. Wide Featured Banner Mode (with close/dismiss button on Home page)
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -143,17 +187,25 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
     >
       <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Dismiss Button */}
+      <button
+        onClick={() => {
+          localStorage.setItem(`hide_birthday_${targetName}`, 'true');
+          setIsDismissed(true);
+        }}
+        className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition z-20"
+        title="Dismiss Countdown"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
         
         {/* Left: Partner Avatar & Greeting */}
         <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-lg shadow-rose-500/20 shrink-0">
             <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center overflow-hidden">
-              {partnerAvatar ? (
-                <img src={partnerAvatar} alt={partnerName} className="w-full h-full object-cover" />
-              ) : (
-                <Cake className="w-6 h-6 text-amber-400 animate-bounce" />
-              )}
+              <Avatar src={targetAvatar} name={targetName} size="md" />
             </div>
           </div>
 
@@ -163,7 +215,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Upcoming Partner Birthday
               </span>
               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amrin/20 text-amrin-glow border border-amrin/30">
-                {partnerRole}
+                {targetRole}
               </span>
             </div>
 
@@ -172,7 +224,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
             </h3>
 
             <p className="text-xs text-slate-400 truncate">
-              Celebrating <strong className="text-white">{partnerName}'s</strong> special milestone birthday
+              Celebrating <strong className="text-white">{targetName}'s</strong> special milestone birthday
             </p>
           </div>
         </div>

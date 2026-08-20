@@ -92,7 +92,7 @@ export const AdminDashboardPage: React.FC = () => {
     try {
       const rels = await adminApi.getRelationships();
       setRelationships(rels);
-    } catch {}
+    } catch { }
   };
 
   // 2. Fetch All Created Users for Table Directory View and Flowchart
@@ -217,7 +217,7 @@ export const AdminDashboardPage: React.FC = () => {
       await adminApi.archiveRelationship(id);
       refreshRelationships();
       fetchAll();
-    } catch {}
+    } catch { }
   };
 
   const handleRestoreRelationship = async (id: string) => {
@@ -225,7 +225,7 @@ export const AdminDashboardPage: React.FC = () => {
       await adminApi.restoreRelationship(id);
       refreshRelationships();
       fetchAll();
-    } catch {}
+    } catch { }
   };
 
   const handleManageMembers = (rel: AdminRelationshipItem) => {
@@ -263,11 +263,10 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             <button
               onClick={() => setActiveAdminTab('dashboard')}
-              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${
-                activeAdminTab === 'dashboard'
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${activeAdminTab === 'dashboard'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                   : 'bg-slate-900 border border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <Users className="w-4 h-4" />
               <span>Dashboard Overview</span>
@@ -275,11 +274,10 @@ export const AdminDashboardPage: React.FC = () => {
 
             <button
               onClick={() => setActiveAdminTab('users')}
-              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${
-                activeAdminTab === 'users'
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${activeAdminTab === 'users'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                   : 'bg-slate-900 border border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <UserCheck className="w-4 h-4" />
               <span>Users Management ({stats?.totalUsers ?? 0})</span>
@@ -287,11 +285,10 @@ export const AdminDashboardPage: React.FC = () => {
 
             <button
               onClick={() => setActiveAdminTab('songs')}
-              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${
-                activeAdminTab === 'songs'
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition shrink-0 ${activeAdminTab === 'songs'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
                   : 'bg-slate-900 border border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
+                }`}
             >
               <Key className="w-4 h-4" />
               <span>Songs & Music ({totalSongsCount} Tracks)</span>
@@ -400,11 +397,10 @@ export const AdminDashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setUsersViewMode('table')}
-                className={`py-2 px-4 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  usersViewMode === 'table'
+                className={`py-2 px-4 rounded-lg font-bold transition flex items-center gap-1.5 ${usersViewMode === 'table'
                     ? 'bg-rose-500 text-white shadow'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <Users className="w-3.5 h-3.5" />
                 <span>Table Directory View</span>
@@ -412,11 +408,10 @@ export const AdminDashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setUsersViewMode('map')}
-                className={`py-2 px-4 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  usersViewMode === 'map'
+                className={`py-2 px-4 rounded-lg font-bold transition flex items-center gap-1.5 ${usersViewMode === 'map'
                     ? 'bg-rose-500 text-white shadow'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
+                  }`}
               >
                 <Heart className="w-3.5 h-3.5" />
                 <span>Relationship Flow Chart Map</span>

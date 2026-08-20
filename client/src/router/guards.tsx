@@ -31,6 +31,11 @@ export const AuthGuard: React.FC<GuardProps> = ({ children }) => {
     return <Navigate to="/welcome" state={{ from: location }} replace />;
   }
 
+  // System Admin Guard: System Admins belong strictly in the Enterprise Admin Console, never in the Couple Universe app
+  if (user && user.role === 'ADMIN') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
   // Onboarding Resumption Guard: If onboarding is incomplete and user is not on /onboarding page, redirect to /onboarding
   if (user && user.onboardingCompleted === false && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
@@ -52,6 +57,10 @@ export const GuestGuard: React.FC<GuardProps> = ({ children }) => {
   }
 
   if (isAuthenticated) {
+    if (user && user.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+
     if (user && user.onboardingCompleted === false) {
       return <Navigate to="/onboarding" replace />;
     }

@@ -11,6 +11,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Box, Sparkles } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { useUIStore } from '../../store/uiStore.js';
@@ -40,6 +42,14 @@ const MemoryMuseum3DImpl: React.FC<MemoryMuseum3DProps> = ({ mediaItems }) => {
   const [isPointerLocked, setIsPointerLocked] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [allowPageScroll, setAllowPageScroll] = useState(false);
+  const [isEnteringMuseum, setIsEnteringMuseum] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsEnteringMuseum(false);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Compute spawn position exactly once based on Love Gallery End
   const spawnTransform = useMemo(() => {

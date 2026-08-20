@@ -55,7 +55,7 @@ export const MediaUploadModal: React.FC = () => {
 
     try {
       const endpoint = selectedFiles.length === 1 ? '/media/upload' : '/media/upload-multiple';
-      await axiosClient.post(endpoint, formData, {
+      const res = await axiosClient.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
@@ -65,9 +65,24 @@ export const MediaUploadModal: React.FC = () => {
         },
       });
 
+      const uploadedData = res.data?.data;
+      if (uploadedData) {
+        const newItems = Array.isArray(uploadedData) ? uploadedData : [uploadedData];
+        const currentList = useMediaStore.getState().mediaList;
+        useMediaStore.getState().setMediaList([...newItems, ...currentList]);
+      }
+
+      // Notify React Query to refetch galleryMedia
+      if (typeof window !== 'undefined' && (window as any).__queryClient) {
+        (window as any).__queryClient.invalidateQueries({ queryKey: ['galleryMedia'] });
+      }
+
       addToast('Upload Complete!', `Successfully uploaded ${selectedFiles.length} file(s) to ${targetFolder}`, 'success');
       setSelectedFiles([]);
       setUploadModalOpen(false);
+      
+      // Auto-trigger page window event for instant component update
+      window.dispatchEvent(new Event('media-uploaded'));
     } catch (err: any) {
       addToast('Upload Failed', err.message || 'Error uploading media to Cloudinary', 'error');
     } finally {

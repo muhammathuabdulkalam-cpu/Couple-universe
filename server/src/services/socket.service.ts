@@ -50,7 +50,7 @@ class SocketService {
         }
 
         const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as { userId: string };
-        const user = await User.findById(decoded.userId).select('_id name email role avatar');
+        const user = await User.findById(decoded.userId).select('_id name email role avatar relationshipId');
 
         if (!user) {
           return next(new Error('User not found'));

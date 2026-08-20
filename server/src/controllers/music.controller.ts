@@ -635,6 +635,10 @@ export const deleteUploadedSong = catchAsync(async (req: Request, res: Response)
  */
 export const createListenInvite = catchAsync(async (req: Request, res: Response) => {
   const host = req.user!;
+  if (host.role !== 'SUPER_OWNER' && host.role !== 'CO_OWNER') {
+    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
+  }
+
   const partner = await User.findOne({
     _id: { $ne: host._id },
     role: { $in: ['SUPER_OWNER', 'CO_OWNER'] },
@@ -678,7 +682,6 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
       expiresAt,
       session,
     };
-    io.to(partner._id.toString()).emit('listen:invite', payload);
     io.to(`user:${partner._id.toString()}`).emit('listen:invite', payload);
   }
 
@@ -690,6 +693,10 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
  */
 export const respondListenInvite = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
+  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
+    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
+  }
+
   const { sessionId, action } = req.body; // action: 'accept' | 'decline'
 
   const session = await ListeningSession.findOne({ sessionId });
@@ -714,13 +721,25 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
       { path: 'participant', select: 'name email avatar role' },
     ]);
 
+    const hostObj = session.host as any;
+    const partObj = session.participant as any;
+    const hostId = typeof hostObj === 'object' ? hostObj?._id?.toString() : (hostObj ? String(hostObj) : undefined);
+    const partId = typeof partObj === 'object' ? partObj?._id?.toString() : (partObj ? String(partObj) : undefined);
+
+    logger.info(`Listen accept triggered: sessionId=${sessionId}, acceptedBy=${user.name}, hostId=${hostId}, partId=${partId}`);
+
     if (io) {
-      io.to('listen_together_couple_room').emit('listen:accept', {
+      const payload = {
         sessionId,
         acceptedBy: user.name,
         acceptedByAvatar: user.avatar,
         session,
-      });
+      };
+
+      logger.info(`Emitting single listen:accept to couple room: listen_together_couple_room`);
+      io.to('listen_together_couple_room').emit('listen:accept', payload);
+    } else {
+      logger.warn('Socket server instance (io) not available in respondListenInvite');
     }
     return ApiResponse.success(res, 'Listen Together session started ❤️', session);
   } else {
@@ -728,10 +747,19 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
     await session.save();
 
     if (io) {
-      io.to('listen_together_couple_room').emit('listen:decline', {
+      const payload = {
         sessionId,
         declinedBy: user.name,
-      });
+      };
+      const hostObj = session.host as any;
+      const partObj = session.participant as any;
+      const hostId = typeof hostObj === 'object' ? hostObj?._id?.toString() : (hostObj ? String(hostObj) : undefined);
+      const partId = typeof partObj === 'object' ? partObj?._id?.toString() : (partObj ? String(partObj) : undefined);
+
+      io.to('listen_together_couple_room').emit('listen:decline', payload);
+      io.emit('listen:decline', payload);
+      if (hostId) io.to(hostId).emit('listen:decline', payload);
+      if (partId) io.to(partId).emit('listen:decline', payload);
     }
     return ApiResponse.success(res, 'Invitation declined', session);
   }
@@ -742,6 +770,9 @@ export const respondListenInvite = catchAsync(async (req: Request, res: Response
  */
 export const getListenSessionStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
+  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
+    return ApiResponse.success(res, 'Session status retrieved', null);
+  }
 
   const session = await ListeningSession.findOne({
     $or: [{ host: user._id }, { participant: user._id }],
@@ -765,6 +796,9 @@ export const getListenSessionStatus = catchAsync(async (req: Request, res: Respo
  */
 export const endListenSession = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
+  if (user.role !== 'SUPER_OWNER' && user.role !== 'CO_OWNER') {
+    throw new AppError('Only the couple owners can use Listen Together', HTTP_STATUS.FORBIDDEN);
+  }
 
   await ListeningSession.updateMany(
     {

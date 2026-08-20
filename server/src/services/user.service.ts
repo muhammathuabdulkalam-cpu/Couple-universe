@@ -234,9 +234,12 @@ export class UserService {
     if (params.role) queryFilter.role = params.role;
     if (params.status) queryFilter.status = params.status;
 
-    const [users, total] = await Promise.all([
+    const [users, total, pendingInvitedUsers] = await Promise.all([
       User.find(queryFilter).sort({ createdAt: -1 }).skip(skip).limit(limit).select('-password'),
       User.countDocuments(queryFilter),
+      import('../models/invitedUser.model').then(({ InvitedUser }) =>
+        InvitedUser.find({ isDeleted: false, status: { $ne: 'REVOKED' } })
+      ).catch(() => []),
     ]);
 
     const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
@@ -280,13 +283,40 @@ export class UserService {
       })
     );
 
+    // Append pending invitation tokens so UsersTable & RelationshipMap stay 100% identical in count & content
+    const registeredEmails = new Set(users.map((u) => u.email.toLowerCase()));
+    const registeredIds = new Set(users.map((u) => u._id.toString()));
+
+    const pendingUserItems = pendingInvitedUsers
+      .filter((inv: any) => inv && inv._id && !registeredIds.has(inv._id.toString()) && (!inv.email || !registeredEmails.has(inv.email.toLowerCase())))
+      .map((inv: any) => ({
+        id: inv._id.toString(),
+        name: inv.name || inv.relationshipName || 'Invited User',
+        username: '',
+        email: inv.email || 'Pending Token (User has not registered yet)',
+        phone: '',
+        role: inv.targetRole || 'INVITED_USER',
+        status: 'PENDING_INVITE',
+        avatar: inv.avatar || '',
+        relationshipName: inv.relationshipName || 'Friendship',
+        relationshipType: inv.relationshipType || 'Friendship',
+        partnerName: inv.ownerName || 'Super Owner',
+        tokenCode: inv.tokenCode,
+        isOnline: false,
+        lastSeen: inv.createdAt,
+        lastLoginAt: inv.createdAt,
+        createdAt: inv.createdAt,
+      }));
+
+    const allCombinedUsers = [...enrichedUsers, ...pendingUserItems];
+
     return {
-      users: enrichedUsers,
+      users: allCombinedUsers,
       pagination: {
-        total,
+        total: total + pendingUserItems.length,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((total + pendingUserItems.length) / limit) || 1,
       },
     };
   }

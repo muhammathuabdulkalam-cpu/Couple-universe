@@ -129,6 +129,7 @@ export interface MediaItem {
   takenAt?: string;
   memoryDate: string;
   cloudinaryPublicId: string;
+  url?: string;
   secureUrl: string;
   optimizedUrl: string;
   thumbnailUrl: string;

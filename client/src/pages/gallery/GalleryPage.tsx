@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  BookOpen,
   Box,
   ChevronDown,
   Film,
@@ -10,12 +9,10 @@ import {
   Image as ImageIcon,
   LayoutGrid,
   List,
-  MessageSquare,
   Plus,
   RefreshCw,
   Search,
   Sparkles,
-  User,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
@@ -27,12 +24,17 @@ import { Button } from '../../components/ui/Button.js';
 import { Card } from '../../components/ui/Card.js';
 import { Skeleton } from '../../components/ui/Skeleton.js';
 import { MemoryMuseum3D } from '../../components/museum/MemoryMuseum3D.js';
+import { useAuthStore } from '../../store/authStore.js';
 import { useMediaStore } from '../../store/mediaStore.js';
-import { ActivityItem, ApiResponse, MediaItem, StoryItem } from '../../types/index.js';
+import { ApiResponse, MediaItem } from '../../types/index.js';
 
-type GallerySectionTab = 'photos' | 'videos' | 'posts' | 'stories' | 'afzal' | 'amrin';
+type GallerySectionTab = 'photos' | 'videos';
 
 export const GalleryPage: React.FC = () => {
+  const { user } = useAuthStore();
+  const isPlatformOwner = user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
+  const isInvitedUser = !isPlatformOwner;
+
   const {
     viewMode,
     setViewMode,
@@ -48,7 +50,7 @@ export const GalleryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<GallerySectionTab>('photos');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // 1. Fetch All Shared Couple Media Items
+  // 1. Fetch All Shared Couple Media Items (backend filters by owner if INVITED_USER)
   const { data: rawMediaList = [], isLoading: isMediaLoading, refetch: refetchMedia, isRefetching } = useQuery<MediaItem[]>({
     queryKey: ['sharedGalleryMedia', searchQuery, filterFavorite],
     queryFn: async () => {
@@ -61,25 +63,15 @@ export const GalleryPage: React.FC = () => {
     },
   });
 
-  // 2. Fetch Shared Social Feed Posts
-  const { data: postsList = [] } = useQuery<ActivityItem[]>({
-    queryKey: ['sharedGalleryPosts'],
-    queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<ActivityItem[]>>('/feed');
-      return (res.data.data ?? []).filter((p) => p.imageUrl || p.referenceId);
-    },
-  });
+  useEffect(() => {
+    const handleUploaded = () => {
+      refetchMedia();
+    };
+    window.addEventListener('media-uploaded', handleUploaded);
+    return () => window.removeEventListener('media-uploaded', handleUploaded);
+  }, [refetchMedia]);
 
-  // 3. Fetch Shared Stories
-  const { data: storiesList = [] } = useQuery<StoryItem[]>({
-    queryKey: ['sharedGalleryStories'],
-    queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<StoryItem[]>>('/stories');
-      return res.data.data ?? [];
-    },
-  });
-
-  // 4. Fetch Albums
+  // 2. Fetch Albums
   const { data: albumsList = [] } = useQuery<any[]>({
     queryKey: ['sharedGalleryAlbums'],
     queryFn: async () => {
@@ -88,113 +80,66 @@ export const GalleryPage: React.FC = () => {
     },
   });
 
-  // Section Tabs Definition
+  // Effective Media List filtered strictly by owner for invited users
+  const effectiveMediaList = isInvitedUser && (user?._id || user?.id)
+    ? rawMediaList.filter((m) => {
+        const uId = (user._id || user.id)?.toString();
+        const ownerId = typeof m.owner === 'object' ? ((m.owner as any)?._id || (m.owner as any)?.id)?.toString() : m.owner?.toString();
+        const createdById = typeof m.createdBy === 'object' ? ((m.createdBy as any)?._id || (m.createdBy as any)?.id)?.toString() : m.createdBy?.toString();
+        return ownerId === uId || createdById === uId;
+      })
+    : rawMediaList;
+
+  // Section Tabs Definition: Photos & Videos ONLY
   const sectionTabs = [
-    { id: 'photos', label: 'All Photos', icon: ImageIcon, count: rawMediaList.filter((m) => !m.mimeType?.startsWith('video')).length },
-    { id: 'videos', label: 'All Videos', icon: Film, count: rawMediaList.filter((m) => m.mimeType?.startsWith('video')).length },
-    { id: 'posts', label: 'Posts', icon: MessageSquare, count: postsList.length },
-    { id: 'stories', label: 'Stories', icon: BookOpen, count: storiesList.length },
-    { id: 'afzal', label: 'Afzal Uploads', icon: User, count: rawMediaList.filter((m) => (m.createdBy?.name || (m.owner as any)?.name)?.toLowerCase().includes('afzal')).length },
-    { id: 'amrin', label: 'Amrin Uploads', icon: Heart, count: rawMediaList.filter((m) => (m.createdBy?.name || (m.owner as any)?.name)?.toLowerCase().includes('amrin')).length },
+    {
+      id: 'photos',
+      label: 'All Photos',
+      icon: ImageIcon,
+      count: effectiveMediaList.filter(
+        (m) =>
+          !m.mimeType?.startsWith('video') &&
+          (m as any).resourceType !== 'video' &&
+          !['mp4', 'mov', 'webm', 'mkv', 'avi'].includes((m as any).format || '') &&
+          !m.secureUrl?.match(/\.(mp4|mov|webm|mkv|avi)(\?|$)/i)
+      ).length,
+    },
+    {
+      id: 'videos',
+      label: 'All Videos',
+      icon: Film,
+      count: effectiveMediaList.filter(
+        (m) =>
+          m.mimeType?.startsWith('video') ||
+          (m as any).resourceType === 'video' ||
+          ['mp4', 'mov', 'webm', 'mkv', 'avi'].includes((m as any).format || '') ||
+          m.secureUrl?.match(/\.(mp4|mov|webm|mkv|avi)(\?|$)/i)
+      ).length,
+    },
   ] as const;
 
   const activeTabObj = sectionTabs.find((t) => t.id === activeTab) || sectionTabs[0];
   const ActiveIcon = activeTabObj.icon;
 
-  // Filter Items Based on Active Tab
+  // Filter Items Based on Active Tab (Photos vs Videos)
   const getFilteredItems = (): MediaItem[] => {
-    if (activeTab === 'photos') {
-      return rawMediaList.filter((m) => !m.mimeType?.startsWith('video'));
-    }
-
     if (activeTab === 'videos') {
-      return rawMediaList.filter((m) => m.mimeType?.startsWith('video'));
+      return effectiveMediaList.filter(
+        (m) =>
+          m.mimeType?.startsWith('video') ||
+          (m as any).resourceType === 'video' ||
+          ['mp4', 'mov', 'webm', 'mkv', 'avi'].includes((m as any).format || '') ||
+          m.secureUrl?.match(/\.(mp4|mov|webm|mkv|avi)(\?|$)/i)
+      );
     }
 
-    if (activeTab === 'afzal') {
-      return rawMediaList.filter((m) => {
-        const ownerName = m.createdBy?.name || (m.owner as any)?.name || '';
-        const ownerRole = (m.createdBy as any)?.role || (m.owner as any)?.role || '';
-        return ownerRole === 'SUPER_OWNER' || ownerName.toLowerCase().includes('afzal');
-      });
-    }
-
-    if (activeTab === 'amrin') {
-      return rawMediaList.filter((m) => {
-        const ownerName = m.createdBy?.name || (m.owner as any)?.name || '';
-        const ownerRole = (m.createdBy as any)?.role || (m.owner as any)?.role || '';
-        return ownerRole === 'CO_OWNER' || ownerName.toLowerCase().includes('amrin');
-      });
-    }
-
-    if (activeTab === 'posts') {
-      return postsList.map((post) => {
-        const imageUrl = post.imageUrl || (post.referenceId as any)?.secureUrl || (post.referenceId as any)?.url || '';
-        return {
-          _id: post._id,
-          owner: post.userId._id,
-          createdBy: { _id: post.userId._id, name: post.userId.name, email: post.userId.email, avatar: post.userId.avatar },
-          title: post.title || 'Social Post',
-          caption: post.description,
-          tags: ['post'],
-          peopleTagged: [],
-          visibility: 'COUPLE',
-          memoryDate: post.createdAt,
-          cloudinaryPublicId: post._id,
-          secureUrl: imageUrl,
-          optimizedUrl: imageUrl,
-          thumbnailUrl: imageUrl,
-          width: 1080,
-          height: 1080,
-          aspectRatio: 1,
-          orientation: 'SQUARE',
-          mimeType: 'image/jpeg',
-          fileSize: 1024,
-          isFavorite: false,
-          isArchived: false,
-          isDeleted: false,
-          viewCount: 1,
-          createdAt: post.createdAt,
-          updatedAt: post.createdAt,
-        };
-      });
-    }
-
-    if (activeTab === 'stories') {
-      return storiesList.map((story) => {
-        const imageUrl = story.mediaId?.secureUrl || story.mediaId?.optimizedUrl || (story as any).mediaUrl || '';
-        const isVideo = story.mediaId?.mimeType?.startsWith('video');
-        return {
-          _id: story._id,
-          owner: story.userId._id,
-          createdBy: { _id: story.userId._id, name: story.userId.name, email: story.userId.email, avatar: story.userId.avatar },
-          title: story.caption || '24h Story',
-          caption: story.caption,
-          tags: ['story'],
-          peopleTagged: [],
-          visibility: 'COUPLE',
-          memoryDate: story.createdAt,
-          cloudinaryPublicId: story._id,
-          secureUrl: imageUrl,
-          optimizedUrl: imageUrl,
-          thumbnailUrl: imageUrl,
-          width: 1080,
-          height: 1080,
-          aspectRatio: 1,
-          orientation: 'SQUARE',
-          mimeType: isVideo ? 'video/mp4' : 'image/jpeg',
-          fileSize: 1024,
-          isFavorite: false,
-          isArchived: false,
-          isDeleted: false,
-          viewCount: 1,
-          createdAt: story.createdAt,
-          updatedAt: story.createdAt,
-        };
-      });
-    }
-
-    return rawMediaList;
+    return effectiveMediaList.filter(
+      (m) =>
+        !m.mimeType?.startsWith('video') &&
+        (m as any).resourceType !== 'video' &&
+        !['mp4', 'mov', 'webm', 'mkv', 'avi'].includes((m as any).format || '') &&
+        !m.secureUrl?.match(/\.(mp4|mov|webm|mkv|avi)(\?|$)/i)
+    );
   };
 
   const displayItems = getFilteredItems();
@@ -203,10 +148,10 @@ export const GalleryPage: React.FC = () => {
     if (displayItems.length > 0) {
       setMediaList(displayItems);
     }
-  }, [activeTab, rawMediaList.length, postsList.length, storiesList.length]);
+  }, [activeTab, rawMediaList.length]);
 
   return (
-    <div className="space-y-6 pb-20 select-none max-w-7xl mx-auto">
+    <div className="space-y-6 pb-20 select-none w-full">
 
       {/* 1. Header Banner */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
@@ -214,17 +159,21 @@ export const GalleryPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <Badge variant="cyan" size="sm">
-                <Sparkles className="w-3 h-3" /> Shared Couple Vault
+                <Sparkles className="w-3 h-3" /> {isInvitedUser ? 'My Media Vault' : 'Shared Couple Vault'}
               </Badge>
-              <Badge variant="violet" size="sm">
-                Afzal & Amrin
-              </Badge>
+              {!isInvitedUser && (
+                <Badge variant="violet" size="sm">
+                  Afzal & Amrin
+                </Badge>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              3D Gallery
+              {isInvitedUser ? 'My Gallery' : '3D Gallery'}
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
-              All photos, videos, posts, and stories shared between Afzal & Amrin in real-time.
+              {isInvitedUser
+                ? 'All your uploaded photos, videos, posts, and stories in one secure place.'
+                : 'All photos, videos, posts, and stories shared between Afzal & Amrin in real-time.'}
             </p>
           </div>
 
@@ -424,16 +373,22 @@ export const GalleryPage: React.FC = () => {
       {/* 4. Media Display / 3D Museum Display */}
       {viewMode === '3d' ? (
         <MemoryMuseum3D
-          mediaItems={displayItems.filter((i) => {
+          mediaItems={effectiveMediaList.filter((i) => {
             const hasUrl = Boolean(i.secureUrl || (i as any).url || i.thumbnailUrl || i.optimizedUrl);
-            const isCoverOrProfile =
+            const isExcluded =
               i.tags?.includes('cover') ||
               i.tags?.includes('profile') ||
+              i.tags?.includes('post') ||
+              i.tags?.includes('story') ||
               i.cloudinaryPublicId?.includes('covers') ||
-              i.cloudinaryPublicId?.includes('profile') ||
+              i.cloudinaryPublicId?.includes('profiles') ||
+              i.cloudinaryPublicId?.includes('posts') ||
+              i.cloudinaryPublicId?.includes('stories') ||
               i.title?.toLowerCase().includes('cover') ||
-              i.title?.toLowerCase().includes('profile');
-            return hasUrl && !isCoverOrProfile;
+              i.title?.toLowerCase().includes('profile') ||
+              i.title?.toLowerCase().includes('post') ||
+              i.title?.toLowerCase().includes('story');
+            return hasUrl && !isExcluded;
           })}
           albums={albumsList}
         />
@@ -472,20 +427,22 @@ export const GalleryPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 w-full">
             {displayItems.map((media) => (
               <MediaCard key={media._id} media={media} />
             ))}
           </div>
         )
       ) : (
-        <Card variant="glass" className="p-12 text-center space-y-4 max-w-md mx-auto my-6 border border-white/5">
+        <Card variant="glass" className="w-full py-16 px-6 sm:px-12 text-center space-y-4 border border-white/5 my-2">
           <div className="w-14 h-14 rounded-2xl bg-amrin/10 border border-amrin/30 flex items-center justify-center text-amrin-glow mx-auto">
             <ImageIcon className="w-7 h-7" />
           </div>
           <h3 className="text-base font-bold text-white">No items in {activeTab} section</h3>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Photos and videos uploaded by either partner will automatically show up here for both of you!
+            {isInvitedUser
+              ? 'Photos and videos uploaded by you will automatically show up here!'
+              : 'Photos and videos uploaded by either partner will automatically show up here for both of you!'}
           </p>
           <Button
             variant="cyan"
@@ -493,7 +450,7 @@ export const GalleryPage: React.FC = () => {
             onClick={() => setUploadModalOpen(true)}
             leftIcon={<Plus className="w-4 h-4" />}
           >
-            Upload to Shared Gallery
+            {isInvitedUser ? 'Upload Photo / Video' : 'Upload to Shared Gallery'}
           </Button>
         </Card>
       )}

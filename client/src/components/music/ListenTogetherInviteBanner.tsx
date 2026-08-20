@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Music, Check, X, Clock } from 'lucide-react';
 import { useListenTogetherStore } from '../../store/listenTogetherStore';
 
 export const ListenTogetherInviteBanner: React.FC = React.memo(() => {
+  const navigate = useNavigate();
   const incomingInvite = useListenTogetherStore((s) => s.incomingInvite);
   const inviteCountdown = useListenTogetherStore((s) => s.inviteCountdown);
   const acceptInvite = useListenTogetherStore((s) => s.acceptInvite);
@@ -14,8 +16,13 @@ export const ListenTogetherInviteBanner: React.FC = React.memo(() => {
   const seconds = inviteCountdown % 60;
   const timeStr = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
+  const handleAccept = async () => {
+    await acceptInvite(incomingInvite.sessionId);
+    navigate('/shared-music');
+  };
+
   return (
-    <div className="bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white p-4 rounded-2xl shadow-2xl border border-white/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-bounce-short">
+    <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white p-4 rounded-2xl shadow-2xl border border-white/20 flex flex-col sm:flex-row items-center justify-between gap-4 animate-bounce-short">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
           <Music className="w-6 h-6 text-white animate-pulse" />
@@ -36,14 +43,14 @@ export const ListenTogetherInviteBanner: React.FC = React.memo(() => {
 
       <div className="flex items-center gap-2 shrink-0">
         <button
-          onClick={() => acceptInvite(incomingInvite.sessionId)}
-          className="px-5 py-2.5 rounded-xl bg-white text-rose-600 hover:bg-rose-50 font-bold text-xs flex items-center gap-1.5 shadow-lg transition active:scale-95"
+          onClick={handleAccept}
+          className="px-5 py-2.5 rounded-xl bg-white text-rose-600 hover:bg-rose-50 font-bold text-xs flex items-center gap-1.5 shadow-lg transition active:scale-95 cursor-pointer"
         >
           <Check className="w-4 h-4" /> Accept
         </button>
         <button
           onClick={() => declineInvite(incomingInvite.sessionId)}
-          className="px-4 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-semibold text-xs flex items-center gap-1 transition"
+          className="px-4 py-2.5 rounded-xl bg-black/20 hover:bg-black/30 text-white font-semibold text-xs flex items-center gap-1 transition cursor-pointer"
         >
           <X className="w-4 h-4" /> Decline
         </button>

@@ -7,6 +7,7 @@ import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useNotificationStore } from '../../store/notificationStore.js';
 import { ApiResponse } from '../../types/index.js';
+import { Avatar } from '../ui/Avatar.js';
 import { Badge } from '../ui/Badge.js';
 
 export const MobileHeader: React.FC = () => {
@@ -188,15 +189,7 @@ export const MobileHeader: React.FC = () => {
                       className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10 active:bg-white/10 transition-all"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] overflow-hidden shrink-0 shadow-md">
-                          {matchedUser.avatar ? (
-                            <img src={matchedUser.avatar} alt={matchedUser.name} className="w-full h-full object-cover rounded-full" />
-                          ) : (
-                            <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                              {matchedUser.name?.[0] || '❤️'}
-                            </div>
-                          )}
-                        </div>
+                        <Avatar src={matchedUser.avatar} name={matchedUser.name} size="md" />
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-extrabold text-white">{matchedUser.name}</span>
