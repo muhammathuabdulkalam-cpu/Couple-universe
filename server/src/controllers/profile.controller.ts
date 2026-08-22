@@ -22,28 +22,44 @@ const getDefaultAvatar = (_name?: string, _role?: string) => {
 /**
  * Helper to resolve the parent owner user for an invited user
  */
-async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | string): Promise<any> {
+export async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | string): Promise<any> {
+  const userDoc = await User.findById(userId).select('email relationshipId');
+  if (!userDoc) return null;
+
+  // 1. Check InvitedUser model (stores ownerUserId when invite is created by SUPER_OWNER or CO_OWNER)
+  const { InvitedUser } = await import('../models/invitedUser.model');
+  const invitedDoc = await InvitedUser.findOne({
+    $or: [
+      { registeredUserId: userId },
+      { email: (userDoc.email || '').toLowerCase() },
+    ],
+  }).select('ownerUserId');
+
+  if (invitedDoc && invitedDoc.ownerUserId) {
+    const parent = await User.findById(invitedDoc.ownerUserId).select('-password');
+    if (parent) return parent;
+  }
+
+  // 2. Check Invite model (createdBy field)
   const { Invite } = await import('../models/invite.model');
-  const invite = await Invite.findOne({ usedBy: userId }).select('createdBy');
+  const invite = await Invite.findOne({
+    $or: [
+      { usedBy: userId },
+      { email: (userDoc.email || '').toLowerCase() },
+    ],
+  }).select('createdBy');
+
   if (invite && invite.createdBy) {
     const parent = await User.findById(invite.createdBy).select('-password');
     if (parent) return parent;
   }
 
-  // Fallback to relationship createdBy or member owner
-  const userDoc = await User.findById(userId);
-  if (userDoc && userDoc.relationshipId) {
+  // 3. Fallback to relationship createdBy
+  if (userDoc.relationshipId) {
     const rel = await Relationship.findById(userDoc.relationshipId);
-    if (rel) {
-      if (rel.createdBy) {
-        const parent = await User.findById(rel.createdBy).select('-password');
-        if (parent) return parent;
-      }
-      const ownerMember = rel.members.find((m) => m.role === ROLES.SUPER_OWNER || m.role === ROLES.CO_OWNER);
-      if (ownerMember) {
-        const parent = await User.findById(ownerMember.user).select('-password');
-        if (parent) return parent;
-      }
+    if (rel && rel.createdBy) {
+      const parent = await User.findById(rel.createdBy).select('-password');
+      if (parent) return parent;
     }
   }
 

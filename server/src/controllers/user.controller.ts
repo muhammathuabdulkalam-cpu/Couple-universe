@@ -24,8 +24,29 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string, 10) || PLATFORM_CONSTANTS.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
 
+  const requestingUser = req.user!;
+
+  if (requestingUser.role === ROLES.INVITED_USER) {
+    const { getParentOwnerForUser } = await import('./profile.controller');
+    const parentOwner = await getParentOwnerForUser(requestingUser._id);
+
+    const visibleUserIds = [requestingUser._id];
+    if (parentOwner && parentOwner._id) {
+      visibleUserIds.push(parentOwner._id);
+    }
+
+    const users = await User.find({ _id: { $in: visibleUserIds } }).select('-password');
+    return ApiResponse.success(res, 'Users list retrieved', users, HTTP_STATUS.OK, {
+      page: 1,
+      limit: visibleUserIds.length,
+      total: visibleUserIds.length,
+      totalPages: 1,
+    });
+  }
+
   const total = await User.countDocuments();
   const users = await User.find()
+    .select('-password')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
