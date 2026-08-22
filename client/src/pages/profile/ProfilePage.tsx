@@ -78,8 +78,10 @@ export const ProfilePage: React.FC = () => {
         <ProfileHeader profileUser={profileData} stats={stats} isSelf={isSelfProfile} onRefresh={() => refetch()} />
       )}
 
-      {/* 2. Compact Real-time Love Togetherness Counter */}
-      <LoveCounter />
+      {/* 2. Compact Real-time Love Togetherness Counter (Super Owner & Co-Owner Profiles Only) */}
+      {(profileData?.role === 'SUPER_OWNER' || profileData?.role === 'CO_OWNER') && (
+        <LoveCounter />
+      )}
 
       {/* 3. Instagram-Style Profile Navigation Tabs */}
       <div className="border-t border-b border-white/10 glass-panel rounded-2xl p-1.5 flex items-center justify-around select-none">
