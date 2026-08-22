@@ -438,13 +438,13 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
   const followersList = await getProfileFollowersList(user);
   const followingList = followersList;
 
-  const userObj = user.toObject();
+  const userObj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
   if (user.role === 'INVITED_USER' && requestingUser._id.toString() !== user._id.toString()) {
     delete userObj.birthday;
   }
 
-  const partnerObj = partner ? partner.toObject() : null;
-  if (partner && partner.role === 'INVITED_USER' && requestingUser._id.toString() !== partner._id.toString()) {
+  const partnerObj = partner ? (typeof partner.toObject === 'function' ? partner.toObject() : { ...partner }) : null;
+  if (partnerObj && partner.role === 'INVITED_USER' && requestingUser._id.toString() !== (partner._id || partner.id)?.toString()) {
     delete partnerObj.birthday;
   }
 
