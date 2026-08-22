@@ -156,12 +156,12 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
             const isSelf = currentUserIdStr === authorId.toString();
             const isCurrentUserOwner = user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
             const authorObj = activity.userId as any;
-            const isTargetUserOwner = authorObj?.role === 'SUPER_OWNER' || authorObj?.role === 'CO_OWNER' ||
-              (authorObj?.name && (authorObj.name.toLowerCase().includes('afzal') || authorObj.name.toLowerCase().includes('amrin')));
 
             if (!isCurrentUserOwner && !isSelf) {
-              if (!isTargetUserOwner) {
-                addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+              const parentOwnerId = (user as any)?.parentOwnerId;
+              const isTargetParent = (parentOwnerId && authorId.toString() === parentOwnerId.toString()) || authorObj?.role === 'SUPER_OWNER';
+              if (!isTargetParent) {
+                addToast('Access Restricted', 'Invited users can only view their own profile or their parent owner profile.', 'warning');
                 return;
               }
             }

@@ -92,12 +92,12 @@ export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId
     const currentUserIdStr = (user?._id || user?.id)?.toString();
     const isSelf = currentUserIdStr === targetUserIdStr;
     const isCurrentUserOwner = user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
-    const isTargetUserOwner = targetUserObj?.role === 'SUPER_OWNER' || targetUserObj?.role === 'CO_OWNER' ||
-      (targetUserObj?.name && (targetUserObj.name.toLowerCase().includes('afzal') || targetUserObj.name.toLowerCase().includes('amrin')));
 
     if (!isCurrentUserOwner && !isSelf) {
-      if (!isTargetUserOwner) {
-        addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+      const parentOwnerId = (user as any)?.parentOwnerId;
+      const isTargetParent = (parentOwnerId && targetUserIdStr === parentOwnerId.toString()) || targetUserObj?.role === 'SUPER_OWNER';
+      if (!isTargetParent) {
+        addToast('Access Restricted', 'Invited users can only view their own profile or their parent owner profile.', 'warning');
         return;
       }
     }

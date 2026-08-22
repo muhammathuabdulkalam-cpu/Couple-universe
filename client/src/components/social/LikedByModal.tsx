@@ -62,12 +62,12 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
     const currentUserIdStr = (currentUser?._id || currentUser?.id)?.toString();
     const isSelf = currentUserIdStr === uId.toString();
     const isCurrentUserOwner = currentUser?.role === 'SUPER_OWNER' || currentUser?.role === 'CO_OWNER';
-    const isTargetUserOwner = uObj?.role === 'SUPER_OWNER' || uObj?.role === 'CO_OWNER' ||
-      (uObj?.name && (uObj.name.toLowerCase().includes('afzal') || uObj.name.toLowerCase().includes('amrin')));
 
     if (!isCurrentUserOwner && !isSelf) {
-      if (!isTargetUserOwner) {
-        addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+      const parentOwnerId = (currentUser as any)?.parentOwnerId;
+      const isTargetParent = (parentOwnerId && uId === parentOwnerId.toString()) || uObj?.role === 'SUPER_OWNER';
+      if (!isTargetParent) {
+        addToast('Access Restricted', 'Invited users can only view their own profile or their parent owner profile.', 'warning');
         return;
       }
     }

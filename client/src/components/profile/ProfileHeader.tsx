@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Cake, Calendar, Edit3, Grid, LogOut, Settings, Shield, UserCircle2, Users, X } from 'lucide-react';
+import { Calendar, Edit3, Grid, LogOut, Settings, Shield, UserCircle2, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -153,16 +153,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
               </button>
             </div>
 
-            {/* User Info & Entered Details (DOB, Username, Bio, Joined Date) */}
+            {/* User Info & Entered Details (Instagram style: Username, Bio, Member since) */}
             <div className="space-y-1.5 pt-1 text-center md:text-left">
-              {displayUser?.birthday && (displayUser?.role !== 'INVITED_USER' || isSelfProfile) && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm">
-                  <Cake className="w-3.5 h-3.5 text-amber-400" />
-                  <span>
-                    Born: {new Date(displayUser.birthday).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-              )}
 
               {displayUser?.username && (
                 <div className="text-xs text-slate-400 font-mono font-semibold">
