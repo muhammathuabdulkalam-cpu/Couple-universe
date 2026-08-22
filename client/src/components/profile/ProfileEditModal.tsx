@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Cake, Camera, Image, Upload, User as UserIcon, X } from 'lucide-react';
+import { Cake, Camera, Globe, Image, Lock, Upload, User as UserIcon, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
@@ -25,6 +25,7 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
   const [birthday, setBirthday] = useState(
     (user as any)?.birthday ? new Date((user as any).birthday).toISOString().split('T')[0] : ''
   );
+  const [isPrivate, setIsPrivate] = useState<boolean>((user as any)?.isPrivate ?? false);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(user?.avatar || '');
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [isUploadingDeviceImg, setIsUploadingDeviceImg] = useState(false);
@@ -87,6 +88,8 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
         bio,
         avatar: selectedAvatarUrl,
         birthday: birthday || null,
+        isPrivate,
+        visibility: isPrivate ? 'PRIVATE' : 'PUBLIC',
       });
 
       if (res.data.data) {
@@ -233,6 +236,38 @@ export const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onCl
                     rows={3}
                     className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2.5 px-4 text-xs text-white focus:border-amrin focus:outline-none"
                   />
+                </div>
+
+                {/* Profile Privacy Setting (Instagram Style Public / Private) */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${isPrivate ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                      {isPrivate ? <Lock className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <span>{isPrivate ? 'Private Account 🔒' : 'Public Account 🌐'}</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        {isPrivate
+                          ? 'Visible to parent user & approved connections.'
+                          : 'Visible to everyone on the platform.'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPrivate(!isPrivate)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isPrivate ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        isPrivate ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 {/* Submit Buttons */}

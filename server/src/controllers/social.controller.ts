@@ -74,19 +74,25 @@ export const unfollowUser = catchAsync(async (req: Request, res: Response) => {
  */
 export const getFollowers = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params;
-  const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 20;
-  const skip = (page - 1) * limit;
+  const targetUser = await User.findById(userId);
+  if (!targetUser) {
+    throw new AppError('User not found.', HTTP_STATUS.NOT_FOUND);
+  }
 
-  const total = await Follow.countDocuments({ following: userId, status: 'ACCEPTED' });
-  const followers = await Follow.find({ following: userId, status: 'ACCEPTED' })
-    .populate('follower', 'name email avatar role')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const { getProfileFollowersList } = await import('./profile.controller');
+  const followersList = await getProfileFollowersList(targetUser);
 
-  return ApiResponse.success(res, 'Followers retrieved.', followers, HTTP_STATUS.OK, {
-    page, limit, total, totalPages: Math.ceil(total / limit),
+  const formattedFollowers = followersList.map((f) => ({
+    _id: f._id,
+    follower: f,
+    createdAt: new Date(),
+  }));
+
+  return ApiResponse.success(res, 'Followers retrieved.', formattedFollowers, HTTP_STATUS.OK, {
+    page: 1,
+    limit: formattedFollowers.length,
+    total: formattedFollowers.length,
+    totalPages: 1,
   });
 });
 
@@ -95,19 +101,25 @@ export const getFollowers = catchAsync(async (req: Request, res: Response) => {
  */
 export const getFollowing = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params;
-  const page = parseInt(req.query.page as string, 10) || 1;
-  const limit = parseInt(req.query.limit as string, 10) || 20;
-  const skip = (page - 1) * limit;
+  const targetUser = await User.findById(userId);
+  if (!targetUser) {
+    throw new AppError('User not found.', HTTP_STATUS.NOT_FOUND);
+  }
 
-  const total = await Follow.countDocuments({ follower: userId, status: 'ACCEPTED' });
-  const following = await Follow.find({ follower: userId, status: 'ACCEPTED' })
-    .populate('following', 'name email avatar role')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const { getProfileFollowersList } = await import('./profile.controller');
+  const followingList = await getProfileFollowersList(targetUser);
 
-  return ApiResponse.success(res, 'Following retrieved.', following, HTTP_STATUS.OK, {
-    page, limit, total, totalPages: Math.ceil(total / limit),
+  const formattedFollowing = followingList.map((f) => ({
+    _id: f._id,
+    following: f,
+    createdAt: new Date(),
+  }));
+
+  return ApiResponse.success(res, 'Following retrieved.', formattedFollowing, HTTP_STATUS.OK, {
+    page: 1,
+    limit: formattedFollowing.length,
+    total: formattedFollowing.length,
+    totalPages: 1,
   });
 });
 

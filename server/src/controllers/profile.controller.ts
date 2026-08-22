@@ -137,6 +137,72 @@ export async function syncCloudinaryProfilesToDb(): Promise<void> {
 }
 
 /**
+ * Helper to fetch exact Followers list for any user profile (Super Owner, Co-Owner, or Invited User)
+ */
+export async function getProfileFollowersList(targetUser: any): Promise<any[]> {
+  const followers: any[] = [];
+  const { InvitedUser } = await import('../models/invitedUser.model');
+
+  if (targetUser.role === ROLES.SUPER_OWNER || targetUser.role === ROLES.CO_OWNER) {
+    // 1. Partner Owner
+    const partnerRole = targetUser.role === ROLES.SUPER_OWNER ? ROLES.CO_OWNER : ROLES.SUPER_OWNER;
+    const partner = await User.findOne({ role: partnerRole, isDeleted: { $ne: true } }).select('_id name email avatar role bio');
+    if (partner) {
+      followers.push({
+        _id: partner._id,
+        id: partner._id,
+        name: partner.name,
+        email: partner.email,
+        avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role),
+        role: partner.role,
+        bio: partner.bio || '',
+      });
+    }
+
+    // 2. Sub-invited users invited by THIS specific owner user only
+    const myInvitedRecords = await InvitedUser.find({
+      ownerUserId: targetUser._id,
+      isDeleted: false,
+    }).select('email');
+
+    const subUserEmails = myInvitedRecords.map((r) => (r.email || '').toLowerCase()).filter(Boolean);
+
+    if (subUserEmails.length > 0) {
+      const subUsers = await User.find({ email: { $in: subUserEmails }, isDeleted: { $ne: true } }).select('_id name email avatar role bio');
+      subUsers.forEach((su) => {
+        if (!followers.some((f) => f._id.toString() === su._id.toString())) {
+          followers.push({
+            _id: su._id,
+            id: su._id,
+            name: su.name,
+            email: su.email,
+            avatar: su.avatar || getDefaultAvatar(su.name, su.role),
+            role: su.role,
+            bio: su.bio || '',
+          });
+        }
+      });
+    }
+  } else {
+    // Invited User: follower is their Parent Owner
+    const parentOwner = await getParentOwnerForUser(targetUser._id);
+    if (parentOwner) {
+      followers.push({
+        _id: parentOwner._id,
+        id: parentOwner._id,
+        name: parentOwner.name,
+        email: parentOwner.email,
+        avatar: parentOwner.avatar || getDefaultAvatar(parentOwner.name, parentOwner.role),
+        role: parentOwner.role,
+        bio: parentOwner.bio || '',
+      });
+    }
+  }
+
+  return followers;
+}
+
+/**
  * Get Profile Details with Activity Metrics & Partner Information
  */
 export const getProfile = catchAsync(async (req: Request, res: Response) => {
@@ -174,16 +240,30 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
   const isViewingSelf = requestingUser._id.toString() === user._id.toString();
   const isRequestingUserOwner = requestingUser.role === ROLES.SUPER_OWNER || requestingUser.role === ROLES.CO_OWNER;
 
-  // Profile Access Control Rules:
-  // - SUPER_OWNER & CO_OWNER: Can view all user profiles.
-  // - INVITED_USER: Can view their OWN profile and THEIR SPECIFIC parent owner profile ONLY.
-  // - INVITED_USER: Cannot view other owner profiles or another INVITED_USER's profile.
-  if (!isRequestingUserOwner && !isViewingSelf) {
-    const parentOwner = await getParentOwnerForUser(requestingUser._id);
-    const isTargetUserTheirParentOwner = parentOwner && parentOwner._id.toString() === user._id.toString();
+  // Profile Privacy & Access Control Rules:
+  // 1. PUBLIC profiles (isPrivate === false or visibility === 'PUBLIC'): Visible to everyone!
+  // 2. PRIVATE profiles (isPrivate === true or visibility === 'PRIVATE'): Visible ONLY to self, parent owner, or approved relationship members.
+  const isProfilePublic = user.isPrivate === false || user.visibility === 'PUBLIC';
 
-    if (!isTargetUserTheirParentOwner) {
-      throw new AppError('Permission denied. Invited users can only view their own profile or their parent owner profile.', HTTP_STATUS.FORBIDDEN);
+  if (!isViewingSelf && !isProfilePublic) {
+    let hasAccess = isRequestingUserOwner;
+
+    if (!hasAccess) {
+      const parentOwner = await getParentOwnerForUser(requestingUser._id);
+      const isTargetUserTheirParentOwner = parentOwner && parentOwner._id.toString() === user._id.toString();
+      if (isTargetUserTheirParentOwner) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess && requestingUser.relationshipId && user.relationshipId) {
+      if (requestingUser.relationshipId.toString() === user.relationshipId.toString()) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
+      throw new AppError('This account is private. Only parent user or connected members can view this profile.', HTTP_STATUS.FORBIDDEN);
     }
   }
 
@@ -318,6 +398,10 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
   const memoriesCount = await TimelineEvent.countDocuments({ owner: user._id, isDeleted: false });
   const eventsCount = await CalendarEvent.countDocuments({ owner: user._id, isDeleted: false });
 
+  // Calculate exact followers list
+  const followersList = await getProfileFollowersList(user);
+  const followingList = followersList;
+
   const userObj = user.toObject();
   if (user.role === 'INVITED_USER' && requestingUser._id.toString() !== user._id.toString()) {
     delete userObj.birthday;
@@ -330,6 +414,8 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
 
   const profileData = {
     ...userObj,
+    isPrivate: user.isPrivate ?? false,
+    visibility: user.visibility || (user.isPrivate ? 'PRIVATE' : 'PUBLIC'),
     avatar: user.avatar || getDefaultAvatar(user.name, user.role),
     partner: partnerObj ? {
       ...partnerObj,
@@ -339,11 +425,11 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
       postsCount,
       memoriesCount,
       eventsCount,
-      followersCount: partner ? 1 : 0,
-      followingCount: partner ? 1 : 0,
+      followersCount: followersList.length,
+      followingCount: followingList.length,
     },
-    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role), role: partner.role }] : [],
-    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role), role: partner.role }] : [],
+    followers: followersList,
+    following: followingList,
     relationshipStartDate: '2026-03-26T00:00:00.000Z',
   };
 
@@ -374,6 +460,8 @@ export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Respons
   const memoriesCount = await TimelineEvent.countDocuments({ owner: superOwner._id, isDeleted: false });
   const eventsCount = await CalendarEvent.countDocuments({ owner: superOwner._id, isDeleted: false });
 
+  const followersList = await getProfileFollowersList(superOwner);
+
   const profileData = {
     ...superOwner.toObject(),
     avatar: superOwner.avatar,
@@ -385,11 +473,11 @@ export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Respons
       postsCount,
       memoriesCount,
       eventsCount,
-      followersCount: partner ? 1 : 0,
-      followingCount: partner ? 1 : 0,
+      followersCount: followersList.length,
+      followingCount: followersList.length,
     },
-    followers: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
-    following: partner ? [{ _id: partner._id, name: partner.name, email: partner.email, avatar: partner.avatar, role: partner.role }] : [],
+    followers: followersList,
+    following: followersList,
   };
 
   return ApiResponse.success(res, 'Super Owner profile details fetched successfully', profileData);
@@ -400,12 +488,14 @@ export const getSuperOwnerProfile = catchAsync(async (req: Request, res: Respons
  */
 export const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
-  const { name, avatar, bio, location, birthday } = req.body;
+  const { name, avatar, bio, location, birthday, isPrivate, visibility } = req.body;
 
   if (name !== undefined) user.name = name;
   if (avatar !== undefined) user.avatar = avatar;
   if (bio !== undefined) user.bio = bio;
   if (birthday !== undefined) (user as any).birthday = birthday ? new Date(birthday) : null;
+  if (isPrivate !== undefined) (user as any).isPrivate = Boolean(isPrivate);
+  if (visibility !== undefined) (user as any).visibility = visibility === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE';
 
   await user.save();
 
@@ -418,6 +508,8 @@ export const updateProfile = catchAsync(async (req: Request, res: Response) => {
       avatar: user.avatar,
       bio: user.bio,
       birthday: (user as any).birthday,
+      isPrivate: (user as any).isPrivate,
+      visibility: (user as any).visibility,
     });
   }
 

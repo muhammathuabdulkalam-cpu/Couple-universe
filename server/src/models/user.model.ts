@@ -29,6 +29,8 @@ export interface IUser extends Document {
   relationshipId?: mongoose.Types.ObjectId;
   enabledFeatures?: string[];
   onboardingCompleted: boolean;
+  isPrivate?: boolean;
+  visibility?: 'PUBLIC' | 'PRIVATE';
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -78,6 +80,17 @@ const userSchema = new Schema<IUser>(
     onboardingCompleted: {
       type: Boolean,
       default: true,
+      index: true,
+    },
+    isPrivate: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    visibility: {
+      type: String,
+      enum: ['PUBLIC', 'PRIVATE'],
+      default: 'PUBLIC',
       index: true,
     },
     avatar: {

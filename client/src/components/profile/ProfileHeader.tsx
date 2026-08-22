@@ -67,11 +67,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
           <div className="flex-1 text-center md:text-left space-y-3">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
-                <div className="flex items-center justify-center md:justify-start gap-2">
+                <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
                   <h2 className="text-2xl font-extrabold text-white tracking-tight">{displayUser?.name}</h2>
                   {isCoOwner && (
                     <Badge variant="cyan" size="sm">
                       <Shield className="w-3 h-3" /> Princess 👸
+                    </Badge>
+                  )}
+                  {displayUser?.isPrivate ? (
+                    <Badge variant="amber" size="sm">
+                      Private 🔒
+                    </Badge>
+                  ) : (
+                    <Badge variant="green" size="sm">
+                      Public 🌐
                     </Badge>
                   )}
                 </div>
