@@ -20,7 +20,7 @@ class SocketClient {
     const envApiUrl = (import.meta as any).env?.VITE_API_URL;
     const envSocketUrl = (import.meta as any).env?.VITE_SOCKET_URL;
 
-    let socketUrl = 'http://localhost:5000';
+    let socketUrl = 'http://127.0.0.1:5000';
 
     if (envSocketUrl) {
       socketUrl = envSocketUrl;
@@ -29,8 +29,14 @@ class SocketClient {
     } else if (typeof window !== 'undefined') {
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const hostname = window.location.hostname;
-      // Connect to backend port 5000 regardless of local dev server port (e.g. 5173/5174 or IP network 192.168.x.x)
-      socketUrl = `${protocol}//${hostname}:5000`;
+      const isLocalHost =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        hostname.endsWith('.local');
+
+      socketUrl = isLocalHost ? `${protocol}//${hostname}:5000` : window.location.origin;
     }
 
     this.socket = io(socketUrl, {

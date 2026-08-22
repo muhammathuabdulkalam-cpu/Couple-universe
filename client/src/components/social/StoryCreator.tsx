@@ -90,7 +90,7 @@ export const StoryCreator: React.FC<StoryCreatorProps> = ({ isOpen, onClose }) =
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in select-none">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 animate-fade-in select-none">
       <div className="w-full max-w-sm glass-card rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-obsidian-950/80">

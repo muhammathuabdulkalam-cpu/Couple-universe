@@ -18,9 +18,55 @@ export const MessageComposer: React.FC = () => {
   const [isVoiceRecording, setIsVoiceRecording] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [isUploadingDeviceFile, setIsUploadingDeviceFile] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const typingTimeoutRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDeviceFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConversation) return;
+
+    setIsUploadingDeviceFile(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', file.name || 'Chat Attachment');
+      formData.append('visibility', 'COUPLE');
+
+      const uploadRes = await axiosClient.post<ApiResponse<MediaItem>>('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const uploadedMedia = uploadRes.data.data;
+      if (!uploadedMedia) throw new Error('File upload failed.');
+
+      const isVideo = file.type.startsWith('video/');
+      const payload = {
+        conversationId: activeConversation._id,
+        type: isVideo ? ('VIDEO' as const) : ('IMAGE' as const),
+        content: text.trim() || (isVideo ? '📹 Video' : '📷 Photo'),
+        mediaId: uploadedMedia._id,
+        replyToMessageId: replyingToMessage ? replyingToMessage._id : undefined,
+      };
+
+      const res = await axiosClient.post<ApiResponse<MessageItem>>('/chat/messages', payload);
+      if (res.data.data) {
+        addMessage(activeConversation._id, res.data.data);
+      }
+
+      setText('');
+      setSelectedMediaId(null);
+      setReplyingToMessage(null);
+      addToast('Image Sent!', 'Device image uploaded & sent to chat.', 'success');
+    } catch (err: any) {
+      addToast('Upload Failed', err.message || 'Unable to upload file from device', 'error');
+    } finally {
+      setIsUploadingDeviceFile(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 
   // Fetch Module 4 Media Vault for Attachment Picker
   const { data: mediaVault } = useQuery<MediaItem[]>({
@@ -220,16 +266,30 @@ export const MessageComposer: React.FC = () => {
               <Smile className="w-5 h-5" />
             </button>
 
-            {/* Paperclip Attachment Button */}
+            {/* Hidden Device File Picker Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*,video/*"
+              onChange={handleDeviceFileUpload}
+              className="hidden"
+            />
+
+            {/* Paperclip Attachment Button: Pick Directly From Device */}
             <button
               type="button"
-              onClick={() => setIsMediaPickerOpen(!isMediaPickerOpen)}
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingDeviceFile}
               className={`p-2.5 rounded-full transition-colors shrink-0 ${
-                selectedMediaId ? 'text-amrin bg-amrin/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                isUploadingDeviceFile ? 'text-amrin bg-amrin/20 animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
-              title="Attach Media"
+              title="Upload Image/Video from Device"
             >
-              <Paperclip className="w-5 h-5" />
+              {isUploadingDeviceFile ? (
+                <Loader2 className="w-5 h-5 animate-spin text-amrin" />
+              ) : (
+                <Paperclip className="w-5 h-5" />
+              )}
             </button>
 
             {/* Input Box */}

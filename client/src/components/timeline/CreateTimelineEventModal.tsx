@@ -134,7 +134,7 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/80 backdrop-blur-xl p-4 select-none overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/80 p-4 select-none overflow-y-auto">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl my-8">
           <Card variant="glass" className="p-6 space-y-6 border-white/10 shadow-2xl">
             

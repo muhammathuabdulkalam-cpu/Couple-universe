@@ -155,7 +155,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
 
             {/* User Info & Entered Details (DOB, Username, Bio, Joined Date) */}
             <div className="space-y-1.5 pt-1 text-center md:text-left">
-              {displayUser?.birthday && (
+              {displayUser?.birthday && (displayUser?.role !== 'INVITED_USER' || isSelfProfile) && (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-bold shadow-sm">
                   <Cake className="w-3.5 h-3.5 text-amber-400" />
                   <span>

@@ -35,7 +35,7 @@ export const createStory = catchAsync(async (req: Request, res: Response) => {
   });
 
   const populated = await story.populate([
-    { path: 'userId', select: 'name email avatar' },
+    { path: 'userId', select: 'name email avatar role' },
     { path: 'mediaId', select: 'secureUrl thumbnailUrl optimizedUrl width height mimeType' },
   ]);
 
@@ -59,7 +59,7 @@ export const getActiveStories = catchAsync(async (req: Request, res: Response) =
   };
 
   const stories = await Story.find(filter)
-    .populate('userId', 'name email avatar')
+    .populate('userId', 'name email avatar role')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl width height mimeType duration')
     .populate('viewedBy', 'name email avatar')
     .populate('reactions.userId', 'name email avatar')
@@ -75,7 +75,7 @@ export const getActiveStories = catchAsync(async (req: Request, res: Response) =
  */
 export const getStoryById = catchAsync(async (req: Request, res: Response) => {
   const story = await Story.findById(req.params.id)
-    .populate('userId', 'name email avatar')
+    .populate('userId', 'name email avatar role')
     .populate('mediaId', 'secureUrl thumbnailUrl optimizedUrl width height mimeType duration')
     .populate('viewedBy', 'name email avatar')
     .populate('reactions.userId', 'name email avatar');

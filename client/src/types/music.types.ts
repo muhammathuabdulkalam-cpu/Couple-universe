@@ -120,4 +120,5 @@ export interface ListenInvitePayload {
   hostName: string;
   hostAvatar?: string;
   expiresAt: string;
+  session?: ListeningSession;
 }

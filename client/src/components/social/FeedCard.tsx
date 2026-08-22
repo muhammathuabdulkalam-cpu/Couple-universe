@@ -150,9 +150,23 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => {
             const authorId = activity.userId._id || (activity.userId as any).id;
-            if (authorId) {
-              navigate('/profile', { state: { targetUserId: authorId } });
+            if (!authorId) return;
+
+            const currentUserIdStr = (user?._id || user?.id)?.toString();
+            const isSelf = currentUserIdStr === authorId.toString();
+            const isCurrentUserOwner = user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
+            const authorObj = activity.userId as any;
+            const isTargetUserOwner = authorObj?.role === 'SUPER_OWNER' || authorObj?.role === 'CO_OWNER' ||
+              (authorObj?.name && (authorObj.name.toLowerCase().includes('afzal') || authorObj.name.toLowerCase().includes('amrin')));
+
+            if (!isCurrentUserOwner && !isSelf) {
+              if (!isTargetUserOwner) {
+                addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+                return;
+              }
             }
+
+            navigate('/profile', { state: { targetUserId: authorId } });
           }}
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0 group-hover:scale-105 transition-transform">

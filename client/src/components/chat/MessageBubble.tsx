@@ -9,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
@@ -21,10 +22,11 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const { openViewer } = useMediaStore();
-  const { setReplyingToMessage, activeConversation } = useChatStore();
+  const { setReplyingToMessage } = useChatStore();
 
   const [showActions, setShowActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -88,11 +90,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       animate={{ opacity: 1, y: 0 }}
       className={`flex flex-col select-none my-1.5 ${isSender ? 'items-end' : 'items-start'}`}
     >
-      {/* Sender Name in Group Chat */}
-      {!isSender && activeConversation?.type === 'GROUP' && (
-        <span className="text-[10px] text-slate-400 font-semibold mb-1 ml-2">
+      {/* Sender Name in Chat */}
+      {!isSender && message.sender && (
+        <button
+          type="button"
+          onClick={() => {
+            const senderId = (message.sender as any)?._id || (message.sender as any)?.id;
+            if (senderId) {
+              navigate('/profile', { state: { targetUserId: senderId.toString() } });
+            }
+          }}
+          className="text-[10px] text-slate-400 font-semibold mb-1 ml-2 hover:underline cursor-pointer"
+        >
           {message.sender?.name}
-        </span>
+        </button>
       )}
 
       {/* Reply Preview Header */}

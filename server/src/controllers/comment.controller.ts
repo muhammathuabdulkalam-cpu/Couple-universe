@@ -23,7 +23,7 @@ export const createComment = catchAsync(async (req: Request, res: Response) => {
     parentCommentId: parentCommentId || null,
   });
 
-  const populated = await comment.populate('userId', 'name email avatar');
+  const populated = await comment.populate('userId', 'name email avatar role');
 
   // Notify content author via Notification Engine Service
   if (authorId && authorId !== user._id.toString()) {
@@ -66,7 +66,7 @@ export const getComments = catchAsync(async (req: Request, res: Response) => {
   // Get root comments
   const total = await Comment.countDocuments({ targetType, targetId, parentCommentId: null, isDeleted: false });
   const comments = await Comment.find({ targetType, targetId, parentCommentId: null, isDeleted: false })
-    .populate('userId', 'name email avatar')
+    .populate('userId', 'name email avatar role')
     .sort({ createdAt: 1 })
     .skip(skip)
     .limit(limit);
@@ -75,7 +75,7 @@ export const getComments = catchAsync(async (req: Request, res: Response) => {
   const commentsWithReplies = await Promise.all(
     comments.map(async (c) => {
       const replies = await Comment.find({ parentCommentId: c._id, isDeleted: false })
-        .populate('userId', 'name email avatar')
+        .populate('userId', 'name email avatar role')
         .sort({ createdAt: 1 });
       return { ...c.toJSON(), replies };
     })

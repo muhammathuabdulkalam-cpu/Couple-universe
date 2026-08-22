@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Clock, Grid, Image as ImageIcon, Tag } from 'lucide-react';
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { axiosClient } from '../../api/axiosClient.js';
 import { LoveCounter } from '../../components/profile/LoveCounter.js';
 import { ProfileGrid } from '../../components/profile/ProfileGrid.js';
@@ -25,15 +25,38 @@ export const ProfilePage: React.FC = () => {
 
   const isSelfProfile = !targetUserId || String(targetUserId) === String(currentUser?._id || currentUser?.id);
 
+  const navigate = useNavigate();
+
   // Fetch Profile Stats & Details
-  const { data: profileData, isLoading, refetch } = useQuery<any>({
+  const { data: profileData, isLoading, isError, error, refetch } = useQuery<any>({
     queryKey: ['userProfile', targetUserId],
     queryFn: async () => {
       const endpoint = targetUserId ? `/profile/${targetUserId}` : '/profile';
       const res = await axiosClient.get<ApiResponse<any>>(endpoint);
       return res.data.data!;
     },
+    retry: false,
   });
+
+  if (isError) {
+    const errMessage = (error as any)?.response?.data?.message || 'Access to this profile is restricted.';
+    return (
+      <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center space-y-4 glass-card rounded-3xl border border-white/10 max-w-xl mx-auto my-12 text-white">
+        <div className="w-16 h-16 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 text-2xl">
+          🔒
+        </div>
+        <h3 className="text-lg font-extrabold text-white">Profile Access Restricted</h3>
+        <p className="text-xs text-slate-300 max-w-md">{errMessage}</p>
+        <button
+          type="button"
+          onClick={() => navigate('/profile', { replace: true, state: {} })}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-afzal to-amrin font-extrabold text-xs text-white shadow-lg hover:scale-105 transition-transform"
+        >
+          View My Profile
+        </button>
+      </div>
+    );
+  }
 
   const stats = profileData?.stats || { postsCount: 0, memoriesCount: 0, eventsCount: 0, followersCount: 1, followingCount: 1 };
 

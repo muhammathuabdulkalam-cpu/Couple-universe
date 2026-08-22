@@ -13,6 +13,9 @@ interface LikedByModalProps {
   onClose: () => void;
 }
 
+import { useAuthStore } from '../../store/authStore.js';
+import { useUIStore } from '../../store/uiStore.js';
+
 export const LikedByModal: React.FC<LikedByModalProps> = ({
   targetType,
   targetId,
@@ -20,6 +23,8 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
   onClose,
 }) => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuthStore();
+  const { addToast } = useUIStore();
   const [selectedEmoji, setSelectedEmoji] = useState<string>('ALL');
 
   const { data: reactionsData, isLoading } = useQuery<{
@@ -49,6 +54,26 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
       : reactions.filter((r) => r.emoji === selectedEmoji);
 
   const emojiTabs = ['ALL', ...Object.keys(summary)];
+
+  const handleUserProfileClick = (uObj: any, uId: string) => {
+    onClose();
+    if (!uId) return;
+
+    const currentUserIdStr = (currentUser?._id || currentUser?.id)?.toString();
+    const isSelf = currentUserIdStr === uId.toString();
+    const isCurrentUserOwner = currentUser?.role === 'SUPER_OWNER' || currentUser?.role === 'CO_OWNER';
+    const isTargetUserOwner = uObj?.role === 'SUPER_OWNER' || uObj?.role === 'CO_OWNER' ||
+      (uObj?.name && (uObj.name.toLowerCase().includes('afzal') || uObj.name.toLowerCase().includes('amrin')));
+
+    if (!isCurrentUserOwner && !isSelf) {
+      if (!isTargetUserOwner) {
+        addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+        return;
+      }
+    }
+
+    navigate('/profile', { state: { targetUserId: uId } });
+  };
 
   return (
     <AnimatePresence>
@@ -135,12 +160,7 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
                 return (
                   <div
                     key={item._id}
-                    onClick={() => {
-                      onClose();
-                      if (uId) {
-                        navigate('/profile', { state: { targetUserId: uId } });
-                      }
-                    }}
+                    onClick={() => handleUserProfileClick(uObj, uId)}
                     className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-rose-500/40 hover:bg-white/10 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 min-w-0">

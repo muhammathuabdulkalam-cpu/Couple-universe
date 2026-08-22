@@ -259,47 +259,70 @@ export const UploadedSongsTab: React.FC = () => {
                     {formatDuration(song.duration)}
                   </span>
 
+                  {/* Favorite Button */}
                   <button
                     onClick={() => handleToggleFavorite(song)}
                     className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-rose-400 transition"
+                    title="Toggle Favorite"
                   >
                     <Heart className={`w-5 h-5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
                   </button>
 
-                  {/* Add to Playlist & Delete Dropdown Menu */}
+                  {/* Direct 1-Click Delete Button for Owners */}
+                  {isOwner && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Are you sure you want to delete "${song.title}"?`)) {
+                          deleteMutation.mutate(song.providerSongId);
+                        }
+                      }}
+                      className="p-2 rounded-full hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition"
+                      title="Delete Song"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {/* Add to Playlist Dropdown Menu */}
                   <div className="relative">
                     <button
                       onClick={() =>
                         setActiveMenuSongId(activeMenuSongId === song.providerSongId ? null : song.providerSongId)
                       }
                       className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition"
+                      title="More Options"
                     >
                       <MoreVertical className="w-5 h-5" />
                     </button>
 
                     {activeMenuSongId === song.providerSongId && (
-                      <div className="absolute right-0 top-10 z-30 w-52 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl p-2 text-xs space-y-1 animate-fadeIn">
-                        <p className="px-3 py-1.5 font-bold text-slate-400 text-[10px] uppercase tracking-wider">
+                      <div className="absolute right-0 bottom-full mb-2 sm:bottom-auto sm:top-10 z-50 w-56 bg-slate-900 border border-white/15 rounded-2xl shadow-2xl p-2.5 text-xs space-y-1.5 animate-fadeIn">
+                        <p className="px-2 py-1 font-bold text-slate-400 text-[10px] uppercase tracking-wider">
                           Add to Playlist
                         </p>
-                        {playlists.map((pl) => (
-                          <button
-                            key={pl._id}
-                            onClick={() => handleAddToPlaylist(pl._id, song)}
-                            className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 text-white font-medium truncate transition"
-                          >
-                            {pl.title}
-                          </button>
-                        ))}
+                        <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+                          {playlists.map((pl) => (
+                            <button
+                              key={pl._id}
+                              onClick={() => handleAddToPlaylist(pl._id, song)}
+                              className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-white/10 text-white font-medium truncate transition"
+                            >
+                              {pl.title}
+                            </button>
+                          ))}
+                        </div>
 
                         {isOwner && (
-                          <div className="pt-1 border-t border-white/10">
+                          <div className="pt-1.5 border-t border-white/10">
                             <button
                               onClick={() => {
-                                deleteMutation.mutate(song.providerSongId);
-                                setActiveMenuSongId(null);
+                                if (window.confirm(`Are you sure you want to delete "${song.title}"?`)) {
+                                  deleteMutation.mutate(song.providerSongId);
+                                  setActiveMenuSongId(null);
+                                }
                               }}
-                              className="w-full text-left px-3 py-2 rounded-xl hover:bg-rose-500/20 text-rose-400 font-bold flex items-center gap-2 transition"
+                              className="w-full text-left px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold flex items-center gap-2 transition"
                             >
                               <Trash2 className="w-4 h-4 text-rose-400" />
                               <span>Delete Uploaded Song</span>

@@ -1,3 +1,5 @@
+import { env } from '../config/env.config';
+import cloudinary from '../config/cloudinary.config';
 import { parseBuffer } from 'music-metadata';
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
@@ -92,6 +94,32 @@ export function cleanMetadataString(str: string): string {
     .replace(/^[\s\-._]+|[\s\-._]+$/g, '')
     .trim();
 }
+
+/**
+ * Generate Cloudinary Upload Signature for Direct Browser Uploads
+ */
+export const getUploadSignature = catchAsync(async (_req: Request, res: Response) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const folder = 'afrin-universe/music/audio';
+
+  const paramsToSign = {
+    folder,
+    timestamp,
+  };
+
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    env.CLOUDINARY_API_SECRET || ''
+  );
+
+  return ApiResponse.success(res, 'Upload signature generated', {
+    signature,
+    timestamp,
+    apiKey: env.CLOUDINARY_API_KEY,
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    folder,
+  });
+});
 
 /**
  * Upload Custom Personal Song File (MP3, M4A, AAC, WAV, FLAC) to Cloudinary
@@ -866,8 +894,10 @@ export const createListenInvite = catchAsync(async (req: Request, res: Response)
       expiresAt,
       session,
     };
-    // Emit ONLY to target user's socket room (never broadcast to couple room so host doesn't receive self-invite)
-    io.to(`user:${targetUser._id.toString()}`).emit('listen:invite', payload);
+    const targetIdStr = targetUser._id.toString();
+    io.to(`user:${targetIdStr}`).emit('listen:invite', payload);
+    io.to(targetIdStr).emit('listen:invite', payload);
+    io.to('listen_together_couple_room').emit('listen:invite', payload);
   }
 
   return ApiResponse.created(res, `Listen Together invitation sent to ${targetUser.name}`, session);

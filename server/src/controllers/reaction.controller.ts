@@ -5,6 +5,8 @@ import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { catchAsync } from '../utils/catchAsync';
 
+import mongoose from 'mongoose';
+
 /**
  * Toggle reaction — adds if not present or changes emoji; removes if same emoji sent
  */
@@ -13,7 +15,9 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
   const { targetType, targetId } = req.params;
   const { emoji = '❤️', authorId } = req.body;
 
-  const existing = await Reaction.findOne({ userId: user._id, targetId, targetType });
+  const targetIdObj = mongoose.Types.ObjectId.isValid(targetId) ? new mongoose.Types.ObjectId(targetId) : targetId;
+
+  const existing = await Reaction.findOne({ userId: user._id, targetId: targetIdObj, targetType });
 
   let result: any;
   let message: string;
@@ -31,7 +35,7 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
     message = 'Reaction updated.';
   } else {
     // New reaction
-    result = await Reaction.create({ userId: user._id, targetId, targetType, emoji });
+    result = await Reaction.create({ userId: user._id, targetId: targetIdObj, targetType, emoji });
     message = 'Reaction added.';
 
     // Notify content author via Notification Engine Service
@@ -52,7 +56,7 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
 
   // Get updated reaction summary
   const summary = await Reaction.aggregate([
-    { $match: { targetId: result?.targetId || existing?.targetId || { $oid: targetId }, targetType } },
+    { $match: { targetId: targetIdObj, targetType } },
     { $group: { _id: '$emoji', count: { $sum: 1 } } },
   ]);
 
@@ -66,7 +70,7 @@ export const getReactions = catchAsync(async (req: Request, res: Response) => {
   const { targetType, targetId } = req.params;
 
   const reactions = await Reaction.find({ targetId, targetType })
-    .populate('userId', 'name avatar')
+    .populate('userId', 'name avatar role')
     .sort({ createdAt: -1 });
 
   const summary = reactions.reduce((acc: Record<string, number>, r) => {

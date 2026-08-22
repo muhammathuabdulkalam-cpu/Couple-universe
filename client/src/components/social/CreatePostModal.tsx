@@ -324,7 +324,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in select-none">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 animate-fade-in select-none">
       <div className="w-full max-w-xl glass-card rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between bg-obsidian-950/80">

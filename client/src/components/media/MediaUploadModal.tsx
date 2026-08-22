@@ -93,7 +93,7 @@ export const MediaUploadModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/80 backdrop-blur-xl p-4 select-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/80 p-4 select-none">
         
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
           <Card variant="glass" className="p-6 space-y-6 border-white/10 shadow-2xl">

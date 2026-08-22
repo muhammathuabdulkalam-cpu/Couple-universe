@@ -39,6 +39,7 @@ interface ListenTogetherState {
 let socketInstance: any = null;
 let heartbeatInterval: any = null;
 let countdownInterval: any = null;
+let pollStatusInterval: any = null;
 
 export const fetchPartnerProfile = async (): Promise<{ name: string | null; avatar: string | null }> => {
   try {
@@ -126,30 +127,88 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
     // Fetch initial partner profile in background for real-time state
     fetchPartnerProfile();
 
-    // Check for existing session status
-    musicApi
-      .getListenSessionStatus()
-      .then((session) => {
-        if (session && session.status === 'ACTIVE') {
-          console.log('⚡ [Socket Client] Existing ACTIVE session restored:', session.sessionId);
-          const partnerInfo = resolvePartner(session);
-          const name = partnerInfo.name || get().partnerName;
-          const avatar = partnerInfo.avatar || get().partnerAvatar;
+    // Session Status Checker & Fallback Sync (Handles both ACTIVE & INVITED sessions)
+    const checkSessionStatus = async () => {
+      try {
+        const session = await musicApi.getListenSessionStatus();
+        if (!session) return;
 
-          set({
-            activeSession: session,
-            isSessionActive: true,
-            partnerConnected: true,
-            partnerName: name,
-            partnerAvatar: avatar,
-          });
+        const currentUser = useAuthStore.getState().user;
+        const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
 
-          if (!name || name === 'Partner' || !avatar) {
-            fetchPartnerProfile();
+        if (session.status === 'ACTIVE') {
+          if (!get().isSessionActive) {
+            console.log('⚡ [Session Sync] ACTIVE session detected:', session.sessionId);
+            const partnerInfo = resolvePartner(session);
+            const name = partnerInfo.name || get().partnerName;
+            const avatar = partnerInfo.avatar || get().partnerAvatar;
+
+            set({
+              activeSession: session,
+              isSessionActive: true,
+              partnerConnected: true,
+              partnerName: name,
+              partnerAvatar: avatar,
+              incomingInvite: null,
+            });
+
+            if (!name || name === 'Partner' || !avatar) {
+              fetchPartnerProfile();
+            }
+          }
+        } else if (session.status === 'INVITED') {
+          const hostObj = session.host as any;
+          const partObj = session.participant as any;
+          const hostId = typeof hostObj === 'object' ? hostObj?._id?.toString() || hostObj?.id?.toString() : hostObj ? String(hostObj) : undefined;
+          const partId = typeof partObj === 'object' ? partObj?._id?.toString() || partObj?.id?.toString() : partObj ? String(partObj) : undefined;
+
+          // Only present invite to recipient participant, not host
+          if (partId === currentUserId && hostId !== currentUserId) {
+            const expiresAtStr = session.expiresAt ? String(session.expiresAt) : new Date(Date.now() + 10 * 60 * 1000).toISOString();
+            const expiresAt = new Date(expiresAtStr).getTime();
+            const secondsLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+
+            if (secondsLeft > 0 && (!get().incomingInvite || get().incomingInvite?.sessionId !== session.sessionId)) {
+              console.log('⚡ [Session Sync] Discovered active INVITED session for user:', session.sessionId);
+              const partnerInfo = resolvePartner(session);
+              const hostName = typeof hostObj === 'object' ? hostObj?.name : partnerInfo.name || 'Partner';
+              const hostAvatar = typeof hostObj === 'object' ? hostObj?.avatar : partnerInfo.avatar;
+
+              set({
+                incomingInvite: {
+                  sessionId: session.sessionId,
+                  hostName: hostName || 'Partner',
+                  hostAvatar: hostAvatar,
+                  expiresAt: expiresAtStr,
+                  session,
+                },
+                inviteCountdown: secondsLeft,
+              });
+
+              if (countdownInterval) clearInterval(countdownInterval);
+              countdownInterval = setInterval(() => {
+                const left = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+                set({ inviteCountdown: left });
+                if (left <= 0) {
+                  clearInterval(countdownInterval);
+                  get().clearInvite();
+                }
+              }, 1000);
+            }
           }
         }
-      })
-      .catch(() => {});
+      } catch (_err) {}
+    };
+
+    checkSessionStatus();
+
+    // Poll session status every 5 seconds when not active to guarantee invite delivery after hosting
+    if (pollStatusInterval) clearInterval(pollStatusInterval);
+    pollStatusInterval = setInterval(() => {
+      if (!get().isSessionActive) {
+        checkSessionStatus();
+      }
+    }, 5000);
 
     // Listen to real-time profile update events from socket
     socket.on('profile_updated', (data: { userId: string; name: string; avatar: string }) => {

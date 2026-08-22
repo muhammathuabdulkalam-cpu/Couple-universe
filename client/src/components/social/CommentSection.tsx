@@ -5,6 +5,9 @@ import { axiosClient } from '../../api/axiosClient.js';
 import { socketClient } from '../../api/socketClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { ApiResponse, CommentItem, CommentTargetType } from '../../types/index.js';
+import { useUIStore } from '../../store/uiStore.js';
+
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   targetType: CommentTargetType;
@@ -13,7 +16,9 @@ interface Props {
 }
 
 export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { addToast } = useUIStore();
   const qc = useQueryClient();
   const [content, setContent] = useState('');
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
@@ -81,13 +86,43 @@ export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId
     });
   };
 
+  const handleProfileClick = (targetUserObj: any, targetUserIdStr?: string) => {
+    if (!targetUserIdStr) return;
+
+    const currentUserIdStr = (user?._id || user?.id)?.toString();
+    const isSelf = currentUserIdStr === targetUserIdStr;
+    const isCurrentUserOwner = user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER';
+    const isTargetUserOwner = targetUserObj?.role === 'SUPER_OWNER' || targetUserObj?.role === 'CO_OWNER' ||
+      (targetUserObj?.name && (targetUserObj.name.toLowerCase().includes('afzal') || targetUserObj.name.toLowerCase().includes('amrin')));
+
+    if (!isCurrentUserOwner && !isSelf) {
+      if (!isTargetUserOwner) {
+        addToast('Access Restricted', 'Invited users can only view their own profile or parent owner profile.', 'warning');
+        return;
+      }
+    }
+
+    navigate('/profile', { state: { targetUserId: targetUserIdStr } });
+  };
+
   const renderComment = (comment: CommentItem, isReply = false) => {
-    const isOwner = comment.userId._id === user?._id || comment.userId._id === user?.id;
-    const isLiked = comment.likedBy?.includes(user?._id ?? '') || comment.likedBy?.includes(user?.id ?? '');
+    const currentUserIdStr = (user?._id || user?.id)?.toString();
+    const commentUserIdStr = ((comment.userId as any)?._id || (comment.userId as any)?.id || comment.userId)?.toString();
+    const isOwner = Boolean(currentUserIdStr && commentUserIdStr === currentUserIdStr);
+    const isLiked = Boolean(
+      currentUserIdStr &&
+        comment.likedBy?.some((item: any) => {
+          const itemId = typeof item === 'object' ? (item._id || item.id)?.toString() : item?.toString();
+          return itemId === currentUserIdStr;
+        })
+    );
 
     return (
       <div key={comment._id} className={`flex gap-3 text-xs ${isReply ? 'ml-8 mt-2.5 border-l-2 border-white/10 pl-3' : 'mt-3'}`}>
-        <div className="w-7 h-7 rounded-full bg-afzal/20 border border-white/10 overflow-hidden shrink-0">
+        <div
+          onClick={() => handleProfileClick(comment.userId, commentUserIdStr)}
+          className="w-7 h-7 rounded-full bg-afzal/20 border border-white/10 overflow-hidden shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+        >
           {comment.userId.avatar ? (
             <img src={comment.userId.avatar} alt={comment.userId.name} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
           ) : (
@@ -99,8 +134,11 @@ export const CommentSection: React.FC<Props> = ({ targetType, targetId, authorId
 
         <div className="flex-1 min-w-0">
           <div className="glass-panel px-3 py-2 rounded-2xl border border-white/5">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <span className="font-semibold text-white">{comment.userId.name}</span>
+            <div
+              onClick={() => handleProfileClick(comment.userId, commentUserIdStr)}
+              className="flex items-center justify-between gap-2 mb-1 cursor-pointer group"
+            >
+              <span className="font-semibold text-white group-hover:text-amrin-glow transition-colors">{comment.userId.name}</span>
               <span className="text-[10px] text-slate-500">
                 {new Date(comment.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
               </span>

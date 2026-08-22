@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 // @ts-ignore
 import jsmediatags from 'jsmediatags/dist/jsmediatags.min.js';
+import axios from 'axios';
+import { axiosClient } from '../../api/axiosClient';
 import { musicApi } from '../../api/musicApi';
 import { useUIStore } from '../../store/uiStore';
 import { useMusicPlayerStore } from '../../store/musicPlayerStore';
@@ -185,36 +187,106 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
     setErrorMsg('');
 
     try {
-      const formData = new FormData();
-      formData.append('audio', audioFile);
-      if (coverFile) {
-        formData.append('cover', coverFile);
-      }
-      formData.append('title', title.trim());
-      formData.append('artist', artist.trim());
-      formData.append('album', album.trim());
+      let uploadedAudioUrl = '';
+      let audioDuration = 180;
+      let uploadedCoverUrl = '';
 
-      const song = await musicApi.uploadSong(formData, (progressEvent) => {
-        if (progressEvent.total) {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          // Scale upload phase to 85% to reserve last 15% for cloud stream processing
-          const scaledPercent = Math.min(85, Math.max(5, Math.round(percent * 0.85)));
-          setUploadProgress(scaledPercent);
+      // Try Direct Cloudinary Upload (bypasses server body limits & proxy timeouts)
+      try {
+        const sigRes = await axiosClient.get('/music/upload-signature');
+        if (sigRes.data?.data?.signature) {
+          const { signature, timestamp, apiKey, cloudName, folder } = sigRes.data.data;
 
-          if (percent >= 100) {
-            setUploadStage('processing');
-            setUploadProgress(92);
+          const audioFormData = new FormData();
+          audioFormData.append('file', audioFile);
+          audioFormData.append('api_key', apiKey);
+          audioFormData.append('timestamp', timestamp.toString());
+          audioFormData.append('signature', signature);
+          audioFormData.append('folder', folder);
+
+          const cloudRes = await axios.post(
+            `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`,
+            audioFormData,
+            {
+              onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                  const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  setUploadProgress(Math.min(85, Math.max(5, percent)));
+                }
+              },
+            }
+          );
+
+          uploadedAudioUrl = cloudRes.data.secure_url;
+          if (cloudRes.data.duration) {
+            audioDuration = Math.round(cloudRes.data.duration);
+          }
+
+          if (coverFile) {
+            const coverFormData = new FormData();
+            coverFormData.append('file', coverFile);
+            coverFormData.append('api_key', apiKey);
+            coverFormData.append('timestamp', timestamp.toString());
+            coverFormData.append('signature', signature);
+            coverFormData.append('folder', 'afrin-universe/music/covers');
+
+            const coverRes = await axios.post(
+              `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+              coverFormData
+            );
+            uploadedCoverUrl = coverRes.data.secure_url;
           }
         }
-      });
+      } catch (directErr) {
+        console.warn('Direct Cloudinary upload signature unavailable, using server endpoint fallback:', directErr);
+      }
+
+      let song: any;
+
+      if (uploadedAudioUrl) {
+        setUploadStage('processing');
+        setUploadProgress(95);
+
+        song = await musicApi.importSong({
+          provider: 'local',
+          providerSongId: `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title: title.trim() || audioFile.name.replace(/\.[^/.]+$/, ''),
+          artist: artist.trim() || 'Unknown Artist',
+          album: album.trim() || '',
+          coverUrl: uploadedCoverUrl || (coverPreviewUrl ? coverPreviewUrl : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'),
+          previewUrl: uploadedAudioUrl,
+          externalUrl: uploadedAudioUrl,
+          duration: audioDuration,
+        });
+      } else {
+        const formData = new FormData();
+        formData.append('audio', audioFile);
+        if (coverFile) {
+          formData.append('cover', coverFile);
+        }
+        formData.append('title', title.trim());
+        formData.append('artist', artist.trim());
+        formData.append('album', album.trim());
+
+        song = await musicApi.uploadSong(formData, (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            const scaledPercent = Math.min(85, Math.max(5, Math.round(percent * 0.85)));
+            setUploadProgress(scaledPercent);
+
+            if (percent >= 100) {
+              setUploadStage('processing');
+              setUploadProgress(92);
+            }
+          }
+        });
+      }
 
       setUploadProgress(100);
       queryClient.invalidateQueries({ queryKey: ['uploadedSongs'] });
       addToast('Song Uploaded Successfully! 🎵', `"${song.title}" is ready in your library`, 'success');
 
       if (onUploaded) onUploaded(song);
-
-      // Trigger Successfully Uploaded Popup state
       setUploadedSong(song);
     } catch (err: any) {
       console.error('Song upload error:', err);
@@ -227,7 +299,7 @@ export const UploadSongModal: React.FC<UploadSongModalProps> = React.memo(({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4 animate-fadeIn overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-3 sm:p-4 animate-fadeIn overflow-y-auto">
       {/* SUCCESS POPUP MODAL */}
       {uploadedSong ? (
         <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-5 sm:p-8 w-full max-w-[92vw] sm:max-w-md text-white shadow-2xl space-y-4 sm:space-y-6 text-center animate-scaleUp my-auto relative overflow-hidden">

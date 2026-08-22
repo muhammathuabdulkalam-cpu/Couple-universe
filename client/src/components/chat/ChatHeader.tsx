@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Check, Lock, Palette, Phone, Video, X } from 'lucide-react';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 
@@ -18,6 +19,7 @@ const WALLPAPER_PRESETS = [
 ];
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { activeConversation, onlineUsers, wallpaper, setWallpaper } = useChatStore();
   const [showWallpaperPicker, setShowWallpaperPicker] = useState(false);
@@ -36,6 +38,14 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
 
   const isCoOwner = partnerRole === 'CO_OWNER' || partnerName.toLowerCase().includes('amrin');
 
+  const handleHeaderProfileClick = () => {
+    if (targetId) {
+      navigate('/profile', { state: { targetUserId: targetId.toString() } });
+    } else {
+      navigate('/profile');
+    }
+  };
+
   return (
     <div className="h-14 shrink-0 px-3 sm:px-4 border-b border-white/10 flex items-center justify-between z-30 bg-obsidian-950/95 backdrop-blur-md select-none relative">
       <div className="flex items-center gap-2.5 min-w-0">
@@ -51,42 +61,48 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ onBackClick }) => {
           </button>
         )}
 
-        {/* Profile Avatar (Strict 36px x 36px sizing) */}
-        <div className="relative shrink-0 w-9 h-9">
-          <div className="w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] shadow-md border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-            {otherParticipant?.avatar ? (
-              <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover rounded-full"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
-            ) : (
-              <span className="text-white font-bold text-xs">{partnerName?.[0] || '❤️'}</span>
+        {/* Profile Avatar & Info (Clickable to Navigate to Profile) */}
+        <div
+          onClick={handleHeaderProfileClick}
+          className="flex items-center gap-2.5 min-w-0 cursor-pointer group hover:opacity-90 transition-opacity"
+          title="View Profile"
+        >
+          <div className="relative shrink-0 w-9 h-9">
+            <div className="w-9 h-9 min-w-[36px] min-h-[36px] max-w-[36px] max-h-[36px] rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[1.5px] shadow-md border border-white/10 overflow-hidden shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform">
+              {otherParticipant?.avatar ? (
+                <img src={otherParticipant.avatar} alt={partnerName} className="w-full h-full object-cover rounded-full"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
+              ) : (
+                <span className="text-white font-bold text-xs">{partnerName?.[0] || '❤️'}</span>
+              )}
+            </div>
+            {isOnline && (
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute bottom-0 right-0 z-10" />
             )}
           </div>
-          {isOnline && (
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute bottom-0 right-0 z-10" />
-          )}
-        </div>
 
-        {/* Name & Compact Role Badge & Status */}
-        <div className="min-w-0 flex flex-col justify-center">
-          <div className="flex items-center gap-1.5 leading-none">
-            <span className="text-xs sm:text-sm font-extrabold text-white truncate">{partnerName}</span>
-            {isCoOwner && (
-              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border shrink-0 bg-amrin/20 text-amrin-glow border-amrin/40">
-                Princess 👸
+          {/* Name & Compact Role Badge & Status */}
+          <div className="min-w-0 flex flex-col justify-center">
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="text-xs sm:text-sm font-extrabold text-white truncate group-hover:text-amrin-glow transition-colors">{partnerName}</span>
+              {isCoOwner && (
+                <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border shrink-0 bg-amrin/20 text-amrin-glow border-amrin/40">
+                  Princess 👸
+                </span>
+              )}
+              <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border shrink-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
+                <Lock className="w-2 h-2" /> Encrypted
               </span>
-            )}
-            <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border shrink-0 bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
-              <Lock className="w-2 h-2" /> Encrypted
-            </span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
+              {isOnline ? (
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active now
+                </span>
+              ) : (
+                <span>Last seen recently</span>
+              )}
+            </p>
           </div>
-          <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
-            {isOnline ? (
-              <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Active now
-              </span>
-            ) : (
-              <span>Last seen recently</span>
-            )}
-          </p>
         </div>
       </div>
 

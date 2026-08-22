@@ -28,6 +28,7 @@ import {
   playSongAudio,
   importSong,
   syncCloudinarySongs,
+  getUploadSignature,
 } from '../controllers/music.controller';
 import { authenticate, optionalAuthenticate } from '../middlewares/auth.middleware';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
@@ -39,7 +40,8 @@ router.get('/songs/:providerSongId/play', optionalAuthenticate, playSongAudio);
 
 router.use(authenticate);
 
-// Audio Upload
+// Audio Upload Signature & Direct Upload
+router.get('/upload-signature', getUploadSignature);
 router.post(
   '/upload',
   uploadMiddleware.fields([

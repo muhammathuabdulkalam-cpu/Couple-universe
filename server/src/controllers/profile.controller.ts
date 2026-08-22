@@ -20,6 +20,39 @@ const getDefaultAvatar = (_name?: string, _role?: string) => {
 };
 
 /**
+ * Helper to resolve the parent owner user for an invited user
+ */
+async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | string): Promise<any> {
+  const { Invite } = await import('../models/invite.model');
+  const invite = await Invite.findOne({ usedBy: userId }).select('createdBy');
+  if (invite && invite.createdBy) {
+    const parent = await User.findById(invite.createdBy).select('-password');
+    if (parent) return parent;
+  }
+
+  // Fallback to relationship createdBy or member owner
+  const userDoc = await User.findById(userId);
+  if (userDoc && userDoc.relationshipId) {
+    const rel = await Relationship.findById(userDoc.relationshipId);
+    if (rel) {
+      if (rel.createdBy) {
+        const parent = await User.findById(rel.createdBy).select('-password');
+        if (parent) return parent;
+      }
+      const ownerMember = rel.members.find((m) => m.role === ROLES.SUPER_OWNER || m.role === ROLES.CO_OWNER);
+      if (ownerMember) {
+        const parent = await User.findById(ownerMember.user).select('-password');
+        if (parent) return parent;
+      }
+    }
+  }
+
+  // Default fallback: SUPER_OWNER
+  const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('-password');
+  return superOwner;
+}
+
+/**
  * Sync Cloudinary Profile Upload Assets into MongoDB User & Media documents
  */
 export async function syncCloudinaryProfilesToDb(): Promise<void> {
@@ -121,28 +154,44 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     throw new AppError('User profile not found.', HTTP_STATUS.NOT_FOUND);
   }
 
-  // 1. Partner Resolution: For SUPER_OWNER and CO_OWNER, their partner is always the other owner
-  let partner: any = null;
-  if (user.role === ROLES.SUPER_OWNER) {
-    partner = await User.findOne({ role: ROLES.CO_OWNER }).select('name email role avatar bio birthday');
-  } else if (user.role === ROLES.CO_OWNER) {
-    partner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('name email role avatar bio birthday');
-  }
+  const requestingUser = req.user!;
+  const isViewingSelf = requestingUser._id.toString() === user._id.toString();
+  const isRequestingUserOwner = requestingUser.role === ROLES.SUPER_OWNER || requestingUser.role === ROLES.CO_OWNER;
 
-  // 2. Fallback to Relationship membership for other users
-  if (!partner) {
-    const rel = await Relationship.findOne({ 'members.user': user._id, isDeleted: { $ne: true } });
-    if (rel && rel.members && rel.members.length > 0) {
-      const partnerMember = rel.members.find((m) => m.user.toString() !== user._id.toString());
-      if (partnerMember) {
-        partner = await User.findById(partnerMember.user).select('name email role avatar bio birthday');
-      }
+  // Profile Access Control Rules:
+  // - SUPER_OWNER & CO_OWNER: Can view all user profiles.
+  // - INVITED_USER: Can view their OWN profile and THEIR SPECIFIC parent owner profile ONLY.
+  // - INVITED_USER: Cannot view other owner profiles or another INVITED_USER's profile.
+  if (!isRequestingUserOwner && !isViewingSelf) {
+    const parentOwner = await getParentOwnerForUser(requestingUser._id);
+    const isTargetUserTheirParentOwner = parentOwner && parentOwner._id.toString() === user._id.toString();
+
+    if (!isTargetUserTheirParentOwner) {
+      throw new AppError('Permission denied. Invited users can only view their own profile or their parent owner profile.', HTTP_STATUS.FORBIDDEN);
     }
   }
 
-  // 3. Fallback to any other registered user
-  if (!partner) {
-    partner = await User.findOne({ _id: { $ne: user._id }, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
+  // 1. Partner Resolution:
+  let partner: any = null;
+  if (user.role === ROLES.SUPER_OWNER) {
+    partner = await User.findOne({ role: ROLES.CO_OWNER, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
+  } else if (user.role === ROLES.CO_OWNER) {
+    partner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
+  } else {
+    // For Invited Users, their partner card ALWAYS resolves to their exact parent owner!
+    const parentOwner = await getParentOwnerForUser(user._id);
+    if (parentOwner && parentOwner._id.toString() !== user._id.toString()) {
+      partner = {
+        _id: parentOwner._id,
+        id: parentOwner._id,
+        name: parentOwner.name,
+        email: parentOwner.email,
+        role: parentOwner.role,
+        avatar: parentOwner.avatar,
+        bio: parentOwner.bio,
+        birthday: parentOwner.birthday,
+      };
+    }
   }
 
   // Resolve original profile avatar from user's uploaded Media or Activity posts
@@ -253,11 +302,21 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
   const memoriesCount = await TimelineEvent.countDocuments({ owner: user._id, isDeleted: false });
   const eventsCount = await CalendarEvent.countDocuments({ owner: user._id, isDeleted: false });
 
+  const userObj = user.toObject();
+  if (user.role === 'INVITED_USER' && requestingUser._id.toString() !== user._id.toString()) {
+    delete userObj.birthday;
+  }
+
+  const partnerObj = partner ? partner.toObject() : null;
+  if (partner && partner.role === 'INVITED_USER' && requestingUser._id.toString() !== partner._id.toString()) {
+    delete partnerObj.birthday;
+  }
+
   const profileData = {
-    ...user.toObject(),
+    ...userObj,
     avatar: user.avatar || getDefaultAvatar(user.name, user.role),
-    partner: partner ? {
-      ...partner.toObject(),
+    partner: partnerObj ? {
+      ...partnerObj,
       avatar: partner.avatar || getDefaultAvatar(partner.name, partner.role),
     } : null,
     stats: {

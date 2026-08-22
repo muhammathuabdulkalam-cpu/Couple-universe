@@ -1,5 +1,7 @@
 import dns from 'dns';
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 import app from './app';
 import { connectDatabase, disconnectDatabase } from './config/db.config';
@@ -94,6 +96,16 @@ async function ensureDefaultAvatarsPopulated(): Promise<void> {
 
 const startServer = async (): Promise<void> => {
   try {
+    // Start Express HTTP Server immediately so port 5000 is open instantly
+    server = app.listen(env.PORT, () => {
+      logger.info(`🚀 ${PLATFORM_CONSTANTS.APP_NAME} server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
+      logger.info(`🔗 Health status available at: http://localhost:${env.PORT}${PLATFORM_CONSTANTS.API_PREFIX}/health`);
+    });
+
+    // Initialize Real-Time Socket.io Server Engine
+    socketService.init(server);
+    logger.info('⚡ Real-time Socket.io communication engine initialized');
+
     // Connect to MongoDB Database
     await connectDatabase();
 
@@ -120,16 +132,6 @@ const startServer = async (): Promise<void> => {
       syncCloudinaryGalleryToDb().catch(() => {});
       syncCloudinaryProfilesToDb().catch(() => {});
     }, 5 * 60 * 1000);
-
-    // Start Express HTTP Server
-    server = app.listen(env.PORT, () => {
-      logger.info(`🚀 ${PLATFORM_CONSTANTS.APP_NAME} server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
-      logger.info(`🔗 Health status available at: http://localhost:${env.PORT}${PLATFORM_CONSTANTS.API_PREFIX}/health`);
-    });
-
-    // Initialize Real-Time Socket.io Server Engine
-    socketService.init(server);
-    logger.info('⚡ Real-time Socket.io communication engine initialized');
   } catch (error) {
     logger.error(`❌ Fatal server startup error: ${(error as Error).message}`);
     process.exit(1);
