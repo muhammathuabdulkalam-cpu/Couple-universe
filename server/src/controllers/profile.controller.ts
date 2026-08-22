@@ -63,6 +63,10 @@ export async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | st
     }
   }
 
+  // 4. Default Fallback: Super Owner is the platform parent owner for invited users
+  const defaultSuperOwner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: { $ne: true } }).select('-password');
+  return defaultSuperOwner;
+
   // Default fallback: SUPER_OWNER
   const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('-password');
   return superOwner;
