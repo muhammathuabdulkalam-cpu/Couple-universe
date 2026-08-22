@@ -137,11 +137,54 @@ export async function syncCloudinaryProfilesToDb(): Promise<void> {
 }
 
 /**
+ * Helper to fetch all registered sub-users invited by a specific owner (Super Owner or Co-Owner)
+ */
+export async function getSubUsersForOwner(ownerId: mongoose.Types.ObjectId | string): Promise<any[]> {
+  const ownerIdStr = ownerId.toString();
+  const { InvitedUser } = await import('../models/invitedUser.model');
+  const { Invite } = await import('../models/invite.model');
+
+  // 1. From InvitedUser model
+  const invitedRecords = await InvitedUser.find({ ownerUserId: ownerId, isDeleted: false }).select('email registeredUserId');
+  const invitedEmails = invitedRecords.map((r) => (r.email || '').toLowerCase()).filter(Boolean);
+
+  // 2. From Invite model
+  const inviteRecords = await Invite.find({ createdBy: ownerId }).select('usedBy email');
+  const inviteUsedByIds = inviteRecords.map((r) => r.usedBy).filter(Boolean);
+  const inviteEmails = inviteRecords.map((r) => (r.email || '').toLowerCase()).filter(Boolean);
+
+  const allSubEmails = Array.from(new Set([...invitedEmails, ...inviteEmails]));
+
+  // Find users by _id or email
+  const subUsers = await User.find({
+    role: ROLES.INVITED_USER,
+    isDeleted: { $ne: true },
+    $or: [
+      { _id: { $in: inviteUsedByIds } },
+      { email: { $in: allSubEmails } },
+    ],
+  }).select('-password');
+
+  // Also verify via getParentOwnerForUser fallback for any registered INVITED_USER
+  const allInvitedUsers = await User.find({ role: ROLES.INVITED_USER, isDeleted: { $ne: true } }).select('-password');
+
+  for (const invUser of allInvitedUsers) {
+    if (!subUsers.some((u) => u._id.toString() === invUser._id.toString())) {
+      const parentOwner = await getParentOwnerForUser(invUser._id);
+      if (parentOwner && parentOwner._id.toString() === ownerIdStr) {
+        subUsers.push(invUser);
+      }
+    }
+  }
+
+  return subUsers;
+}
+
+/**
  * Helper to fetch exact Followers list for any user profile (Super Owner, Co-Owner, or Invited User)
  */
 export async function getProfileFollowersList(targetUser: any): Promise<any[]> {
   const followers: any[] = [];
-  const { InvitedUser } = await import('../models/invitedUser.model');
 
   if (targetUser.role === ROLES.SUPER_OWNER || targetUser.role === ROLES.CO_OWNER) {
     // 1. Partner Owner
@@ -159,30 +202,21 @@ export async function getProfileFollowersList(targetUser: any): Promise<any[]> {
       });
     }
 
-    // 2. Sub-invited users invited by THIS specific owner user only
-    const myInvitedRecords = await InvitedUser.find({
-      ownerUserId: targetUser._id,
-      isDeleted: false,
-    }).select('email');
-
-    const subUserEmails = myInvitedRecords.map((r) => (r.email || '').toLowerCase()).filter(Boolean);
-
-    if (subUserEmails.length > 0) {
-      const subUsers = await User.find({ email: { $in: subUserEmails }, isDeleted: { $ne: true } }).select('_id name email avatar role bio');
-      subUsers.forEach((su) => {
-        if (!followers.some((f) => f._id.toString() === su._id.toString())) {
-          followers.push({
-            _id: su._id,
-            id: su._id,
-            name: su.name,
-            email: su.email,
-            avatar: su.avatar || getDefaultAvatar(su.name, su.role),
-            role: su.role,
-            bio: su.bio || '',
-          });
-        }
-      });
-    }
+    // 2. Sub-invited users invited by THIS specific owner user only (via getSubUsersForOwner)
+    const subUsers = await getSubUsersForOwner(targetUser._id);
+    subUsers.forEach((su) => {
+      if (!followers.some((f) => f._id.toString() === su._id.toString())) {
+        followers.push({
+          _id: su._id,
+          id: su._id,
+          name: su.name,
+          email: su.email,
+          avatar: su.avatar || getDefaultAvatar(su.name, su.role),
+          role: su.role,
+          bio: su.bio || '',
+        });
+      }
+    });
   } else {
     // Invited User: follower is their Parent Owner
     const parentOwner = await getParentOwnerForUser(targetUser._id);

@@ -42,25 +42,15 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
     const owners = await User.find({ role: { $in: [ROLES.SUPER_OWNER, ROLES.CO_OWNER] } }).select('_id');
     allowedUserIds = owners.map((o) => o._id);
 
-    // 2. Sub-invited users created/invited by THIS specific owner user only
-    const { InvitedUser } = await import('../models/invitedUser.model');
-    const myInvitedRecords = await InvitedUser.find({
-      ownerUserId: requestingUser._id,
-      isDeleted: false,
-    }).select('email');
+    // 2. Sub-invited users created/invited by THIS specific owner user only (via getSubUsersForOwner)
+    const { getSubUsersForOwner } = await import('./profile.controller');
+    const mySubUsers = await getSubUsersForOwner(requestingUser._id);
 
-    const subUserEmails = myInvitedRecords
-      .map((r) => (r.email || '').toLowerCase())
-      .filter(Boolean);
-
-    if (subUserEmails.length > 0) {
-      const usersByEmail = await User.find({ email: { $in: subUserEmails } }).select('_id');
-      usersByEmail.forEach((u) => {
-        if (!allowedUserIds.some((id) => id.toString() === u._id.toString())) {
-          allowedUserIds.push(u._id);
-        }
-      });
-    }
+    mySubUsers.forEach((su) => {
+      if (!allowedUserIds.some((id) => id.toString() === su._id.toString())) {
+        allowedUserIds.push(su._id);
+      }
+    });
   }
 
   // Query filter with optional search text
