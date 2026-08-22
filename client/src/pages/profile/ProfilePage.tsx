@@ -19,19 +19,21 @@ export const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('posts');
 
   const searchParams = new URLSearchParams(location.search);
-  const queryUserId = searchParams.get('userId') || searchParams.get('id');
+  const rawQueryUserId = searchParams.get('userId') || searchParams.get('id');
   const locationState = location.state as { targetUserId?: string; userId?: string } | null;
-  const targetUserId = queryUserId || locationState?.targetUserId || locationState?.userId;
+  const rawTargetUserId = rawQueryUserId || locationState?.targetUserId || locationState?.userId;
 
-  const isSelfProfile = !targetUserId || String(targetUserId) === String(currentUser?._id || currentUser?.id);
+  const currentUserIdStr = String(currentUser?._id || currentUser?.id || '');
+  const isSelfProfile = !rawTargetUserId || (Boolean(currentUserIdStr) && String(rawTargetUserId) === currentUserIdStr);
+  const effectiveTargetUserId = isSelfProfile ? null : rawTargetUserId;
 
   const navigate = useNavigate();
 
   // Fetch Profile Stats & Details
   const { data: profileData, isLoading, isError, error, refetch } = useQuery<any>({
-    queryKey: ['userProfile', targetUserId],
+    queryKey: ['userProfile', effectiveTargetUserId || 'self'],
     queryFn: async () => {
-      const endpoint = targetUserId ? `/profile/${targetUserId}` : '/profile';
+      const endpoint = effectiveTargetUserId ? `/profile/${effectiveTargetUserId}` : '/profile';
       const res = await axiosClient.get<ApiResponse<any>>(endpoint);
       return res.data.data!;
     },
@@ -49,7 +51,11 @@ export const ProfilePage: React.FC = () => {
         <p className="text-xs text-slate-300 max-w-md">{errMessage}</p>
         <button
           type="button"
-          onClick={() => navigate('/profile', { replace: true, state: {} })}
+          onClick={() => {
+            window.history.replaceState(null, '', '/profile');
+            navigate('/profile', { replace: true, state: null });
+            refetch();
+          }}
           className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-afzal to-amrin font-extrabold text-xs text-white shadow-lg hover:scale-105 transition-transform"
         >
           View My Profile
