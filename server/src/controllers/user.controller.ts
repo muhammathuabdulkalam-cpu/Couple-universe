@@ -23,29 +23,58 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
   const page = parseInt(req.query.page as string, 10) || PLATFORM_CONSTANTS.DEFAULT_PAGE;
   const limit = parseInt(req.query.limit as string, 10) || PLATFORM_CONSTANTS.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
+  const searchQuery = (req.query.search as string || '').trim().toLowerCase();
 
   const requestingUser = req.user!;
+  let allowedUserIds: any[] = [];
 
   if (requestingUser.role === ROLES.INVITED_USER) {
+    // Invited Users: Self + their specific parent owner ONLY
     const { getParentOwnerForUser } = await import('./profile.controller');
     const parentOwner = await getParentOwnerForUser(requestingUser._id);
-
-    const visibleUserIds = [requestingUser._id];
+    allowedUserIds = [requestingUser._id];
     if (parentOwner && parentOwner._id) {
-      visibleUserIds.push(parentOwner._id);
+      allowedUserIds.push(parentOwner._id);
     }
+  } else {
+    // Owners (SUPER_OWNER / CO_OWNER):
+    // 1. Both primary couple owners (SUPER_OWNER + CO_OWNER)
+    const owners = await User.find({ role: { $in: [ROLES.SUPER_OWNER, ROLES.CO_OWNER] } }).select('_id');
+    allowedUserIds = owners.map((o) => o._id);
 
-    const users = await User.find({ _id: { $in: visibleUserIds } }).select('-password');
-    return ApiResponse.success(res, 'Users list retrieved', users, HTTP_STATUS.OK, {
-      page: 1,
-      limit: visibleUserIds.length,
-      total: visibleUserIds.length,
-      totalPages: 1,
-    });
+    // 2. Sub-invited users created/invited by THIS specific owner user only
+    const { InvitedUser } = await import('../models/invitedUser.model');
+    const myInvitedRecords = await InvitedUser.find({
+      ownerUserId: requestingUser._id,
+      isDeleted: false,
+    }).select('email');
+
+    const subUserEmails = myInvitedRecords
+      .map((r) => (r.email || '').toLowerCase())
+      .filter(Boolean);
+
+    if (subUserEmails.length > 0) {
+      const usersByEmail = await User.find({ email: { $in: subUserEmails } }).select('_id');
+      usersByEmail.forEach((u) => {
+        if (!allowedUserIds.some((id) => id.toString() === u._id.toString())) {
+          allowedUserIds.push(u._id);
+        }
+      });
+    }
   }
 
-  const total = await User.countDocuments();
-  const users = await User.find()
+  // Query filter with optional search text
+  const queryFilter: any = { _id: { $in: allowedUserIds } };
+  if (searchQuery) {
+    queryFilter.$or = [
+      { name: new RegExp(searchQuery, 'i') },
+      { email: new RegExp(searchQuery, 'i') },
+      { username: new RegExp(searchQuery, 'i') },
+    ];
+  }
+
+  const total = await User.countDocuments(queryFilter);
+  const users = await User.find(queryFilter)
     .select('-password')
     .sort({ createdAt: -1 })
     .skip(skip)
