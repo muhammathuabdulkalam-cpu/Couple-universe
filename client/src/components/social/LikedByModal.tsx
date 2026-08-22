@@ -48,7 +48,7 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
   const summary = reactionsData?.summary || {};
   const total = reactionsData?.total || 0;
 
-  const filteredReactions =
+  const visibleReactions =
     selectedEmoji === 'ALL'
       ? reactions
       : reactions.filter((r) => r.emoji === selectedEmoji);
@@ -56,23 +56,21 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
   const emojiTabs = ['ALL', ...Object.keys(summary)];
 
   const handleUserProfileClick = (uObj: any, uId: string) => {
-    onClose();
     if (!uId) return;
 
     const currentUserIdStr = (currentUser?._id || currentUser?.id)?.toString();
     const isSelf = currentUserIdStr === uId.toString();
-    const isCurrentUserOwner = currentUser?.role === 'SUPER_OWNER' || currentUser?.role === 'CO_OWNER';
 
-    if (!isCurrentUserOwner && !isSelf) {
-      const parentOwnerId = (currentUser as any)?.parentOwnerId;
-      const isTargetParent = (parentOwnerId && uId === parentOwnerId.toString()) || uObj?.role === 'SUPER_OWNER';
-      if (!isTargetParent) {
+    if (currentUser?.role === 'INVITED_USER' && !isSelf) {
+      const isTargetOwner = uObj?.role === 'SUPER_OWNER' || uObj?.role === 'CO_OWNER';
+      if (!isTargetOwner) {
         addToast('Access Restricted', 'Invited users can only view their own profile or their parent owner profile.', 'warning');
         return;
       }
     }
 
-    navigate('/profile', { state: { targetUserId: uId } });
+    onClose();
+    navigate('/profile', { state: { targetUserId: uId.toString() } });
   };
 
   return (
@@ -146,12 +144,12 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
               <div className="py-12 text-center text-xs text-slate-400">
                 Loading reactions...
               </div>
-            ) : filteredReactions.length === 0 ? (
+            ) : visibleReactions.length === 0 ? (
               <div className="py-12 text-center text-xs text-slate-400">
                 No likes recorded yet.
               </div>
             ) : (
-              filteredReactions.map((item) => {
+              visibleReactions.map((item) => {
                 const uObj = typeof item.userId === 'object' && item.userId ? (item.userId as any) : null;
                 const uId = uObj?._id || uObj?.id || (typeof item.userId === 'string' ? item.userId : '');
                 const name = uObj?.name || 'Someone';
