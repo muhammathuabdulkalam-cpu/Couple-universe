@@ -23,7 +23,7 @@ const getDefaultAvatar = (_name?: string, _role?: string) => {
  * Helper to resolve the parent owner user for an invited user
  */
 export async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | string): Promise<any> {
-  const userDoc = await User.findById(userId).select('email relationshipId');
+  const userDoc = await User.findById(userId).select('email relationshipId invitedByRole role');
   if (!userDoc) return null;
 
   // 1. Check InvitedUser model (stores ownerUserId when invite is created by SUPER_OWNER or CO_OWNER)
@@ -63,13 +63,15 @@ export async function getParentOwnerForUser(userId: mongoose.Types.ObjectId | st
     }
   }
 
-  // 4. Default Fallback: Super Owner is the platform parent owner for invited users
+  // 4. Check if invitedByRole is CO_OWNER
+  if ((userDoc as any).invitedByRole === ROLES.CO_OWNER) {
+    const coOwner = await User.findOne({ role: ROLES.CO_OWNER, isDeleted: { $ne: true } }).select('-password');
+    if (coOwner) return coOwner;
+  }
+
+  // 5. Default Fallback: Super Owner is the default parent owner
   const defaultSuperOwner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: { $ne: true } }).select('-password');
   return defaultSuperOwner;
-
-  // Default fallback: SUPER_OWNER
-  const superOwner = await User.findOne({ role: ROLES.SUPER_OWNER }).select('-password');
-  return superOwner;
 }
 
 /**
@@ -281,11 +283,21 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
   const isRequestingUserOwner = requestingUser.role === ROLES.SUPER_OWNER || requestingUser.role === ROLES.CO_OWNER;
 
   // Profile Privacy & Access Control Rules:
-  // 1. PUBLIC profiles (isPrivate === false or visibility === 'PUBLIC'): Visible to everyone!
-  // 2. PRIVATE profiles (isPrivate === true or visibility === 'PRIVATE'): Visible ONLY to self, parent owner, or approved relationship members.
+  // 1. Invited Users can ONLY view: (a) Their OWN profile, (b) Their specific Parent Owner's profile.
+  // 2. PUBLIC profiles (isPrivate === false or visibility === 'PUBLIC'): Visible to platform members.
+  // 3. PRIVATE profiles (isPrivate === true or visibility === 'PRIVATE'): Visible ONLY to self, parent owner, or approved relationship members.
   const isProfilePublic = user.isPrivate === false || user.visibility === 'PUBLIC';
 
-  if (!isViewingSelf && !isProfilePublic) {
+  if (requestingUser.role === ROLES.INVITED_USER && !isViewingSelf) {
+    const parentOwner = await getParentOwnerForUser(requestingUser._id);
+    const isParentOwner = parentOwner && (
+      parentOwner._id.toString() === user._id.toString() ||
+      (user.role === parentOwner.role)
+    );
+    if (!isParentOwner) {
+      throw new AppError('Access to this profile is restricted. Invited users can only view their parent owner profile.', HTTP_STATUS.FORBIDDEN);
+    }
+  } else if (!isViewingSelf && !isProfilePublic) {
     let hasAccess = isRequestingUserOwner;
 
     if (!hasAccess) {
