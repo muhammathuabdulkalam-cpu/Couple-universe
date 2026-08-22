@@ -64,8 +64,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
     <div className="flex items-center justify-between gap-4 glass-card px-4 py-2.5 rounded-2xl border-rose-500/30 bg-rose-500/10 shadow-lg">
       <div className="flex items-center gap-3">
         <div className="w-3 h-3 rounded-full bg-rose-500 animate-ping" />
-        <Mic className="w-4 h-4 text-rose-400" />
-        <span className="text-xs font-mono font-bold text-white tracking-wider">
+        <Mic className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+        <span className="text-xs font-mono font-bold text-slate-800 dark:text-white tracking-wider">
           Recording {formatTime(duration)}
         </span>
       </div>
@@ -74,7 +74,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
         <button
           type="button"
           onClick={onCancel}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+          className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors"
           title="Cancel Recording"
         >
           <Trash2 className="w-4 h-4" />

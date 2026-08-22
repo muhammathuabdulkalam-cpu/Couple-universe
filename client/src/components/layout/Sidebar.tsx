@@ -13,6 +13,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { NAVIGATION_CONFIG, NavItem } from '../../config/navigation.config.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useNotificationStore } from '../../store/notificationStore.js';
+import { useUIStore } from '../../store/uiStore.js';
 import { MediaPicker } from '../media/MediaPicker.js';
 import { CreatePostModal } from '../social/CreatePostModal.js';
 import { StoryCreator } from '../social/StoryCreator.js';
@@ -27,7 +28,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
   const location = useLocation();
   const { user } = useAuthStore();
   const { unreadChatCount } = useNotificationStore();
+  const { theme } = useUIStore();
   const userRole = user?.role || 'INVITED_USER';
+
+  const createBtnClass = theme === 'light'
+    ? 'bg-gradient-to-r from-rose-600 to-rose-500 shadow-rose-500/20'
+    : 'bg-gradient-to-r from-rose-600 to-amrin shadow-amrin/20';
 
   const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -61,10 +67,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
         initial={false}
         animate={{ width: isExpanded ? 256 : 72 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="hidden md:flex flex-col h-[calc(100vh-4rem)] sticky top-16 border-r border-white/10 glass-panel shrink-0 select-none z-30 overflow-hidden"
+        className="hidden md:flex flex-col h-[calc(100vh-4rem)] sticky top-16 border-r border-slate-200 dark:border-white/10 glass-panel shrink-0 select-none z-30 overflow-hidden"
       >
         {/* Sidebar Top Toggle Header */}
-        <div className="p-3 flex items-center justify-between border-b border-white/5">
+        <div className="p-3 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
           {isExpanded && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -85,11 +91,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
         </div>
 
         {/* PROMINENT SIDEBAR + CREATE BUTTON */}
-        <div className="p-3 border-b border-white/5 relative">
+        <div className="p-3 border-b border-slate-100 dark:border-white/5 relative">
           {isExpanded ? (
             <button
               onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-              className="w-full py-2.5 px-3 rounded-2xl bg-gradient-to-r from-afzal via-amrin to-heart text-white font-bold text-xs shadow-lg shadow-amrin/20 flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+              className={`w-full py-2.5 px-3 rounded-2xl text-white font-bold text-xs shadow-lg flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all ${createBtnClass}`}
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Create</span>
@@ -97,10 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
           ) : (
             <button
               onClick={() => setShowCreateDropdown(!showCreateDropdown)}
-              className="w-10 h-10 mx-auto rounded-2xl bg-gradient-to-tr from-afzal via-amrin to-heart text-white font-bold text-xs shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-all"
+              className={`w-10 h-10 mx-auto rounded-2xl text-white font-bold text-xs shadow-lg flex items-center justify-center hover:brightness-110 active:scale-95 transition-all ${createBtnClass}`}
               title="Create Content"
             >
-              <Plus className="w-5 h-5 stroke-[3]" />
+               <Plus className="w-5 h-5 stroke-[3]" />
             </button>
           )}
 
@@ -111,16 +117,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                className="absolute left-3 right-3 top-14 z-50 glass-panel rounded-2xl p-1.5 border border-white/10 shadow-2xl space-y-1 bg-obsidian-950/95 backdrop-blur-2xl"
+                className="absolute left-3 right-3 top-14 z-50 glass-panel rounded-2xl p-1.5 border border-slate-200 dark:border-white/10 shadow-2xl space-y-1 bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-2xl"
               >
                 <button
                   onClick={() => {
                     setShowCreateDropdown(false);
                     setShowPostModal(true);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                 >
-                  <PlusCircle className="w-4 h-4 text-amrin-glow" />
+                  <PlusCircle className="w-4 h-4 text-amrin" />
                   <span>Create Post</span>
                 </button>
 
@@ -129,9 +135,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                     setShowCreateDropdown(false);
                     setShowStoryCreator(true);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                 >
-                  <Sparkles className="w-4 h-4 text-pink-400" />
+                  <Sparkles className="w-4 h-4 text-pink-500" />
                   <span>Create Story</span>
                 </button>
 
@@ -140,9 +146,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                     setShowCreateDropdown(false);
                     setShowMediaPicker(true);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                 >
-                  <ImageIcon className="w-4 h-4 text-afzal-glow" />
+                  <ImageIcon className="w-4 h-4 text-afzal" />
                   <span>Upload Media</span>
                 </button>
               </motion.div>
@@ -171,12 +177,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
                     <Link key={item.key} to={item.path}>
                       <motion.div
                         whileHover={{ x: 3 }}
-                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${isActive
-                            ? 'bg-gradient-to-r from-afzal/20 to-amrin/20 text-white font-semibold border border-amrin/30 shadow-lg shadow-amrin/10'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-                          }`}
+                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-rose-50 text-rose-600 font-bold dark:bg-transparent dark:bg-gradient-to-r dark:from-afzal/20 dark:to-amrin/20 dark:text-white dark:border dark:border-amrin/30 shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-slate-200 hover:bg-rose-50/50 dark:hover:bg-white/5'
+                        }`}
                       >
-                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amrin-glow' : ''}`} />
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-rose-600 dark:text-amrin-glow' : ''}`} />
 
                         {isExpanded && (
                           <motion.span
@@ -210,7 +217,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isExpanded, onToggle }) => {
 
         {/* Sidebar Footer */}
         {isExpanded && (
-          <div className="p-4 border-t border-white/5 text-center">
+          <div className="p-4 border-t border-slate-100 dark:border-white/5 text-center">
             <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
               <Heart className="w-3 h-3 text-heart fill-heart" />
               <span>Afzal & Amrin</span>

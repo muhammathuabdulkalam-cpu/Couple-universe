@@ -67,10 +67,10 @@ export const StoryCarousel: React.FC = () => {
               className={`w-14 h-14 rounded-full p-[2px] shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden ${
                 hasMyStories
                   ? 'bg-gradient-to-tr from-afzal via-amrin to-heart'
-                  : 'bg-slate-700/80'
+                  : 'bg-slate-300 dark:bg-slate-700/80'
               }`}
             >
-              <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-full h-full rounded-full bg-white dark:bg-obsidian-950 flex items-center justify-center overflow-hidden shrink-0">
                 {user?.avatar && !user.avatar.includes('unsplash.com') ? (
                   <img
                     src={user.avatar}
@@ -79,7 +79,7 @@ export const StoryCarousel: React.FC = () => {
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                   />
                 ) : (
-                  <span className="text-base font-bold text-white">{user?.name?.[0] || 'U'}</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-white">{user?.name?.[0] || 'U'}</span>
                 )}
               </div>
             </div>
@@ -87,13 +87,13 @@ export const StoryCarousel: React.FC = () => {
             {/* Plus badge to add new story */}
             <div
               onClick={handlePlusClick}
-              className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-sky-500 hover:bg-sky-400 border-2 border-obsidian-950 flex items-center justify-center shadow-md transition-colors"
+              className="absolute -bottom-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-sky-500 hover:bg-sky-400 border-2 border-white dark:border-obsidian-950 flex items-center justify-center shadow-md transition-colors"
               title="Add to Story"
             >
               <Plus className="w-3 h-3 text-white stroke-[3]" />
             </div>
           </div>
-          <span className="text-[10px] font-bold text-slate-300 w-14 text-center truncate">Your Story</span>
+          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 w-14 text-center truncate">Your Story</span>
         </div>
 
         {/* Other Active User Story Bubbles */}
@@ -112,11 +112,11 @@ export const StoryCarousel: React.FC = () => {
               <div
                 className={`w-14 h-14 rounded-full p-[2px] shadow-md hover:scale-105 transition-transform shrink-0 overflow-hidden ${
                   isViewed
-                    ? 'bg-slate-700'
+                    ? 'bg-slate-300 dark:bg-slate-700'
                     : 'bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 animate-pulse-glow'
                 }`}
               >
-                <div className="w-full h-full rounded-full bg-obsidian-950 p-[2px] overflow-hidden shrink-0">
+                <div className="w-full h-full rounded-full bg-white dark:bg-obsidian-950 p-[2px] overflow-hidden shrink-0">
                   {storyUser.avatar && !storyUser.avatar.includes('unsplash.com') ? (
                     <img
                       src={storyUser.avatar}
@@ -125,13 +125,13 @@ export const StoryCarousel: React.FC = () => {
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-base rounded-full bg-obsidian-900">
+                    <div className="w-full h-full flex items-center justify-center text-slate-900 dark:text-white font-bold text-base rounded-full bg-slate-100 dark:bg-obsidian-900">
                       {storyUser.name?.[0]}
                     </div>
                   )}
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-slate-300 w-14 text-center truncate">
+              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 w-14 text-center truncate">
                 {storyUser.name?.split(' ')[0]}
               </span>
             </div>
@@ -139,9 +139,9 @@ export const StoryCarousel: React.FC = () => {
         })}
 
         {partnerUserStoriesList.length === 0 && !hasMyStories && (
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 py-1 px-3 glass-panel rounded-full border border-white/5 shrink-0">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 py-1 px-3 glass-panel rounded-full border border-slate-200/80 dark:border-white/5 shrink-0">
             <span>Share a 24h Story</span>
-            <span className="text-amrin-glow">✨</span>
+            <span className="text-amrin">✨</span>
           </div>
         )}
       </div>

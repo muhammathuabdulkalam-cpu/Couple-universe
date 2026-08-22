@@ -39,12 +39,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media }) => {
   return (
     <motion.div
       whileHover={{ y: -3 }}
-      className="group relative aspect-square w-full rounded-2xl overflow-hidden glass-card border border-white/10 bg-obsidian-950/90 cursor-pointer shadow-lg select-none flex items-center justify-center p-1.5"
+      className="group relative aspect-square w-full rounded-2xl overflow-hidden glass-card border border-slate-200 dark:border-white/10 bg-white/90 dark:bg-obsidian-950/90 cursor-pointer shadow-lg select-none flex items-center justify-center p-1.5"
       onClick={() => openViewer(media)}
     >
       {/* Placeholder Glow Skeleton before media load */}
       {!isLoaded && (
-        <div className="absolute inset-0 bg-obsidian-900 animate-pulse flex items-center justify-center text-slate-700 rounded-xl">
+        <div className="absolute inset-0 bg-slate-100 dark:bg-obsidian-900 animate-pulse flex items-center justify-center text-slate-400 dark:text-slate-700 rounded-xl">
           <Sparkles className="w-6 h-6" />
         </div>
       )}

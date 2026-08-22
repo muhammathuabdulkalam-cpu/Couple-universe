@@ -18,6 +18,7 @@ import { UploadedSongsTab } from '../components/music/UploadedSongsTab';
 import { UploadSongModal } from '../components/music/UploadSongModal';
 import { useAuthStore } from '../store/authStore';
 import { useListenTogetherStore } from '../store/listenTogetherStore';
+import { useUIStore } from '../store/uiStore.js';
 import { NormalizedSong } from '../types/music.types';
 
 type TabType = 'home' | 'search' | 'playlists' | 'uploads' | 'dedications' | 'favorites';
@@ -26,6 +27,7 @@ export const SharedMusicPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [songToDedicate, setSongToDedicate] = useState<NormalizedSong | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const theme = useUIStore((s) => s.theme);
 
   const { accessToken } = useAuthStore();
   const { initListenSocket } = useListenTogetherStore();
@@ -47,7 +49,7 @@ export const SharedMusicPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white pb-36 space-y-2 md:space-y-4 pt-0 md:pt-2 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-white pb-36 space-y-2 md:space-y-4 pt-0 md:pt-2 w-full max-w-full overflow-x-hidden">
       {/* Upload Song Modal */}
       <UploadSongModal
         isOpen={isUploadModalOpen}
@@ -60,7 +62,7 @@ export const SharedMusicPage: React.FC = () => {
       </div>
 
       {/* 2. Navigation Header Tabs & Actions */}
-      <div className="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 px-3 md:px-8 py-2 md:py-3 w-full max-w-full overflow-x-hidden">
+      <div className="sticky top-0 z-30 bg-white/90 dark:bg-obsidian-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-3 md:px-8 py-2 md:py-3 w-full max-w-full overflow-x-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar py-0.5 w-full max-w-full">
           {/* Main Navigation Tabs */}
           <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
@@ -68,8 +70,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('home')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'home'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Compass className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -80,8 +84,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('uploads')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'uploads'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <UploadCloud className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -92,8 +98,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('search')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'search'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Search className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -104,8 +112,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('playlists')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'playlists'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <ListMusic className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -116,8 +126,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('dedications')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'dedications'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <HeartHandshake className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -128,8 +140,10 @@ export const SharedMusicPage: React.FC = () => {
               onClick={() => setActiveTab('favorites')}
               className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
                 activeTab === 'favorites'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Heart className="w-3.5 h-3.5 md:w-4 md:h-4" />

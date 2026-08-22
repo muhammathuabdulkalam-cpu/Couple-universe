@@ -54,7 +54,7 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
             ? 'bg-gradient-to-tr from-rose-950 via-obsidian-950 to-purple-950 border-rose-500/80 ring-rose-500/40 shadow-rose-500/30'
             : isPlaying
             ? 'bg-obsidian-950/95 border-amrin-glow ring-amrin-glow/50 shadow-amrin-glow/30'
-            : 'bg-obsidian-950/95 border-white/20 ring-white/10 shadow-black/60 hover:border-amrin-glow'
+            : 'bg-white dark:bg-obsidian-950/95 border-slate-200 dark:border-white/20 ring-slate-100 dark:ring-white/10 shadow-slate-300 dark:shadow-black/60 hover:border-amrin dark:hover:border-amrin-glow'
         }`}
         title={
           isSessionActive
@@ -100,8 +100,8 @@ export const FloatingCoupleMusicWidget: React.FC = () => {
           </>
         ) : (
           /* State 3: Listen Together Disconnected & Idle -> Compact Music Icon */
-          <div className="flex items-center justify-center text-amrin-glow">
-            <Music className="w-4 h-4 text-amrin-glow animate-pulse" />
+          <div className="flex items-center justify-center text-amrin dark:text-amrin-glow">
+            <Music className="w-4 h-4 text-amrin dark:text-amrin-glow animate-pulse" />
           </div>
         )}
       </button>

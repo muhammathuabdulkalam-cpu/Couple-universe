@@ -136,12 +136,12 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/80 p-4 select-none overflow-y-auto">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl my-8">
-          <Card variant="glass" className="p-6 space-y-6 border-white/10 shadow-2xl">
+          <Card variant="glass" className="p-6 space-y-6 border-slate-200 dark:border-white/10 shadow-2xl">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-              <div className="flex items-center gap-2 text-base font-bold text-white">
-                <Sparkles className="w-5 h-5 text-amrin-glow" />
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
+              <div className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
+                <Sparkles className="w-5 h-5 text-amrin dark:text-amrin-glow" />
                 <span>{editingEvent ? 'Edit Timeline Memory' : 'Create Timeline Memory'}</span>
               </div>
               <button
@@ -149,7 +149,7 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
                   setCreateModalOpen(false);
                   setEditingEvent(null);
                 }}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -159,23 +159,23 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
               {/* Title & Emoji */}
               <div className="grid grid-cols-4 gap-3">
                 <div className="col-span-1">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Emoji</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Emoji</label>
                   <input
                     type="text"
                     value={emoji}
                     onChange={(e) => setEmoji(e.target.value)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-center text-lg text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-center text-lg text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   />
                 </div>
                 <div className="col-span-3">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Memory Title</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Memory Title</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="e.g. Our First Coffee Date"
                     required
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-4 text-xs text-white focus:border-amrin"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-4 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
                   />
                 </div>
               </div>
@@ -183,22 +183,22 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
               {/* Event Date, Chapter, Event Type */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Event Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Event Date</label>
                   <input
                     type="date"
                     value={eventDate}
                     onChange={(e) => setEventDate(e.target.value)}
                     required
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Chapter</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Chapter</label>
                   <select
                     value={chapter}
                     onChange={(e) => setChapter(e.target.value as ChapterType)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   >
                     <option value="LOVE">LOVE</option>
                     <option value="ENGAGEMENT">ENGAGEMENT</option>
@@ -213,11 +213,11 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Event Type</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Event Type</label>
                   <select
                     value={eventType}
                     onChange={(e) => setEventType(e.target.value as EventType)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   >
                     <option value="FIRST_CONVERSATION">FIRST_CONVERSATION</option>
                     <option value="FIRST_CALL">FIRST_CALL</option>
@@ -240,11 +240,11 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
               {/* Mood, Weather, Importance */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Mood</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Mood</label>
                   <select
                     value={mood}
                     onChange={(e) => setMood(e.target.value as MemoryMood)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   >
                     <option value="ROMANTIC">ROMANTIC ❤️</option>
                     <option value="HAPPY">HAPPY 😄</option>
@@ -257,11 +257,11 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Weather</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Weather</label>
                   <select
                     value={weather}
                     onChange={(e) => setWeather(e.target.value as WeatherType)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   >
                     <option value="SUNNY">SUNNY ☀️</option>
                     <option value="RAINY">RAINY 🌧️</option>
@@ -272,11 +272,11 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Importance</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Importance</label>
                   <select
                     value={importance}
                     onChange={(e) => setImportance(e.target.value as EventImportance)}
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   >
                     <option value="NORMAL">NORMAL</option>
                     <option value="IMPORTANT">IMPORTANT</option>
@@ -288,42 +288,42 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
               {/* Short Description & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Location</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Location</label>
                   <input
                     type="text"
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
                     placeholder="e.g. Marina Beach / Cafe Lounge"
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-4 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-4 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tags (Comma Separated)</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Tags (Comma Separated)</label>
                   <input
                     type="text"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="coffee, date, firsttime"
-                    className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-4 text-xs text-white"
+                    className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-4 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Short Summary</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Short Summary</label>
                 <textarea
                   value={shortDescription}
                   onChange={(e) => setShortDescription(e.target.value)}
                   placeholder="A quick summary of this special memory..."
                   rows={2}
-                  className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-4 text-xs text-white"
+                  className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-4 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin"
                 />
               </div>
 
               {/* Attached Media Picker Section (Module 4 Integration) */}
-              <div className="space-y-2 border-t border-white/5 pt-3">
+              <div className="space-y-2 border-t border-slate-200 dark:border-white/5 pt-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300">Attached Media ({selectedMediaIds.length} Selected)</span>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Attached Media ({selectedMediaIds.length} Selected)</span>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
@@ -348,7 +348,7 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
 
                 {/* Media Picker Grid Drawer */}
                 {isMediaPickerOpen && mediaVault && (
-                  <div className="glass-card p-3 rounded-2xl max-h-48 overflow-y-auto grid grid-cols-4 sm:grid-cols-6 gap-2 border-white/10">
+                  <div className="glass-card p-3 rounded-2xl max-h-48 overflow-y-auto grid grid-cols-4 sm:grid-cols-6 gap-2 border border-slate-200 dark:border-white/10">
                     {mediaVault.map((m) => {
                       const isSelected = selectedMediaIds.includes(m._id);
                       return (
@@ -356,7 +356,7 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
                           key={m._id}
                           onClick={() => toggleMediaSelection(m._id)}
                           className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${
-                            isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
+                            isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-slate-200 dark:border-white/10'
                           }`}
                         >
                           <img src={m.thumbnailUrl} alt={m.title} className="w-full h-full object-cover" />
@@ -373,7 +373,7 @@ export const CreateTimelineEventModal: React.FC<CreateTimelineEventModalProps> =
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/5">
                 <Button
                   type="button"
                   variant="glass"

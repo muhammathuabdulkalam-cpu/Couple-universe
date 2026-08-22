@@ -199,7 +199,7 @@ export const MessageContainer: React.FC = () => {
         return 'bg-gradient-to-br from-emerald-950/80 via-obsidian-950 to-teal-950/80';
       case 'midnight':
       default:
-        return 'bg-obsidian-950/60';
+        return 'bg-slate-50/50 dark:bg-obsidian-950/60';
     }
   };
 
@@ -212,7 +212,7 @@ export const MessageContainer: React.FC = () => {
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-3">
             <div className="w-8 h-8 rounded-full border-2 border-amrin border-t-transparent animate-spin" />
-            <p className="text-xs text-slate-400 font-mono">Loading messages...</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Loading messages...</p>
           </div>
         ) : currentMessages.length > 0 ? (
           Object.keys(groupedMessages).map((dateLabel) => (
@@ -220,7 +220,7 @@ export const MessageContainer: React.FC = () => {
               
               {/* Date Separator Pill */}
               <div className="flex items-center justify-center my-3">
-                <span className="glass-panel px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider text-slate-400 border border-white/5 shadow-sm">
+                <span className="glass-panel px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 shadow-sm">
                   {dateLabel}
                 </span>
               </div>
@@ -237,8 +237,8 @@ export const MessageContainer: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-amrin/10 border border-amrin/30 flex items-center justify-center text-amrin mx-auto text-2xl">
               ❤️
             </div>
-            <h4 className="text-base font-bold text-white">Afzal & Amrin Private Room</h4>
-            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+            <h4 className="text-base font-bold text-slate-900 dark:text-white">Afzal & Amrin Private Room</h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
               Messages are end-to-end encrypted. Type a message or record a voice note to start chatting.
             </p>
           </div>

@@ -31,8 +31,8 @@ export const Button: React.FC<ButtonProps> = ({
     cyan: 'bg-afzal text-obsidian-950 font-semibold hover:bg-afzal-glow hover:shadow-lg hover:shadow-afzal/20 focus:ring-afzal',
     violet: 'bg-amrin text-white hover:bg-amrin-glow hover:shadow-lg hover:shadow-amrin/20 focus:ring-amrin',
     rose: 'bg-heart text-white hover:bg-heart-glow hover:shadow-lg hover:shadow-heart/20 focus:ring-heart',
-    glass: 'glass-card text-slate-100 hover:bg-obsidian-800/80 border border-white/10 hover:border-amrin/30 focus:ring-slate-400',
-    outline: 'border border-slate-700 text-slate-300 hover:bg-obsidian-800 hover:text-white focus:ring-slate-500',
+    glass: 'glass-card text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-obsidian-800/80 border border-slate-200 dark:border-white/10 hover:border-amrin/40 focus:ring-slate-400',
+    outline: 'border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-obsidian-800 hover:text-slate-900 dark:hover:text-white focus:ring-slate-400',
     danger: 'bg-red-600 text-white hover:bg-red-500 focus:ring-red-500',
   };
 

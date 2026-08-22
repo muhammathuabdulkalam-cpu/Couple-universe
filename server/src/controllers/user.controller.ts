@@ -26,35 +26,38 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
   const searchQuery = (req.query.search as string || '').trim().toLowerCase();
 
   const requestingUser = req.user!;
+  
+  // User Search Scoping Rules:
+  // 1. Parent Owners (SUPER_OWNER & CO_OWNER) can search/view: themselves, partner owner, and their created sub-users.
+  // 2. Sub-users (INVITED_USER) can search/view: themselves and their parent owners.
+  // 3. System Admin can search/view all active members.
   let allowedUserIds: any[] = [];
 
-  if (requestingUser.role === ROLES.INVITED_USER) {
-    // Invited Users: Self + their specific parent owner ONLY
+  if (requestingUser.role === ROLES.ADMIN) {
+    const activeUsers = await User.find({ isDeleted: { $ne: true } }).select('_id');
+    allowedUserIds = activeUsers.map((u) => u._id);
+  } else if (requestingUser.role === ROLES.SUPER_OWNER || requestingUser.role === ROLES.CO_OWNER) {
+    const owners = await User.find({
+      role: { $in: [ROLES.SUPER_OWNER, ROLES.CO_OWNER] },
+      isDeleted: { $ne: true },
+    }).select('_id');
+    const ownerIds = owners.map((u) => u._id);
+
+    const { getSubUsersForOwner } = await import('./profile.controller');
+    const subUsers = await getSubUsersForOwner(requestingUser._id);
+    const subUserIds = subUsers.map((u) => u._id);
+
+    allowedUserIds = Array.from(new Set([...ownerIds.map((id) => id.toString()), ...subUserIds.map((id) => id.toString())]));
+  } else {
+    // Invited Users
     const { getParentOwnerForUser } = await import('./profile.controller');
     const parentOwner = await getParentOwnerForUser(requestingUser._id);
-    allowedUserIds = [requestingUser._id];
-    if (parentOwner && parentOwner._id) {
-      allowedUserIds.push(parentOwner._id);
-    }
-  } else {
-    // Owners (SUPER_OWNER / CO_OWNER):
-    // 1. Both primary couple owners (SUPER_OWNER + CO_OWNER)
-    const owners = await User.find({ role: { $in: [ROLES.SUPER_OWNER, ROLES.CO_OWNER] } }).select('_id');
-    allowedUserIds = owners.map((o) => o._id);
-
-    // 2. Sub-invited users created/invited by THIS specific owner user only (via getSubUsersForOwner)
-    const { getSubUsersForOwner } = await import('./profile.controller');
-    const mySubUsers = await getSubUsersForOwner(requestingUser._id);
-
-    mySubUsers.forEach((su) => {
-      if (!allowedUserIds.some((id) => id.toString() === su._id.toString())) {
-        allowedUserIds.push(su._id);
-      }
-    });
+    const parentId = parentOwner ? parentOwner._id : null;
+    allowedUserIds = [requestingUser._id.toString(), parentId ? parentId.toString() : null].filter(Boolean);
   }
 
   // Query filter with optional search text
-  const queryFilter: any = { _id: { $in: allowedUserIds } };
+  const queryFilter: any = { _id: { $in: allowedUserIds }, isDeleted: { $ne: true } };
   if (searchQuery) {
     queryFilter.$or = [
       { name: new RegExp(searchQuery, 'i') },

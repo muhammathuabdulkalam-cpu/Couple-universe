@@ -13,7 +13,7 @@ import { NormalizedSong } from '../../types/music.types.js';
 
 export const RightSidebarMusicWidget: React.FC = () => {
   const navigate = useNavigate();
-  const { toggleActivityDrawer } = useUIStore();
+  const { toggleActivityDrawer, theme } = useUIStore();
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTime = useMusicPlayerStore((s) => s.currentTime);
@@ -21,6 +21,11 @@ export const RightSidebarMusicWidget: React.FC = () => {
 
   const { isSessionActive, partnerName, partnerAvatar } = useListenTogetherStore();
   const { user } = useAuthStore();
+
+  // Theme-aware accent colors
+  const accent = theme === 'light'
+    ? { bg: 'bg-blue-600', bgHover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/40', text: 'text-blue-500', textDark: 'text-blue-300', badgeBg: 'bg-blue-500/20', badgeBorder: 'border-blue-500/30', dot: 'bg-blue-500', bar1: 'bg-blue-400', bar2: 'bg-sky-400', bar3: 'bg-indigo-400', bar4: 'bg-blue-500', accent: 'accent-blue-500', cardBorder: 'border-blue-500/20 hover:border-blue-500/40', sessionBg: 'bg-gradient-to-r from-blue-950/60 via-slate-950/80 to-indigo-950/60 border-blue-500/40', sessionText: 'text-blue-300', sessionBadge: 'bg-blue-500/20 text-blue-300 border-blue-500/30', browseBtn: 'text-blue-500' }
+    : { bg: 'bg-gradient-to-tr from-rose-600 to-amrin', bgHover: 'hover:brightness-110', shadow: 'shadow-amrin/40', text: 'text-amrin', textDark: 'text-amrin-glow', badgeBg: 'bg-amrin/20', badgeBorder: 'border-amrin/30', dot: 'bg-amrin', bar1: 'bg-rose-400', bar2: 'bg-pink-400', bar3: 'bg-amrin', bar4: 'bg-rose-500', accent: 'accent-rose-500', cardBorder: 'border-amrin/20 hover:border-amrin/40', sessionBg: 'bg-gradient-to-r from-rose-950/60 via-slate-950/80 to-pink-950/60 border-amrin/40', sessionText: 'text-amrin-glow', sessionBadge: 'bg-amrin/20 text-amrin-glow border-amrin/30', browseBtn: 'text-amrin dark:text-amrin-glow' };
 
   const myHasAvatar = Boolean(user?.avatar && !user.avatar.includes('unsplash.com'));
   const pHasAvatar = Boolean(partnerAvatar && !partnerAvatar.includes('unsplash.com'));
@@ -86,11 +91,11 @@ export const RightSidebarMusicWidget: React.FC = () => {
     <Card
       variant="glass"
       onClick={handleCardClick}
-      className="p-3.5 space-y-3 border-rose-500/20 hover:border-rose-500/40 cursor-pointer transition-all duration-300 group shadow-lg"
+      className={`p-3.5 space-y-3 cursor-pointer transition-all duration-300 group shadow-lg ${accent.cardBorder}`}
     >
       {/* Listen Together Active Session Banner */}
       {isSessionActive && (
-        <div className="p-2 rounded-xl bg-gradient-to-r from-rose-950/60 via-slate-950/80 to-purple-950/60 border border-rose-500/40 flex items-center justify-between gap-2 shadow-inner">
+        <div className={`p-2 rounded-xl border flex items-center justify-between gap-2 shadow-inner ${accent.sessionBg}`}>
           <div className="flex items-center gap-2 min-w-0">
             <div className="flex items-center -space-x-2 shrink-0">
                 {myHasAvatar ? (
@@ -109,25 +114,25 @@ export const RightSidebarMusicWidget: React.FC = () => {
                 )}
               </div>
             <div className="min-w-0">
-              <span className="text-[11px] font-extrabold text-rose-300 truncate block">Listening Together 💖</span>
+              <span className={`text-[11px] font-extrabold truncate block ${accent.sessionText}`}>Listening Together 💖</span>
               <span className="text-[9px] text-slate-300 truncate block">Synced with {partnerName || 'Partner'}</span>
             </div>
           </div>
-          <span className="flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0 animate-pulse">
+          <span className={`flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 animate-pulse ${accent.sessionBadge}`}>
             <Headphones className="w-2.5 h-2.5" /> SYNCED
           </span>
         </div>
       )}
 
       {/* Widget Header */}
-      <div className="flex items-center justify-between text-xs font-bold text-white">
+      <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
         <span className="flex items-center gap-1.5">
-          <Music className={`w-3.5 h-3.5 ${isPlaying ? 'text-rose-400 animate-bounce' : 'text-slate-400'}`} />
+          <Music className={`w-3.5 h-3.5 ${isPlaying ? `${accent.text} animate-bounce` : 'text-slate-500 dark:text-slate-400'}`} />
           <span>Shared Melody</span>
         </span>
         {isPlaying ? (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border flex items-center gap-1 animate-pulse ${accent.badgeBg} ${accent.textDark} ${accent.badgeBorder}`}>
+            <span className={`w-1.5 h-1.5 rounded-full animate-ping ${accent.dot}`} />
             Playing
           </span>
         ) : (
@@ -142,7 +147,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
         <div className="space-y-2.5">
           <div className="flex items-center gap-3">
             {/* Cover Artwork */}
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-md border border-white/10 group-hover:scale-105 transition-transform">
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-md border border-slate-200/80 dark:border-white/10 group-hover:scale-105 transition-transform">
               <img
                 src={getNormalizedCoverUrl(displaySong.coverUrl)}
                 alt={displaySong.title}
@@ -159,20 +164,20 @@ export const RightSidebarMusicWidget: React.FC = () => {
 
             {/* Song Title & Artist */}
             <div className="min-w-0 flex-1">
-              <h4 className="text-xs font-bold text-white truncate group-hover:text-rose-300 transition-colors">
+              <h4 className={`text-xs font-bold text-slate-900 dark:text-white truncate transition-colors group-hover:${accent.text}`}>
                 {displaySong.title}
               </h4>
-              <p className="text-[11px] text-slate-400 truncate mt-0.5">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate mt-0.5">
                 {displaySong.artist}
               </p>
 
               {/* Live Waveform Equalizer Bars */}
               {isPlaying && (
                 <div className="flex items-end gap-0.5 mt-1 h-2.5">
-                  <span className="w-0.5 bg-rose-400 rounded-full animate-[bounce_0.6s_infinite_100ms] h-full" />
-                  <span className="w-0.5 bg-pink-400 rounded-full animate-[bounce_0.6s_infinite_300ms] h-2/3" />
-                  <span className="w-0.5 bg-purple-400 rounded-full animate-[bounce_0.6s_infinite_200ms] h-full" />
-                  <span className="w-0.5 bg-rose-500 rounded-full animate-[bounce_0.6s_infinite_400ms] h-1/2" />
+                  <span className={`w-0.5 rounded-full animate-[bounce_0.6s_infinite_100ms] h-full ${accent.bar1}`} />
+                  <span className={`w-0.5 rounded-full animate-[bounce_0.6s_infinite_300ms] h-2/3 ${accent.bar2}`} />
+                  <span className={`w-0.5 rounded-full animate-[bounce_0.6s_infinite_200ms] h-full ${accent.bar3}`} />
+                  <span className={`w-0.5 rounded-full animate-[bounce_0.6s_infinite_400ms] h-1/2 ${accent.bar4}`} />
                 </div>
               )}
             </div>
@@ -182,7 +187,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
               <button
                 type="button"
                 onClick={handlePrev}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition"
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition"
                 title="Previous Track"
               >
                 <SkipBack className="w-3.5 h-3.5" />
@@ -191,11 +196,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
               <button
                 type="button"
                 onClick={handlePlayToggle}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-lg hover:scale-110 active:scale-95 transition-all ${
-                  isPlaying
-                    ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/40'
-                    : 'bg-gradient-to-tr from-rose-500 to-pink-600 shadow-pink-500/30'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 shadow-lg hover:scale-110 active:scale-95 transition-all ${accent.bg} ${accent.shadow}`}
                 title={isPlaying ? 'Pause' : 'Play'}
               >
                 {isPlaying ? (
@@ -208,7 +209,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
               <button
                 type="button"
                 onClick={handleNext}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition"
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition"
                 title="Next Track"
               >
                 <SkipForward className="w-3.5 h-3.5" />
@@ -220,9 +221,9 @@ export const RightSidebarMusicWidget: React.FC = () => {
           {currentTrack && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="space-y-1 pt-1 border-t border-white/5"
+              className="space-y-1 pt-1 border-t border-slate-100 dark:border-white/5"
             >
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration || 180)}</span>
               </div>
@@ -233,7 +234,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
                 step={0.1}
                 value={currentTime}
                 onChange={(e) => seekTo(parseFloat(e.target.value))}
-                className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                className={`w-full h-1 bg-slate-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer ${theme === 'dark' ? 'accent-rose-500' : 'accent-blue-500'}`}
               />
             </div>
           )}
@@ -246,7 +247,7 @@ export const RightSidebarMusicWidget: React.FC = () => {
               toggleActivityDrawer(false);
               navigate('/shared-music');
             }}
-            className="text-rose-400 font-bold hover:underline"
+            className={`font-bold hover:underline ${accent.browseBtn}`}
           >
             Browse Music
           </button>

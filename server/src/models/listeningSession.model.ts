@@ -8,10 +8,10 @@ export interface IListeningSession extends Document {
   host: mongoose.Types.ObjectId;
   participant: mongoose.Types.ObjectId;
   status: SessionStatus;
-  currentSong?: mongoose.Types.ObjectId;
+  currentSong?: any;
   currentTime: number;
   isPlaying: boolean;
-  queue: mongoose.Types.ObjectId[];
+  queue: any[];
   shuffle: boolean;
   repeat: string;
   lastHeartbeatHost?: Date;
@@ -31,10 +31,10 @@ const listeningSessionSchema = new Schema<IListeningSession>(
       enum: ['INVITED', 'ACTIVE', 'ENDED', 'EXPIRED', 'DECLINED'],
       default: 'INVITED',
     },
-    currentSong: { type: Schema.Types.ObjectId, ref: 'Song', default: null },
+    currentSong: { type: Schema.Types.Mixed, default: null },
     currentTime: { type: Number, default: 0 },
     isPlaying: { type: Boolean, default: false },
-    queue: [{ type: Schema.Types.ObjectId, ref: 'Song' }],
+    queue: [Schema.Types.Mixed],
     shuffle: { type: Boolean, default: false },
     repeat: { type: String, default: 'none' },
     lastHeartbeatHost: { type: Date, default: Date.now },

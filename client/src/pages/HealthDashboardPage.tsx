@@ -74,7 +74,7 @@ export const HealthDashboardPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-panel rounded-3xl p-8 relative overflow-hidden border border-white/10"
+        className="glass-panel rounded-3xl p-8 relative overflow-hidden border border-slate-200 dark:border-white/10"
       >
         <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-gradient-to-tr from-afzal/20 via-amrin/20 to-heart/20 rounded-full blur-3xl" />
         
@@ -88,12 +88,12 @@ export const HealthDashboardPage: React.FC = () => {
                 TypeScript MERN
               </Badge>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               Couple Universe <span className="gradient-text-couple">❤️ Private Platform</span>
             </h1>
-            <p className="text-slate-400 mt-2 text-sm sm:text-base max-w-2xl leading-relaxed">
-              Enterprise digital life repository engineered for <strong className="text-slate-200">Afzal & Amrin</strong>. 
-              Preserving our journey from <strong className="text-amrin-glow">March 26, 2026</strong> across a lifetime.
+            <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm sm:text-base max-w-2xl leading-relaxed">
+              Enterprise digital life repository engineered for <strong className="text-slate-800 dark:text-slate-200">Afzal & Amrin</strong>. 
+              Preserving our journey from <strong className="text-amrin dark:text-amrin-glow">March 26, 2026</strong> across a lifetime.
             </p>
           </div>
 
@@ -123,18 +123,18 @@ export const HealthDashboardPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card variant="glass" className="border-heart/20 relative overflow-hidden bg-gradient-to-r from-obsidian-900 via-obsidian-850 to-obsidian-900">
+        <Card variant="glass" className="border-heart/20 relative overflow-hidden bg-gradient-to-r from-slate-100 via-white to-slate-100 dark:from-obsidian-900 dark:via-obsidian-850 dark:to-obsidian-900">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-heart/10 border border-heart/30 flex items-center justify-center shrink-0">
                 <Heart className="w-7 h-7 text-heart fill-heart animate-pulse" />
               </div>
               <div>
-                <span className="text-xs uppercase tracking-widest font-semibold text-heart-glow">
+                <span className="text-xs uppercase tracking-widest font-semibold text-heart dark:text-heart-glow">
                   Togetherness Meter
                 </span>
-                <h3 className="text-xl font-bold text-white">Afzal & Amrin's Journey</h3>
-                <p className="text-xs text-slate-400">Started: March 26, 2026</p>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Afzal & Amrin's Journey</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Started: March 26, 2026</p>
               </div>
             </div>
 
@@ -146,23 +146,23 @@ export const HealthDashboardPage: React.FC = () => {
               </div>
             ) : healthData ? (
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="glass-panel px-4 py-2 rounded-xl">
-                  <div className="text-2xl sm:text-3xl font-extrabold text-afzal-glow">
+                <div className="glass-panel px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-afzal dark:text-afzal-glow">
                     {healthData.relationshipTimeline?.togetherness.days ?? '—'}
                   </div>
-                  <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Days</div>
+                  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Days</div>
                 </div>
-                <div className="glass-panel px-4 py-2 rounded-xl">
-                  <div className="text-2xl sm:text-3xl font-extrabold text-amrin-glow">
+                <div className="glass-panel px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-amrin dark:text-amrin-glow">
                     {healthData.relationshipTimeline?.togetherness.hours ?? '—'}
                   </div>
-                  <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Hours</div>
+                  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hours</div>
                 </div>
-                <div className="glass-panel px-4 py-2 rounded-xl">
-                  <div className="text-2xl sm:text-3xl font-extrabold text-heart-glow">
+                <div className="glass-panel px-4 py-2 rounded-xl border border-slate-200 dark:border-white/5">
+                  <div className="text-2xl sm:text-3xl font-extrabold text-heart dark:text-heart-glow">
                     {healthData.relationshipTimeline?.togetherness.minutes ?? '—'}
                   </div>
-                  <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Mins</div>
+                  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mins</div>
                 </div>
               </div>
             ) : (
@@ -179,13 +179,13 @@ export const HealthDashboardPage: React.FC = () => {
         
         {/* Core Express API Status */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card hoverEffect className="h-full">
+          <Card hoverEffect className="h-full border border-slate-200 dark:border-slate-800/80">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-afzal/10 text-afzal">
                   <Server className="w-5 h-5" />
                 </div>
-                <h3 className="font-semibold text-white">Express API Core</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">Express API Core</h3>
               </div>
               {isLoading ? (
                 <Skeleton className="w-16 h-6" />
@@ -197,21 +197,21 @@ export const HealthDashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Response Latency:</span>
-                <span className="font-mono text-afzal-glow font-bold">{latencyMs !== null ? `${latencyMs} ms` : 'Measuring...'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Response Latency:</span>
+                <span className="font-mono text-afzal dark:text-afzal-glow font-bold">{latencyMs !== null ? `${latencyMs} ms` : 'Measuring...'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Node Runtime:</span>
-                <span className="font-mono text-white">{healthData?.system.nodeVersion || 'N/A'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Node Runtime:</span>
+                <span className="font-mono text-slate-900 dark:text-white">{healthData?.system.nodeVersion || 'N/A'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Environment:</span>
-                <span className="font-mono text-amrin-glow uppercase">{healthData?.app.environment || 'N/A'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Environment:</span>
+                <span className="font-mono text-amrin dark:text-amrin-glow uppercase font-bold">{healthData?.app.environment || 'N/A'}</span>
               </div>
-              <div className="flex justify-between py-1.5 text-slate-300">
-                <span className="text-slate-400">Server Uptime:</span>
-                <span className="font-mono text-slate-200">{healthData ? `${healthData.app.uptimeSeconds}s` : 'N/A'}</span>
+              <div className="flex justify-between py-1.5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Server Uptime:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{healthData ? `${healthData.app.uptimeSeconds}s` : 'N/A'}</span>
               </div>
             </div>
           </Card>
@@ -219,13 +219,13 @@ export const HealthDashboardPage: React.FC = () => {
 
         {/* MongoDB Database Status */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card hoverEffect className="h-full">
+          <Card hoverEffect className="h-full border border-slate-200 dark:border-slate-800/80">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-amrin/10 text-amrin">
                   <Database className="w-5 h-5" />
                 </div>
-                <h3 className="font-semibold text-white">MongoDB Atlas</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">MongoDB Atlas</h3>
               </div>
               {isLoading ? (
                 <Skeleton className="w-16 h-6" />
@@ -237,21 +237,21 @@ export const HealthDashboardPage: React.FC = () => {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Database Name:</span>
-                <span className="font-mono text-amrin-glow font-bold">{healthData?.database.name || 'afrin_universe'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Database Name:</span>
+                <span className="font-mono text-amrin dark:text-amrin-glow font-bold">{healthData?.database.name || 'afrin_universe'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Connection State:</span>
-                <span className="font-mono text-slate-200 capitalize">{healthData?.database.status || 'Ready'}</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Connection State:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200 capitalize">{healthData?.database.status || 'Ready'}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">ORM Framework:</span>
-                <span className="font-mono text-white">Mongoose 8.x</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">ORM Framework:</span>
+                <span className="font-mono text-slate-900 dark:text-white">Mongoose 8.x</span>
               </div>
-              <div className="flex justify-between py-1.5 text-slate-300">
-                <span className="text-slate-400">Schema Validation:</span>
-                <span className="font-mono text-emerald-400">Strict TypeScript</span>
+              <div className="flex justify-between py-1.5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Schema Validation:</span>
+                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">Strict TypeScript</span>
               </div>
             </div>
           </Card>
@@ -259,24 +259,24 @@ export const HealthDashboardPage: React.FC = () => {
 
         {/* System Memory & Performance */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card hoverEffect className="h-full">
+          <Card hoverEffect className="h-full border border-slate-200 dark:border-slate-800/80">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-heart/10 text-heart">
                   <Activity className="w-5 h-5" />
                 </div>
-                <h3 className="font-semibold text-white">System Memory</h3>
+                <h3 className="font-semibold text-slate-900 dark:text-white">System Memory</h3>
               </div>
               <Badge variant="green" size="sm">Optimal</Badge>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <div className="flex justify-between mb-1 text-slate-300">
-                  <span className="text-slate-400">Heap Used:</span>
-                  <span className="font-mono text-white">{healthData?.system.memoryUsage.heapUsedMB || 0} MB</span>
+                <div className="flex justify-between mb-1 text-slate-700 dark:text-slate-300">
+                  <span className="text-slate-500 dark:text-slate-400">Heap Used:</span>
+                  <span className="font-mono text-slate-900 dark:text-white">{healthData?.system.memoryUsage.heapUsedMB || 0} MB</span>
                 </div>
-                <div className="w-full h-1.5 bg-obsidian-800 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-obsidian-800 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-afzal to-amrin transition-all duration-500"
                     style={{
@@ -286,13 +286,13 @@ export const HealthDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between py-1.5 border-b border-white/5 text-slate-300">
-                <span className="text-slate-400">Heap Total:</span>
-                <span className="font-mono text-slate-200">{healthData?.system.memoryUsage.heapTotalMB || 0} MB</span>
+              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-white/5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">Heap Total:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{healthData?.system.memoryUsage.heapTotalMB || 0} MB</span>
               </div>
-              <div className="flex justify-between py-1.5 text-slate-300">
-                <span className="text-slate-400">RSS Process Memory:</span>
-                <span className="font-mono text-slate-200">{healthData?.system.memoryUsage.rssMB || 0} MB</span>
+              <div className="flex justify-between py-1.5 text-slate-700 dark:text-slate-300">
+                <span className="text-slate-500 dark:text-slate-400">RSS Process Memory:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{healthData?.system.memoryUsage.rssMB || 0} MB</span>
               </div>
             </div>
           </Card>
@@ -308,53 +308,53 @@ export const HealthDashboardPage: React.FC = () => {
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Enterprise Module Delivery Status</h3>
-              <p className="text-xs text-slate-400">Strict module-by-module delivery architecture</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Enterprise Module Delivery Status</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Strict module-by-module delivery architecture</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             
-            <div className="glass-card p-4 rounded-xl border-emerald-500/30 bg-emerald-950/20">
+            <div className="glass-card p-4 rounded-xl border border-emerald-500/20 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-emerald-400">Module 1</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Module 1</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Core Setup</h4>
-              <p className="text-[11px] text-slate-400 mt-1">Express, Vite, TS, Tailwind, Health API</p>
+              <h4 className="text-sm font-semibold text-slate-850 dark:text-white">Core Setup</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Express, Vite, TS, Tailwind, Health API</p>
             </div>
 
-            <div className="glass-card p-4 rounded-xl opacity-60 border-amrin/20">
+            <div className="glass-card p-4 rounded-xl opacity-80 border border-slate-200 dark:border-amrin/20 bg-slate-50/50 dark:bg-obsidian-950/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-amrin-glow">Module 2</span>
-                <Clock className="w-4 h-4 text-amrin-glow" />
+                <span className="text-xs font-bold text-amrin dark:text-amrin-glow">Module 2</span>
+                <Clock className="w-4 h-4 text-amrin dark:text-amrin-glow" />
               </div>
-              <h4 className="text-sm font-semibold text-white">Auth & RBAC</h4>
-              <p className="text-[11px] text-slate-400 mt-1">Dual JWT, HttpOnly Cookies, Afzal/Amrin Roles</p>
+              <h4 className="text-sm font-semibold text-slate-850 dark:text-white">Auth & RBAC</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Dual JWT, HttpOnly Cookies, Afzal/Amrin Roles</p>
             </div>
 
-            <div className="glass-card p-4 rounded-xl opacity-40">
+            <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-white/5 opacity-50 bg-slate-50/30 dark:bg-obsidian-950/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-400">Module 3</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Module 3</span>
               </div>
-              <h4 className="text-sm font-semibold text-white">Cloudinary Vault</h4>
-              <p className="text-[11px] text-slate-400 mt-1">Multer stream, media upload, profiles</p>
+              <h4 className="text-sm font-semibold text-slate-850 dark:text-white">Cloudinary Vault</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Multer stream, media upload, profiles</p>
             </div>
 
-            <div className="glass-card p-4 rounded-xl opacity-40">
+            <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-white/5 opacity-50 bg-slate-50/30 dark:bg-obsidian-950/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-400">Module 4</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Module 4</span>
               </div>
-              <h4 className="text-sm font-semibold text-white">Socket.io Gateway</h4>
-              <p className="text-[11px] text-slate-400 mt-1">Real-time alerts, live presence</p>
+              <h4 className="text-sm font-semibold text-slate-850 dark:text-white">Socket.io Gateway</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Real-time alerts, live presence</p>
             </div>
 
-            <div className="glass-card p-4 rounded-xl opacity-40">
+            <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-white/5 opacity-50 bg-slate-50/30 dark:bg-obsidian-950/10">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-slate-400">Module 5</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Module 5</span>
               </div>
-              <h4 className="text-sm font-semibold text-white">Admin Hub</h4>
-              <p className="text-[11px] text-slate-400 mt-1">Metrics, audit log & future modules</p>
+              <h4 className="text-sm font-semibold text-slate-850 dark:text-white">Admin Hub</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Metrics, audit log & future modules</p>
             </div>
 
           </div>

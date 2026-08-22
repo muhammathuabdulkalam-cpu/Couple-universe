@@ -1,11 +1,39 @@
 import { Request, Response } from 'express';
-import { HTTP_STATUS } from '../constants';
+import mongoose from 'mongoose';
 import { Reaction } from '../models/reaction.model';
+import { User } from '../models/user.model';
 import { notificationService } from '../services/notification.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { catchAsync } from '../utils/catchAsync';
 
-import mongoose from 'mongoose';
+/**
+ * Helper to build queries matching both ObjectId and String formats, including optional reference IDs
+ */
+const buildIdQuery = (id: any, refId?: any) => {
+  const ids: string[] = [];
+  if (id) ids.push(String(id));
+  if (refId) ids.push(String(refId));
+
+  const queryValues = ids.flatMap((idStr) => {
+    if (mongoose.Types.ObjectId.isValid(idStr)) {
+      return [new mongoose.Types.ObjectId(idStr), idStr];
+    }
+    return [idStr];
+  });
+
+  return { $in: queryValues };
+};
+
+/**
+ * Helper to match equivalent social target types
+ */
+const buildTypeQuery = (type: string) => {
+  const upper = (type || '').toUpperCase();
+  if (upper === 'ACTIVITY' || upper === 'MEMORY') {
+    return { $in: ['ACTIVITY', 'MEMORY'] };
+  }
+  return upper;
+};
 
 /**
  * Toggle reaction — adds if not present or changes emoji; removes if same emoji sent
@@ -13,11 +41,17 @@ import mongoose from 'mongoose';
 export const toggleReaction = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
   const { targetType, targetId } = req.params;
-  const { emoji = '❤️', authorId } = req.body;
+  const { emoji = '❤️', authorId, referenceId } = req.body;
 
-  const targetIdObj = mongoose.Types.ObjectId.isValid(targetId) ? new mongoose.Types.ObjectId(targetId) : targetId;
+  const targetIdMatch = buildIdQuery(targetId, referenceId);
+  const userIdMatch = buildIdQuery(user._id);
+  const targetTypeMatch = buildTypeQuery(targetType);
 
-  const existing = await Reaction.findOne({ userId: user._id, targetId: targetIdObj, targetType });
+  const existing = await Reaction.findOne({
+    userId: userIdMatch,
+    targetType: targetTypeMatch,
+    targetId: targetIdMatch,
+  });
 
   let result: any;
   let message: string;
@@ -35,11 +69,13 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
     message = 'Reaction updated.';
   } else {
     // New reaction
-    result = await Reaction.create({ userId: user._id, targetId: targetIdObj, targetType, emoji });
+    const targetIdObj = mongoose.Types.ObjectId.isValid(targetId) ? new mongoose.Types.ObjectId(targetId) : targetId;
+    const userIdObj = mongoose.Types.ObjectId.isValid(user._id) ? new mongoose.Types.ObjectId(user._id) : user._id;
+    result = await Reaction.create({ userId: userIdObj, targetId: targetIdObj, targetType: targetType.toUpperCase(), emoji });
     message = 'Reaction added.';
 
     // Notify content author via Notification Engine Service
-    if (authorId && authorId !== user._id.toString()) {
+    if (authorId && authorId.toString() !== user._id.toString()) {
       const notifType = targetType.toUpperCase() === 'STORY' ? 'STORY_REACTION' : 'REACTION';
       await notificationService.publish({
         recipientId: authorId,
@@ -56,7 +92,7 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
 
   // Get updated reaction summary
   const summary = await Reaction.aggregate([
-    { $match: { targetId: targetIdObj, targetType } },
+    { $match: { targetType: targetTypeMatch, targetId: targetIdMatch } },
     { $group: { _id: '$emoji', count: { $sum: 1 } } },
   ]);
 
@@ -68,13 +104,58 @@ export const toggleReaction = catchAsync(async (req: Request, res: Response) => 
  */
 export const getReactions = catchAsync(async (req: Request, res: Response) => {
   const { targetType, targetId } = req.params;
+  const { referenceId } = req.query;
 
-  const reactions = await Reaction.find({ targetId, targetType })
+  const targetIdMatch = buildIdQuery(targetId, referenceId);
+  const targetTypeMatch = buildTypeQuery(targetType);
+
+  const rawReactions = await Reaction.find({
+    targetType: targetTypeMatch,
+    targetId: targetIdMatch,
+  })
     .populate('userId', 'name avatar role')
     .sort({ createdAt: -1 });
 
-  const summary = reactions.reduce((acc: Record<string, number>, r) => {
-    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+  // Collect any unpopulated user IDs (if stored as String in DB)
+  const unpopulatedUserIds: string[] = [];
+  rawReactions.forEach((r: any) => {
+    if (!r.userId || typeof r.userId === 'string' || r.userId instanceof mongoose.Types.ObjectId || !r.userId.name) {
+      const idStr = String(r.userId?._id || r.userId || '');
+      if (idStr && mongoose.Types.ObjectId.isValid(idStr)) {
+        unpopulatedUserIds.push(idStr);
+      }
+    }
+  });
+
+  let userMap = new Map<string, any>();
+  if (unpopulatedUserIds.length > 0) {
+    const userObjs = await User.find({ _id: { $in: unpopulatedUserIds } }).select('name avatar role');
+    userObjs.forEach((u: any) => {
+      userMap.set(u._id.toString(), u);
+    });
+  }
+
+  const reactions = rawReactions.map((r: any) => {
+    const rObj = typeof r.toObject === 'function' ? r.toObject() : { ...r };
+    if (!rObj.userId || typeof rObj.userId === 'string' || rObj.userId instanceof mongoose.Types.ObjectId || !rObj.userId.name) {
+      const uIdStr = String(rObj.userId?._id || rObj.userId || '');
+      const foundUser = userMap.get(uIdStr);
+      if (foundUser) {
+        rObj.userId = {
+          _id: foundUser._id,
+          name: foundUser.name,
+          avatar: foundUser.avatar,
+          role: foundUser.role,
+        };
+      }
+    }
+    return rObj;
+  });
+
+  const summary = reactions.reduce((acc: Record<string, number>, r: any) => {
+    if (r.emoji) {
+      acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    }
     return acc;
   }, {});
 
@@ -86,9 +167,18 @@ export const getReactions = catchAsync(async (req: Request, res: Response) => {
  */
 export const getMyReaction = catchAsync(async (req: Request, res: Response) => {
   const { targetType, targetId } = req.params;
+  const { referenceId } = req.query;
   const user = req.user!;
 
-  const reaction = await Reaction.findOne({ userId: user._id, targetId, targetType });
+  const targetIdMatch = buildIdQuery(targetId, referenceId);
+  const userIdMatch = buildIdQuery(user._id);
+  const targetTypeMatch = buildTypeQuery(targetType);
+
+  const reaction = await Reaction.findOne({
+    userId: userIdMatch,
+    targetType: targetTypeMatch,
+    targetId: targetIdMatch,
+  });
 
   return ApiResponse.success(res, 'My reaction retrieved.', reaction);
 });

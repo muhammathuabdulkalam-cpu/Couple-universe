@@ -58,8 +58,8 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
         variant="glass"
         className={`p-0 cursor-pointer transition-all overflow-hidden border ${
           isMilestone
-            ? 'border-heart/40 bg-gradient-to-br from-obsidian-900 via-obsidian-900 to-heart/10 shadow-2xl shadow-heart/10'
-            : 'border-white/10 hover:border-amrin/40'
+            ? 'border-heart/40 bg-gradient-to-br from-slate-100 via-white to-heart/10 dark:from-obsidian-900 dark:via-obsidian-900 dark:to-heart/10 shadow-2xl shadow-heart/10'
+            : 'border-slate-200 dark:border-white/10 hover:border-amrin/40'
         }`}
         onClick={() => {
           setSelectedEventDetail(event);
@@ -68,7 +68,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
       >
         {/* Large Cover Image Banner (Apple Photos / Google Photos Memories Style) */}
         {coverMedia && (
-          <div className="w-full h-56 bg-obsidian-950 relative overflow-hidden flex items-center justify-center border-b border-white/10">
+          <div className="w-full h-56 bg-slate-100 dark:bg-obsidian-950 relative overflow-hidden flex items-center justify-center border-b border-slate-200 dark:border-white/10">
             <img
               src={coverMedia.optimizedUrl || coverMedia.secureUrl || coverMedia.thumbnailUrl || coverMedia.url}
               alt={event.title}
@@ -83,11 +83,11 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
               className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-obsidian-950 via-obsidian-950/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-obsidian-950 via-white/30 dark:via-obsidian-950/30 to-transparent" />
             
             {/* Media Count Badge */}
             {event.mediaIds && event.mediaIds.length > 1 && (
-              <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full glass-card text-[10px] font-semibold text-white flex items-center gap-1 border border-white/10 z-10">
+              <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full glass-card text-[10px] font-semibold text-white flex items-center gap-1 border border-slate-200 dark:border-white/10 z-10">
                 <Image className="w-3 h-3 text-afzal" />
                 <span>{event.mediaIds.length} Photos</span>
               </div>
@@ -99,12 +99,12 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
           {/* Card Header: Emoji, Title, Date & Badges */}
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-afzal/20 via-amrin/20 to-heart/20 border border-white/10 flex items-center justify-center text-2xl shrink-0 shadow-lg">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-afzal/20 via-amrin/20 to-heart/20 border border-slate-200 dark:border-white/10 flex items-center justify-center text-2xl shrink-0 shadow-lg">
                 {event.emoji || '❤️'}
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono font-bold text-amrin-glow flex items-center gap-1">
+                  <span className="text-xs font-mono font-bold text-amrin dark:text-amrin-glow flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
                     {new Date(event.eventDate).toLocaleDateString('en-US', {
                       month: 'short',
@@ -121,7 +121,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
                     </Badge>
                   )}
                 </div>
-                <h3 className="text-xl font-bold text-white mt-1 tracking-tight">{event.title}</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-1 tracking-tight">{event.title}</h3>
               </div>
             </div>
 
@@ -138,7 +138,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
               {isOwner && (
                 <button
                   onClick={handleEdit}
-                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
                   title="Edit Memory"
                 >
                   <MoreHorizontal className="w-4 h-4" />
@@ -149,7 +149,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
 
           {/* Short Description */}
           {event.shortDescription && (
-            <p className="text-xs text-slate-300 leading-relaxed font-normal">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
               {event.shortDescription}
             </p>
           )}
@@ -164,7 +164,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
                     e.stopPropagation();
                     openViewer(media);
                   }}
-                  className="aspect-square rounded-xl overflow-hidden glass-card border border-white/10 bg-obsidian-950/90 relative flex items-center justify-center p-1 group/img"
+                  className="aspect-square rounded-xl overflow-hidden glass-card border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-obsidian-950/90 relative flex items-center justify-center p-1 group/img"
                 >
                   <img
                     src={media.thumbnailUrl || media.secureUrl}
@@ -178,20 +178,20 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
           )}
 
           {/* Footer Details: Location, Weather, Mood, Tags */}
-          <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 border-t border-white/5 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-white/5 pt-3">
             <div className="flex items-center gap-3 flex-wrap">
               {event.location?.name && (
-                <span className="flex items-center gap-1 text-slate-300 font-medium">
+                <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-afzal" /> {event.location.name}
                 </span>
               )}
               {event.weather && (
-                <span className="flex items-center gap-1 text-amber-400 font-medium">
+                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
                   <CloudSun className="w-3.5 h-3.5" /> {event.weather}
                 </span>
               )}
               {event.mood && (
-                <span className="flex items-center gap-1 text-amrin-glow font-medium">
+                <span className="flex items-center gap-1 text-amrin dark:text-amrin-glow font-medium">
                   <Star className="w-3.5 h-3.5" /> {event.mood}
                 </span>
               )}
@@ -200,7 +200,7 @@ export const TimelineEventCard: React.FC<TimelineEventCardProps> = ({ event, onR
             {event.tags && event.tags.length > 0 && (
               <div className="flex items-center gap-1">
                 <Tag className="w-3 h-3 text-slate-500" />
-                <span className="text-[10px] text-slate-400">#{event.tags.join(', #')}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">#{event.tags.join(', #')}</span>
               </div>
             )}
           </div>

@@ -153,22 +153,22 @@ export const SessionManagerPage: React.FC = () => {
       
       {/* Profile Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <Card variant="glass" className="p-6 border-white/10">
+        <Card variant="glass" className="p-6 border-slate-200 dark:border-white/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-lg">
-                <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center text-white font-extrabold text-xl">
+                <div className="w-full h-full bg-slate-200 dark:bg-obsidian-950 rounded-[14px] flex items-center justify-center text-slate-800 dark:text-white font-extrabold text-xl">
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-white">{user?.name}</h1>
+                  <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{user?.name}</h1>
                   <Badge variant={user?.role === 'SUPER_OWNER' ? 'green' : user?.role === 'CO_OWNER' ? 'violet' : 'cyan'}>
                     {user?.role}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">{user?.email}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{user?.email}</p>
               </div>
             </div>
 
@@ -182,7 +182,7 @@ export const SessionManagerPage: React.FC = () => {
       </motion.div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-4 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-4 overflow-x-auto">
         <Button
           variant={activeTab === 'sessions' ? 'cyan' : 'glass'}
           size="sm"
@@ -234,7 +234,7 @@ export const SessionManagerPage: React.FC = () => {
       {activeTab === 'sessions' && (
         <Card variant="glass" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-white text-lg">Logged-in Devices & Sessions</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Logged-in Devices & Sessions</h3>
             <Button variant="glass" size="sm" onClick={() => refetchSessions()} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
               Refresh
             </Button>
@@ -252,8 +252,8 @@ export const SessionManagerPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <Laptop className="w-5 h-5 text-afzal shrink-0" />
                     <div>
-                      <div className="text-xs font-semibold text-white">{session.userAgent}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">IP: {session.ipAddress} • Active: {new Date(session.lastActiveAt).toLocaleString()}</div>
+                      <div className="text-xs font-semibold text-slate-800 dark:text-white">{session.userAgent}</div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">IP: {session.ipAddress} • Active: {new Date(session.lastActiveAt).toLocaleString()}</div>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => handleRevokeSession(session._id)}>
@@ -271,37 +271,37 @@ export const SessionManagerPage: React.FC = () => {
       {/* Tab 2: Security & Password */}
       {activeTab === 'security' && (
         <Card variant="glass" className="max-w-xl space-y-6">
-          <h3 className="font-bold text-white text-lg">Change Password</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white text-lg">Change Password</h3>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Current Password</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Current Password</label>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 required
-                className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-white focus:border-amrin"
+                className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">New Password</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">New Password</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-white focus:border-amrin"
+                className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Confirm New Password</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Confirm New Password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-white focus:border-amrin"
+                className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
               />
             </div>
             <Button type="submit" variant="violet" isLoading={isChangingPassword}>
@@ -315,14 +315,14 @@ export const SessionManagerPage: React.FC = () => {
       {activeTab === 'invites' && user?.role === 'SUPER_OWNER' && (
         <div className="space-y-6">
           <Card variant="glass" className="space-y-4 max-w-xl">
-            <h3 className="font-bold text-white text-lg">Generate Invitation Code</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Generate Invitation Code</h3>
             <form onSubmit={handleGenerateInvite} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Target Role</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Target Role</label>
                 <select
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value as UserRole)}
-                  className="w-full bg-obsidian-950 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white"
+                  className="w-full bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
                 >
                   <option value="CO_OWNER">CO_OWNER (Amrin / Primary Co-Owner)</option>
                   <option value="INVITED_USER">INVITED_USER (Family / Member)</option>
@@ -330,13 +330,13 @@ export const SessionManagerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Target Email (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Target Email (Optional)</label>
                 <input
                   type="email"
                   value={targetEmail}
                   onChange={(e) => setTargetEmail(e.target.value)}
                   placeholder="amrin@afrinuniverse.com"
-                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-white"
+                  className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
                 />
               </div>
 
@@ -347,20 +347,20 @@ export const SessionManagerPage: React.FC = () => {
           </Card>
 
           <Card variant="glass" className="space-y-4">
-            <h3 className="font-bold text-white text-lg">Generated Invites History</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">Generated Invites History</h3>
             {loadingInvites ? (
               <Skeleton className="h-20" />
             ) : invites && invites.length > 0 ? (
               <div className="space-y-3">
                 {invites.map((inv) => (
-                  <div key={inv._id} className="glass-card p-4 rounded-xl flex items-center justify-between">
+                  <div key={inv._id} className="glass-card p-4 rounded-xl flex items-center justify-between border border-slate-200 dark:border-white/5">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-white text-sm tracking-wider">{inv.code}</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-white text-sm tracking-wider">{inv.code}</span>
                         <Badge variant={inv.isUsed ? 'gray' : 'green'}>{inv.isUsed ? 'USED' : 'ACTIVE'}</Badge>
                         <Badge variant="violet" size="sm">{inv.targetRole}</Badge>
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-1">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                         Expires: {new Date(inv.expiresAt).toLocaleDateString()} {inv.email ? `• Target: ${inv.email}` : ''}
                       </div>
                     </div>
@@ -382,13 +382,13 @@ export const SessionManagerPage: React.FC = () => {
       {/* Tab 4: User Administration (Super Owner) */}
       {activeTab === 'users' && (user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') && (
         <Card variant="glass" className="space-y-4">
-          <h3 className="font-bold text-white text-lg">User Directory</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white text-lg">User Directory</h3>
           {loadingUsers ? (
             <Skeleton className="h-32" />
           ) : usersList && usersList.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-obsidian-950/80 text-slate-400 uppercase font-semibold text-[10px]">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-100 dark:bg-obsidian-950/80 text-slate-600 dark:text-slate-400 uppercase font-semibold text-[10px]">
                   <tr>
                     <th className="p-3">User</th>
                     <th className="p-3">Role</th>
@@ -397,12 +397,12 @@ export const SessionManagerPage: React.FC = () => {
                     {user?.role === 'SUPER_OWNER' && <th className="p-3 text-right">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-200 dark:divide-white/5">
                   {usersList.map((usr) => (
-                    <tr key={usr.id || (usr as any)._id} className="hover:bg-white/5">
+                    <tr key={usr.id || (usr as any)._id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                       <td className="p-3">
-                        <div className="font-semibold text-white">{usr.name}</div>
-                        <div className="text-slate-400 text-[11px]">{usr.email}</div>
+                        <div className="font-semibold text-slate-900 dark:text-white">{usr.name}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px]">{usr.email}</div>
                       </td>
                       <td className="p-3">
                         <Badge variant={usr.role === 'SUPER_OWNER' ? 'green' : usr.role === 'CO_OWNER' ? 'violet' : 'cyan'}>
@@ -412,7 +412,7 @@ export const SessionManagerPage: React.FC = () => {
                       <td className="p-3">
                         <Badge variant={usr.status === 'ACTIVE' ? 'green' : 'rose'}>{usr.status}</Badge>
                       </td>
-                      <td className="p-3 text-slate-400 font-mono">
+                      <td className="p-3 text-slate-500 dark:text-slate-400 font-mono">
                         {usr.lastLoginAt ? new Date(usr.lastLoginAt).toLocaleString() : 'Never'}
                       </td>
                       {user?.role === 'SUPER_OWNER' && usr.role !== 'SUPER_OWNER' && (

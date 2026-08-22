@@ -19,7 +19,7 @@ export const Card: React.FC<CardProps> = ({
   
   const variants = {
     glass: 'glass-card',
-    solid: 'bg-obsidian-850 border border-slate-800/80 shadow-xl',
+    solid: 'bg-white dark:bg-obsidian-850 border border-slate-200 dark:border-slate-800/80 shadow-xl text-slate-900 dark:text-slate-100',
     panel: 'glass-panel',
   };
 

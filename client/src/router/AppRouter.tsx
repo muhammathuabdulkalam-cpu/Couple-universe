@@ -1,7 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ElegantPlaceholderPage } from '../components/placeholder/ElegantPlaceholderPage.js';
-import { Spinner } from '../components/ui/Spinner.js';
 import { NAVIGATION_CONFIG } from '../config/navigation.config.js';
 import { DashboardLayout } from '../layouts/DashboardLayout.js';
 import { AuthGuard, GuestGuard, RoleGuard } from './guards.js';
@@ -53,18 +52,19 @@ const AdminRouteGuard = lazy(() => import('./AdminRouteGuard.js').then((m) => ({
 const InviteRegistrationResolver = lazy(() => import('../pages/InviteRegistrationResolver.js'));
 const OnboardingPage = lazy(() => import('../pages/auth/OnboardingPage.js').then((m) => ({ default: m.OnboardingPage })));
 import { FeatureRouteGuard } from '../components/auth/FeatureRouteGuard.js';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary.js';
+import { PageSkeleton } from '../components/ui/PageSkeleton.js';
+import { TopLoadingBar } from '../components/ui/TopLoadingBar.js';
 import { FEATURES } from '../config/features.js';
 
-const SuspenseFallback = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <Spinner size="lg" />
-  </div>
-);
+const SuspenseFallback = () => <PageSkeleton />;
 
 export const AppRouter: React.FC = () => {
   return (
-    <Suspense fallback={<SuspenseFallback />}>
-      <Routes>
+    <ErrorBoundary>
+      <TopLoadingBar />
+      <Suspense fallback={<SuspenseFallback />}>
+        <Routes>
 
         {/* Public & Guest Routes */}
         <Route
@@ -318,5 +318,6 @@ export const AppRouter: React.FC = () => {
 
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 };

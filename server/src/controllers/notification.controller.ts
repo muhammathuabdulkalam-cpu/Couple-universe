@@ -17,12 +17,14 @@ export const getNotifications = catchAsync(async (req: Request, res: Response) =
   const limit = parseInt(req.query.limit as string, 10) || PLATFORM_CONSTANTS.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
 
-  const total = await Notification.countDocuments({ recipientId: user._id, type: { $ne: 'MESSAGE' } });
-  const notifications = await Notification.find({ recipientId: user._id, type: { $ne: 'MESSAGE' } })
-    .populate('senderId', 'name avatar role')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+  const [total, notifications] = await Promise.all([
+    Notification.countDocuments({ recipientId: user._id, type: { $ne: 'MESSAGE' } }),
+    Notification.find({ recipientId: user._id, type: { $ne: 'MESSAGE' } })
+      .populate('senderId', 'name avatar role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+  ]);
 
   return ApiResponse.success(res, 'Notifications retrieved.', notifications, HTTP_STATUS.OK, {
     page, limit, total, totalPages: Math.ceil(total / limit),

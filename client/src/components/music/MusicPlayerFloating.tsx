@@ -50,7 +50,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
   const location = useLocation();
   const isSharedMusicPage = location.pathname === '/shared-music';
 
-  const { addToast } = useUIStore();
+  const { addToast, theme } = useUIStore();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -173,19 +173,19 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
       {/* Main Floating Bottom Player Bar (Only visible on mobile when on /shared-music page, always available on desktop) */}
       <div
         className={`${
-          isSharedMusicPage ? 'fixed' : 'hidden md:fixed'
-        } bottom-16 md:bottom-4 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${
+          isSharedMusicPage ? 'fixed md:hidden' : 'hidden'
+        } bottom-16 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-5xl transition-all duration-300 ${
           isCollapsed ? 'translate-y-[calc(100%-3.5rem)]' : ''
         }`}
       >
-        <div className="relative overflow-hidden rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 shadow-2xl shadow-rose-950/20 text-white p-3 md:p-4 pr-10 md:pr-12">
+        <div className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-2xl shadow-rose-950/20 text-slate-900 dark:text-white p-3 md:p-4 pr-10 md:pr-12">
           {/* Top-Right Dedicated Close Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               closePlayer();
             }}
-            className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 hover:border-rose-500/30 transition-all duration-200 shadow-md group"
+            className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-rose-500/20 text-slate-500 dark:text-slate-400 hover:text-rose-600 border border-slate-200 dark:border-white/10 hover:border-rose-500/30 transition-all duration-200 shadow-md group"
             title="Close Player"
             aria-label="Close Player"
           >
@@ -194,7 +194,7 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
           {/* Subtle Top Glowing Progress Line */}
           <div
-            className="absolute top-0 left-0 right-0 h-1 bg-white/10 cursor-pointer"
+            className="absolute top-0 left-0 right-0 h-1 bg-slate-200 dark:bg-white/10 cursor-pointer"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const pos = (e.clientX - rect.left) / rect.width;
@@ -202,7 +202,11 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
             }}
           >
             <div
-              className="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 transition-all duration-150"
+              className={`h-full transition-all duration-150 ${
+                theme === 'light'
+                  ? 'bg-gradient-to-r from-blue-600 via-sky-400 to-indigo-500'
+                  : 'bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400'
+              }`}
               style={{ width: `${(currentTime / (duration || 30)) * 100}%` }}
             />
           </div>
@@ -217,15 +221,22 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                 <img
                   src={currentTrack.coverUrl || ''}
                   alt={currentTrack.title}
-                  className={`w-12 h-12 rounded-xl object-cover shadow-md transition-transform duration-300 ${isPlaying ? 'scale-105 ring-2 ring-rose-500/50' : ''
+                    className={`w-12 h-12 rounded-xl object-cover shadow-md transition-transform duration-300 ${
+                      isPlaying
+                        ? theme === 'light'
+                          ? 'scale-105 ring-2 ring-blue-500/50'
+                          : 'scale-105 ring-2 ring-rose-500/50'
+                        : ''
                     }`}
                 />
               </div>
               <div className="min-w-0">
-                <h4 className="font-bold text-sm truncate text-white hover:text-rose-300 transition">
+                <h4 className={`font-bold text-sm truncate transition ${
+                  theme === 'light' ? 'text-slate-900 hover:text-blue-600' : 'text-slate-900 dark:text-white hover:text-rose-500'
+                }`}>
                   {currentTrack.title}
                 </h4>
-                <p className="text-xs text-slate-400 truncate">{currentTrack.artist}</p>
+                <p className={`text-xs truncate ${theme === 'light' ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>{currentTrack.artist}</p>
               </div>
             </div>
 
@@ -237,15 +248,21 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                     e.stopPropagation();
                     handleToggleFavorite();
                   }}
-                  className="p-1.5 rounded-full hover:bg-white/10 transition text-slate-300 hover:text-rose-400 shrink-0"
+                  className={`p-1.5 rounded-full transition shrink-0 ${
+                    theme === 'light'
+                      ? 'hover:bg-slate-100 text-slate-400 hover:text-blue-600'
+                      : 'hover:bg-white/10 text-slate-300 hover:text-rose-400'
+                  }`}
                   title="Favorite Track"
                 >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  <Heart className={`w-5 h-5 ${isFavorite ? (theme === 'light' ? 'fill-blue-600 text-blue-600' : 'fill-rose-500 text-rose-500') : ''}`} />
                 </button>
 
                 <button
                   onClick={() => prevTrack()}
-                  className="p-1.5 rounded-full hover:bg-white/10 text-slate-200 hover:text-white transition"
+                  className={`p-1.5 rounded-full transition ${
+                    theme === 'light' ? 'hover:bg-slate-100 text-slate-650 hover:text-slate-900' : 'hover:bg-white/10 text-slate-200 hover:text-white'
+                  }`}
                   title="Previous"
                 >
                   <SkipBack className="w-5 h-5" />
@@ -256,7 +273,9 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                   disabled={!currentTrack.previewUrl}
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg transition ${
                     currentTrack.previewUrl
-                      ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:scale-105 active:scale-95'
+                      ? theme === 'light'
+                        ? 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
+                        : 'bg-gradient-to-r from-rose-500 to-pink-600 hover:scale-105 active:scale-95'
                       : 'bg-slate-700 opacity-50 cursor-not-allowed'
                   }`}
                   title={!currentTrack.previewUrl ? 'Preview unavailable.' : isLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
@@ -295,7 +314,9 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                       step={0.1}
                       value={currentTime}
                       onChange={(e) => seekTo(parseFloat(e.target.value))}
-                      className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                      className={`w-full h-1 rounded-lg appearance-none cursor-pointer ${
+                        theme === 'light' ? 'bg-slate-200 accent-blue-600' : 'bg-white/20 accent-rose-500'
+                      }`}
                     />
                     <span className="w-8 font-mono">{formatTime(safeDuration)}</span>
                   </div>
@@ -308,19 +329,28 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
 
               <button
                 onClick={() => toggleLyricsModal(true)}
-                className="p-2 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold"
+                className={`p-2 rounded-xl transition flex items-center gap-1 text-xs font-semibold ${
+                  theme === 'light'
+                    ? 'hover:bg-slate-100 text-slate-600 hover:text-slate-900'
+                    : 'hover:bg-white/10 text-slate-300 hover:text-white'
+                }`}
                 title="Song Lyrics"
               >
-                <FileText className="w-4 h-4 text-rose-400" />
+                <FileText className={`w-4 h-4 ${theme === 'light' ? 'text-blue-500' : 'text-rose-400'}`} />
                 <span>Lyrics</span>
               </button>
 
               <button
                 onClick={() => toggleQueueDrawer()}
-                className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${isQueueDrawerOpen
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                    : 'hover:bg-white/10 text-slate-300'
-                  }`}
+                className={`p-2 rounded-xl transition flex items-center gap-1.5 text-xs font-semibold ${
+                  isQueueDrawerOpen
+                    ? theme === 'light'
+                      ? 'bg-blue-50 text-blue-600 border border-blue-200/60'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : theme === 'light'
+                      ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-800'
+                      : 'hover:bg-white/10 text-slate-300'
+                }`}
                 title="Queue"
               >
                 <ListMusic className="w-4 h-4" />
@@ -330,9 +360,11 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={toggleMute}
-                  className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition"
+                  className={`p-1.5 rounded-full transition ${
+                    theme === 'light' ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-800' : 'hover:bg-white/10 text-slate-400 hover:text-white'
+                  }`}
                 >
-                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
+                  {isMuted || volume === 0 ? <VolumeX className={`w-4 h-4 ${theme === 'light' ? 'text-blue-500' : 'text-rose-400'}`} /> : <Volume2 className="w-4 h-4" />}
                 </button>
                 <input
                   type="range"
@@ -341,7 +373,9 @@ export const MusicPlayerFloating: React.FC = React.memo(() => {
                   step={0.01}
                   value={isMuted ? 0 : volume}
                   onChange={(e) => setVolume(parseFloat(e.target.value))}
-                  className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                  className={`w-20 h-1 rounded-lg appearance-none cursor-pointer ${
+                    theme === 'light' ? 'bg-slate-200 accent-blue-600' : 'bg-white/20 accent-rose-500'
+                  }`}
                 />
               </div>
 

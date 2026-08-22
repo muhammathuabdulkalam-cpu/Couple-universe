@@ -96,10 +96,10 @@ export const TimelinePage: React.FC = () => {
                 March 26, 2026 Chapter
               </Badge>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Memory & Timeline Journal
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1">
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
               Chronological journey of Afzal & Amrin's lifetime memories
             </p>
           </div>
@@ -122,7 +122,7 @@ export const TimelinePage: React.FC = () => {
       <TodayInHistoryBanner />
 
       {/* Control Bar: Search & Filters */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border border-white/10">
+      <div className="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border border-slate-200 dark:border-white/10">
         
         {/* Search */}
         <div className="relative w-full md:w-80">
@@ -132,7 +132,7 @@ export const TimelinePage: React.FC = () => {
             value={filterSearch}
             onChange={(e) => setFilterSearch(e.target.value)}
             placeholder="Search by title, location, tag..."
-            className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2 pl-10 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin"
+            className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2 left-10 pl-10 pr-4 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
           />
         </div>
 
@@ -141,7 +141,7 @@ export const TimelinePage: React.FC = () => {
           <select
             value={filterYear}
             onChange={(e) => setFilterYear(e.target.value)}
-            className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+            className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amrin"
           >
             <option value="">All Years</option>
             <option value="2026">2026</option>
@@ -152,7 +152,7 @@ export const TimelinePage: React.FC = () => {
           <select
             value={filterChapter}
             onChange={(e) => setFilterChapter(e.target.value)}
-            className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+            className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amrin"
           >
             <option value="">All Chapters</option>
             <option value="LOVE">LOVE</option>
@@ -167,7 +167,7 @@ export const TimelinePage: React.FC = () => {
           <select
             value={filterEventType}
             onChange={(e) => setFilterEventType(e.target.value)}
-            className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+            className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amrin"
           >
             <option value="">All Event Types</option>
             <option value="FIRST_CONVERSATION">First Conversation</option>
@@ -181,7 +181,7 @@ export const TimelinePage: React.FC = () => {
           <select
             value={filterMood}
             onChange={(e) => setFilterMood(e.target.value)}
-            className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+            className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amrin"
           >
             <option value="">All Moods</option>
             <option value="ROMANTIC">Romantic ❤️</option>
@@ -222,7 +222,7 @@ export const TimelinePage: React.FC = () => {
               
               {/* Sticky Year Header Pill */}
               <div className="sticky top-20 z-20 flex justify-center">
-                <span className="glass-card px-6 py-2 rounded-full border border-white/10 text-sm font-extrabold text-white shadow-xl bg-obsidian-950/90 backdrop-blur-md gradient-text-couple">
+                <span className="glass-card px-6 py-2 rounded-full border border-slate-200 dark:border-white/10 text-sm font-extrabold text-slate-900 dark:text-white shadow-xl bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-md gradient-text-couple">
                   Year {year}
                 </span>
               </div>
@@ -232,7 +232,7 @@ export const TimelinePage: React.FC = () => {
                   
                   {/* Month Separator */}
                   <div className="flex items-center justify-center gap-2">
-                    <span className="text-xs uppercase font-bold tracking-widest text-slate-400 glass-panel px-3 py-1 rounded-full border border-white/5">
+                    <span className="text-xs uppercase font-bold tracking-widest text-slate-600 dark:text-slate-400 glass-panel px-3 py-1 rounded-full border border-slate-200 dark:border-white/5">
                       {month}
                     </span>
                   </div>
@@ -256,8 +256,8 @@ export const TimelinePage: React.FC = () => {
           <div className="w-16 h-16 rounded-2xl bg-heart/10 border border-heart/30 flex items-center justify-center text-heart mx-auto">
             <Calendar className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-white">No Timeline Events Recorded</h3>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">No Timeline Events Recorded</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Record your first conversation, coffee date, or travel milestone in Afzal & Amrin's lifetime journal.
           </p>
           <Button

@@ -77,7 +77,7 @@ export const HomePage: React.FC = () => {
     <div className="space-y-3.5 pb-16 max-w-7xl mx-auto select-none w-full max-w-full overflow-x-hidden">
 
       {/* 1. Ultra-Compact Top Instagram Stories Row */}
-      <div className="glass-panel p-2 rounded-2xl border border-white/10 shadow-md overflow-hidden bg-obsidian-950/80">
+      <div className="glass-panel p-2 rounded-2xl border border-slate-200 dark:border-white/10 shadow-md overflow-hidden bg-white/80 dark:bg-obsidian-950/80">
         <StoryCarousel />
       </div>
 
@@ -92,10 +92,10 @@ export const HomePage: React.FC = () => {
       {/* 4. Centered Single Column Instagram Feed */}
       <div className="max-w-2xl mx-auto space-y-4 pt-1">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-xs font-extrabold text-white flex items-center gap-1.5 tracking-tight">
-            <Sparkles className="w-3.5 h-3.5 text-amrin-glow" /> Couple Feed & Updates
+          <h2 className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 tracking-tight">
+            <Sparkles className="w-3.5 h-3.5 text-amrin" /> Couple Feed & Updates
           </h2>
-          <span className="text-[10px] text-slate-400 font-medium">Real-time</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Real-time</span>
         </div>
 
         {/* Feed Cards List */}
@@ -125,12 +125,12 @@ export const HomePage: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="glass-panel rounded-3xl p-8 text-center space-y-3 border border-white/5">
-            <div className="w-12 h-12 rounded-full bg-amrin/20 text-amrin-glow flex items-center justify-center mx-auto text-xl font-bold">
+          <div className="glass-panel rounded-3xl p-8 text-center space-y-3 border border-slate-200 dark:border-white/5">
+            <div className="w-12 h-12 rounded-full bg-amrin/20 text-amrin dark:text-amrin-glow flex items-center justify-center mx-auto text-xl font-bold">
               ❤️
             </div>
-            <p className="text-sm font-bold text-white">Your Feed is Ready</p>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <p className="text-sm font-bold text-slate-900 dark:text-white">Your Feed is Ready</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
               Share photos, videos, and milestones using the + button to see posts here!
             </p>
           </div>

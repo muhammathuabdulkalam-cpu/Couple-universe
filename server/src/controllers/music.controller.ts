@@ -986,10 +986,13 @@ export const getListenSessionStatus = catchAsync(async (req: Request, res: Respo
     status: { $in: ['INVITED', 'ACTIVE'] },
   })
     .populate('host', 'name email avatar role')
-    .populate('participant', 'name email avatar role')
-    .populate('currentSong');
+    .populate('participant', 'name email avatar role');
 
-  if (session && session.expiresAt && new Date() > new Date(session.expiresAt) && session.status === 'INVITED') {
+  if (!session) {
+    return ApiResponse.success(res, 'Session status retrieved', null);
+  }
+
+  if (session.expiresAt && new Date() > new Date(session.expiresAt) && session.status === 'INVITED') {
     session.status = 'EXPIRED';
     await session.save();
     return ApiResponse.success(res, 'Session status retrieved', null);

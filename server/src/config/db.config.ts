@@ -21,15 +21,18 @@ export const connectDatabase = async (): Promise<void> => {
     try {
       logger.info(`🍃 Connecting to primary MongoDB URI...`);
       await mongoose.connect(env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
+        connectTimeoutMS: 10000,
+        maxPoolSize: 50,
       });
     } catch (primaryErr: any) {
       logger.warn(`⚠️ Primary MongoDB connection failed (${primaryErr.message}). Attempting fallback to local MongoDB...`);
       const localUri = 'mongodb://127.0.0.1:27017/afrin_universe';
       await mongoose.connect(localUri, {
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
+        connectTimeoutMS: 10000,
       });
       logger.info('🍃 Connected to local MongoDB fallback successfully.');
     }

@@ -34,6 +34,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
   const playTrack = useMusicPlayerStore((s) => s.playTrack);
   const togglePlay = useMusicPlayerStore((s) => s.togglePlay);
   const { addToast } = useUIStore();
+  const theme = useUIStore((s) => s.theme);
 
   const [isLoading, setIsLoading] = useState(true);
   const [recentlyPlayed, setRecentlyPlayed] = useState<NormalizedSong[]>([]);
@@ -210,7 +211,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
       <div className="space-y-4 pb-2 w-full max-w-full">
         {/* Title */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <span>Welcome to Muzify</span>
             <span className="text-rose-500 animate-pulse">🎧</span>
           </h1>
@@ -219,7 +220,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         {/* Search Bar directly on page without scrolling */}
         <div className="relative w-full max-w-xl">
           <div className="relative flex items-center">
-            <Search className="absolute left-4 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 pointer-events-none" />
+            <Search className="absolute left-4 w-4 h-4 sm:w-5 sm:h-5 text-slate-500 dark:text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={inlineSearchQuery}
@@ -230,7 +231,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                 }
               }}
               placeholder="Search songs, artists, albums..."
-              className="w-full pl-11 pr-24 py-2.5 sm:py-3 rounded-2xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-400 focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 text-xs sm:text-sm font-medium transition shadow-xl backdrop-blur-xl"
+              className="w-full pl-11 pr-24 py-2.5 sm:py-3 rounded-2xl bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:border-rose-500/50 focus:ring-2 focus:ring-rose-500/20 text-xs sm:text-sm font-medium transition shadow-xl backdrop-blur-xl"
             />
             {inlineSearchQuery ? (
               <button
@@ -238,7 +239,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                   setInlineSearchQuery('');
                   setInlineSearchResults([]);
                 }}
-                className="absolute right-3 p-1 rounded-full text-slate-400 hover:text-white transition"
+                className="absolute right-3 p-1 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -249,7 +250,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     onSelectTab('search');
                   }
                 }}
-                className="absolute right-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition"
+                className="absolute right-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-rose-500 dark:hover:bg-rose-600 text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition"
               >
                 Search
               </button>
@@ -261,7 +262,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         <div className="flex flex-row flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-3 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={() => onOpenUploadModal && onOpenUploadModal()}
-            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
+            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:from-rose-500 dark:to-pink-600 dark:hover:from-rose-600 dark:hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-blue-500/20 dark:shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
           >
             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
             <span>Upload Song</span>
@@ -276,10 +277,10 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
         {inlineSearchQuery.trim().length > 0 && (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between px-1">
-              <h3 className="font-extrabold text-lg text-white tracking-tight flex items-center gap-2">
+              <h3 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <span>Results for "{inlineSearchQuery}"</span>
               </h3>
-              {isInlineSearching && <Loader2 className="w-4 h-4 text-rose-400 animate-spin" />}
+              {isInlineSearching && <Loader2 className="w-4 h-4 text-rose-500 animate-spin" />}
             </div>
 
             {inlineSearchResults.length > 0 ? (
@@ -293,9 +294,9 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     <div
                       key={`inline-${song.providerSongId}-${sIdx}`}
                       onClick={() => (isCurrent ? togglePlay() : playTrack(song, inlineSearchResults))}
-                      className="group bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl flex flex-col justify-between"
+                      className="group bg-white/90 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl flex flex-col justify-between"
                     >
-                      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-950">
                         <img
                           src={song.coverUrl || ''}
                           alt={song.title}
@@ -319,10 +320,10 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                       </div>
 
                       <div className="min-w-0">
-                        <h4 className="font-bold text-white text-sm truncate group-hover:text-rose-300 transition">
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm truncate group-hover:text-rose-500 transition">
                           {song.title}
                         </h4>
-                        <p className="text-xs text-slate-400 truncate mt-0.5">{song.artist}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">{song.artist}</p>
                       </div>
                     </div>
                   );
@@ -330,7 +331,7 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
               </div>
             ) : (
               !isInlineSearching && (
-                <p className="text-xs text-slate-400 italic px-1">No songs found matching "{inlineSearchQuery}".</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 italic px-1">No songs found matching "{inlineSearchQuery}".</p>
               )
             )}
           </div>
@@ -338,105 +339,141 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
       </div>
 
       {/* 1. Spotify Premium Hero Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl p-5 md:p-10 text-white shadow-2xl border border-white/10 w-full max-w-full"
-        style={{ background: heroPalette.ambientGradient }}
-      >
-        {/* Dynamic Blurred Glow */}
-        <div
-          className="absolute -top-24 -right-24 w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-60 transition-all duration-1000"
-          style={{ background: heroPalette.dominant }}
-        />
+      {(() => {
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative overflow-hidden rounded-3xl p-5 md:p-10 shadow-2xl border w-full max-w-full text-slate-900 dark:text-white border-slate-200 dark:border-white/10"
+            style={{
+              background: theme === 'light'
+                ? `linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)`
+                : heroPalette.ambientGradient
+            }}
+          >
+            {/* Dynamic Blurred Glow */}
+            <div
+              className="absolute -top-24 -right-24 w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-60 transition-all duration-1000"
+              style={{ background: heroPalette.dominant }}
+            />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-5 md:gap-8 w-full max-w-full overflow-hidden">
-          {/* Left: Large Artwork & Disc */}
-          <div className="relative group shrink-0">
-            <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-white/20">
-              <img
-                src={activeHeroTrack.coverUrl || ''}
-                alt={activeHeroTrack.title}
-                className={`w-full h-full object-cover transition-transform duration-700 ${isPlaying ? 'scale-105' : 'scale-100'
-                  }`}
-              />
-            </div>
-            {/* Music Badge Accent */}
-            <div className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 border-2 border-white/20 flex items-center justify-center shadow-xl">
-              <Music className="w-5 h-5 md:w-7 md:h-7 text-white" />
-            </div>
-          </div>
-
-          {/* Right: Track Info & Actions */}
-          <div className="flex-1 min-w-0 w-full max-w-full space-y-2.5 md:space-y-4 text-center md:text-left overflow-hidden">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/10 backdrop-blur-md text-[11px] md:text-xs font-bold text-rose-300">
-              <Radio className="w-3 h-3 md:w-3.5 md:h-3.5 text-rose-400 animate-pulse" />
-              <span>{currentTrack ? 'Now Playing' : 'Spotlight Feature'}</span>
-            </div>
-
-            <h1 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight text-white line-clamp-2 leading-tight break-words max-w-full">
-              {activeHeroTrack.title}
-            </h1>
-
-            <p className="text-xs sm:text-sm md:text-xl font-medium text-slate-300 truncate max-w-full">
-              {activeHeroTrack.artist} {activeHeroTrack.album ? `• ${activeHeroTrack.album}` : ''}
-            </p>
-
-            {/* Waveform visualizer */}
-            {isPlaying && (
-              <div className="py-0.5 flex justify-center md:justify-start max-w-full overflow-hidden">
-                <MusicWaveform isPlaying={isPlaying} barCount={16} height={20} color="bg-rose-400" />
+            <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between gap-5 md:gap-8 w-full max-w-full">
+              {/* Left: Large Artwork & Disc */}
+              <div className="relative group shrink-0">
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-white/20">
+                  <img
+                    src={activeHeroTrack.coverUrl || ''}
+                    alt={activeHeroTrack.title}
+                    className={`w-full h-full object-cover transition-transform duration-700 ${isPlaying ? 'scale-105' : 'scale-100'}`}
+                  />
+                </div>
+                {/* Music Badge Accent */}
+                <div className={`absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl border-2 border-white/20 flex items-center justify-center shadow-xl ${
+                  theme === 'light'
+                    ? 'bg-gradient-to-tr from-rose-600 to-rose-500'
+                    : 'bg-gradient-to-tr from-rose-500 to-pink-600'
+                }`}>
+                  <Music className="w-5 h-5 text-white" />
+                </div>
               </div>
-            )}
 
-            <div className="flex flex-row flex-nowrap items-center justify-center md:justify-start gap-2 sm:gap-3 md:gap-4 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
-              <button
-                onClick={() =>
-                  currentTrack?.providerSongId === activeHeroTrack.providerSongId
-                    ? togglePlay()
-                    : playTrack(activeHeroTrack)
-                }
-                className="px-3.5 py-2 sm:px-5 sm:py-2.5 md:px-8 md:py-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs sm:text-sm md:text-base flex items-center gap-1.5 md:gap-3 shadow-xl shadow-rose-500/40 hover:scale-105 active:scale-95 transition shrink-0"
-              >
-                {isAudioLoading && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
-                  <>
-                    <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-white" /> Loading
-                  </>
-                ) : isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
-                  <>
-                    <Pause className="w-4 h-4 md:w-6 md:h-6 fill-current" /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" /> Play
-                  </>
+              {/* Right: Track Info & Actions */}
+              <div className="flex-1 min-w-0 w-full max-w-full space-y-2.5 md:space-y-4 text-center md:text-left overflow-hidden">
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${
+                  theme === 'light'
+                    ? 'bg-rose-50 border border-rose-200 text-rose-600 font-extrabold text-[11px] md:text-xs'
+                    : 'bg-white/10 border border-white/10 backdrop-blur-md text-[11px] md:text-xs font-bold text-rose-300'
+                }`}>
+                  <Radio className={`w-3 h-3 md:w-3.5 md:h-3.5 animate-pulse ${
+                    theme === 'light' ? 'text-rose-500' : 'text-rose-400'
+                  }`} />
+                  <span>{currentTrack ? 'Now Playing' : 'Spotlight Feature'}</span>
+                </div>
+
+                <h1 className="text-xl sm:text-3xl md:text-5xl font-black tracking-tight line-clamp-2 leading-tight break-words max-w-full text-slate-900 dark:text-white">
+                  {activeHeroTrack.title}
+                </h1>
+
+                <p className="text-xs sm:text-sm md:text-xl font-medium truncate max-w-full text-slate-600 dark:text-slate-300">
+                  {activeHeroTrack.artist} {activeHeroTrack.album ? `• ${activeHeroTrack.album}` : ''}
+                </p>
+
+                {/* Waveform visualizer */}
+                {isPlaying && (
+                  <div className="py-0.5 flex justify-center md:justify-start max-w-full overflow-hidden">
+                    <MusicWaveform isPlaying={isPlaying} barCount={16} height={20} color={theme === 'light' ? 'bg-rose-500' : 'bg-rose-400'} />
+                  </div>
                 )}
-              </button>
 
-              <button
-                onClick={() => handleToggleFav(activeHeroTrack)}
-                className={`p-2 sm:p-2.5 md:p-3.5 rounded-full border transition shrink-0 ${favoritesMap[activeHeroTrack.providerSongId]
-                  ? 'bg-rose-500/20 border-rose-500 text-rose-400'
-                  : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-                  }`}
-                title="Favorite Track"
-              >
-                <Heart className={`w-4 h-4 md:w-6 md:h-6 ${favoritesMap[activeHeroTrack.providerSongId] ? 'fill-rose-500' : ''}`} />
-              </button>
+                <div className="flex flex-row flex-nowrap items-center justify-center md:justify-start gap-2 sm:gap-3 md:gap-4 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
+                  <button
+                    onClick={() =>
+                      currentTrack?.providerSongId === activeHeroTrack.providerSongId
+                        ? togglePlay()
+                        : playTrack(activeHeroTrack)
+                    }
+                    className={`px-3.5 py-2 sm:px-5 sm:py-2.5 md:px-8 md:py-4 rounded-full text-white font-extrabold text-xs sm:text-sm md:text-base flex items-center gap-1.5 md:gap-3 transition shrink-0 ${
+                      theme === 'light'
+                        ? 'bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/25'
+                        : 'bg-rose-500 hover:bg-rose-600 shadow-xl shadow-rose-500/40'
+                    } hover:scale-105 active:scale-95`}
+                  >
+                    {isAudioLoading && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
+                      <>
+                        <Loader2 className="w-4 h-4 md:w-6 md:h-6 animate-spin text-white" /> Loading
+                      </>
+                    ) : isPlaying && currentTrack?.providerSongId === activeHeroTrack.providerSongId ? (
+                      <>
+                        <Pause className="w-4 h-4 md:w-6 md:h-6 fill-current" /> Pause
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" /> Play
+                      </>
+                    )}
+                  </button>
 
-              {onOpenDedicateModal && (
-                <button
-                  onClick={() => onOpenDedicateModal(activeHeroTrack)}
-                  className="px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs md:text-sm flex items-center gap-1.5 md:gap-2 transition shrink-0"
-                >
-                  <HeartHandshake className="w-4 h-4 md:w-5 md:h-5 text-rose-300" /> Dedicate
-                </button>
-              )}
+                  <button
+                    onClick={() => handleToggleFav(activeHeroTrack)}
+                    className={`p-2 sm:p-2.5 md:p-3.5 rounded-full border transition shrink-0 ${
+                      favoritesMap[activeHeroTrack.providerSongId]
+                        ? theme === 'light'
+                          ? 'bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-rose-500/20 border-rose-500 text-rose-400'
+                        : theme === 'light'
+                          ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                          : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+                    }`}
+                    title="Favorite Track"
+                  >
+                    <Heart className={`w-4 h-4 md:w-6 md:h-6 ${
+                      favoritesMap[activeHeroTrack.providerSongId]
+                        ? theme === 'light' ? 'fill-blue-600 text-blue-600' : 'fill-rose-500 text-rose-500'
+                        : ''
+                    }`} />
+                  </button>
+
+                  {onOpenDedicateModal && (
+                    <button
+                      onClick={() => onOpenDedicateModal(activeHeroTrack)}
+                      className={`px-3 py-2 sm:px-4 sm:py-2.5 md:px-5 md:py-3.5 rounded-full border text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2 transition shrink-0 ${
+                        theme === 'light'
+                          ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                          : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
+                      }`}
+                    >
+                      <HeartHandshake className={`w-4 h-4 md:w-5 md:h-5 ${
+                        theme === 'light' ? 'text-blue-500' : 'text-rose-300'
+                      }`} /> Dedicate
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </motion.div>
+          </motion.div>
+        );
+      })()}
 
       {/* 2. Spotify Premium Category Rows (Horizontal Scrollable) */}
       <div className="space-y-8">
@@ -459,10 +496,12 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           return (
             <div key={`${sec.title}-${idx}`} className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <h3 className="font-extrabold text-xl text-white tracking-tight flex items-center gap-2">
+                <h3 className="font-extrabold text-xl text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                   <span>{sec.title}</span>
                 </h3>
-                <span className="text-xs text-slate-400 font-semibold flex items-center gap-0.5 hover:text-rose-400 cursor-pointer">
+                <span className={`text-xs text-slate-500 dark:text-slate-400 font-semibold flex items-center gap-0.5 ${
+                  theme === 'light' ? 'hover:text-blue-600' : 'hover:text-rose-500'
+                } cursor-pointer`}>
                   See all <ChevronRight className="w-3.5 h-3.5" />
                 </span>
               </div>
@@ -478,19 +517,22 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                     <div
                       key={`${song.providerSongId}-${sIdx}`}
                       onClick={() => (isCurrent ? togglePlay() : playTrack(song, sec.tracks))}
-                      className="group shrink-0 w-44 md:w-52 bg-slate-900/60 hover:bg-slate-800/80 border border-white/10 hover:border-rose-500/40 rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl snap-start flex flex-col justify-between"
+                      className={`group shrink-0 w-44 md:w-52 bg-white/90 dark:bg-slate-900/60 hover:bg-slate-50 dark:hover:bg-slate-800/80 border border-slate-200/80 dark:border-white/10 ${
+                        theme === 'light' ? 'hover:border-blue-500/40' : 'hover:border-rose-500/40'
+                      } rounded-2xl p-3.5 cursor-pointer transition-all duration-300 shadow-xl snap-start flex flex-col justify-between`}
                     >
-                      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-950">
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-slate-100 dark:bg-slate-950">
                         <img
                           src={song.coverUrl || ''}
                           alt={song.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                         <div
-                          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                            }`}
+                          className={`absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center transition-opacity ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         >
-                          <button className="w-11 h-11 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition">
+                          <button className={`w-11 h-11 rounded-full text-white flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition ${
+                            theme === 'light' ? 'bg-blue-600' : 'bg-rose-500'
+                          }`}>
                             {isSongPlaying ? (
                               <Pause className="w-5 h-5 fill-current" />
                             ) : (
@@ -501,21 +543,29 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                       </div>
 
                       <div className="min-w-0">
-                        <h4 className="font-bold text-white text-sm truncate group-hover:text-rose-300 transition">
+                        <h4 className={`font-bold text-slate-900 dark:text-white text-sm truncate transition ${
+                          theme === 'light' ? 'group-hover:text-blue-600' : 'group-hover:text-rose-500'
+                        }`}>
                           {song.title}
                         </h4>
-                        <p className="text-xs text-slate-400 truncate mt-0.5">{song.artist}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">{song.artist}</p>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-white/5">
+                      <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-200/60 dark:border-white/5">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleFav(song);
                           }}
-                          className="p-1 text-slate-400 hover:text-rose-400 transition"
+                          className={`p-1 text-slate-500 dark:text-slate-400 ${
+                            theme === 'light' ? 'hover:text-blue-600' : 'hover:text-rose-500'
+                          } transition`}
                         >
-                          <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          <Heart className={`w-4 h-4 ${
+                            isFav
+                              ? theme === 'light' ? 'fill-blue-600 text-blue-600' : 'fill-rose-500 text-rose-500'
+                              : ''
+                          }`} />
                         </button>
 
                         {onOpenDedicateModal && (
@@ -524,7 +574,11 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
                               e.stopPropagation();
                               onOpenDedicateModal(song);
                             }}
-                            className="text-[11px] font-semibold text-rose-300 hover:text-rose-200 flex items-center gap-1"
+                            className={`text-[11px] font-semibold flex items-center gap-1 ${
+                              theme === 'light'
+                                ? 'text-blue-600 hover:text-blue-700'
+                                : 'text-rose-600 dark:text-rose-300 hover:text-rose-500'
+                            }`}
                           >
                             <HeartHandshake className="w-3.5 h-3.5" /> Dedicate
                           </button>

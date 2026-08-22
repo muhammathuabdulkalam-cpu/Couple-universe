@@ -26,8 +26,8 @@ export const RecentMemoriesGrid: React.FC = () => {
     <Card variant="solid" className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-white">Recent Memories Vault</h3>
-          <p className="text-xs text-slate-400">Captured moments from our journey</p>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Memories Vault</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Captured moments from our journey</p>
         </div>
         <Button
           variant="glass"
@@ -54,9 +54,9 @@ export const RecentMemoriesGrid: React.FC = () => {
                   setSelectedEventDetail(evt);
                   setDetailModalOpen(true);
                 }}
-                className="glass-card p-4 rounded-2xl space-y-3 border-white/10 hover:border-amrin/30 transition-all cursor-pointer group"
+                className="glass-card p-4 rounded-2xl space-y-3 border border-slate-200 dark:border-white/10 hover:border-amrin/30 transition-all cursor-pointer group"
               >
-                <div className="h-28 bg-obsidian-950/80 rounded-xl flex items-center justify-center text-slate-500 border border-white/5 overflow-hidden relative">
+                <div className="h-28 bg-slate-100 dark:bg-obsidian-950/80 rounded-xl flex items-center justify-center text-slate-500 border border-slate-200 dark:border-white/5 overflow-hidden relative">
                   {coverMedia ? (
                     <img
                       src={coverMedia.optimizedUrl || coverMedia.thumbnailUrl || coverMedia.secureUrl}
@@ -69,8 +69,8 @@ export const RecentMemoriesGrid: React.FC = () => {
                   <span className="absolute top-2 right-2 text-base">{evt.emoji}</span>
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-white truncate">{evt.title}</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
+                  <h4 className="text-xs font-semibold text-slate-800 dark:text-white truncate">{evt.title}</h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
                     <Calendar className="w-3 h-3 text-afzal" />
                     {new Date(evt.eventDate).toLocaleDateString()}
                   </p>
@@ -80,9 +80,9 @@ export const RecentMemoriesGrid: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="text-center py-6 text-xs text-slate-400">
+        <div className="text-center py-6 text-xs text-slate-500 dark:text-slate-400">
           No memories recorded yet. Record your first memory event in{' '}
-          <Link to="/timeline" className="text-amrin-glow underline font-semibold">
+          <Link to="/timeline" className="text-amrin dark:text-amrin-glow underline font-semibold">
             Timeline Journal
           </Link>
           .

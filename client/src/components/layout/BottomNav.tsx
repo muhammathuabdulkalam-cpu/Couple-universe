@@ -56,7 +56,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-obsidian-950/95 backdrop-blur-2xl border-t border-white/10 px-2 py-2 pb-safe select-none">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/90 dark:bg-obsidian-950/95 backdrop-blur-2xl border-t border-slate-200 dark:border-white/10 px-2 py-2 pb-safe select-none">
         <div className="flex items-center justify-around max-w-md mx-auto relative">
           {items.map((item, idx) => {
             const Icon = item.icon;
@@ -70,7 +70,7 @@ export const BottomNav: React.FC = () => {
                   aria-label="Create Post"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-lg shadow-amrin/30 group-active:scale-95 transition-transform flex items-center justify-center">
-                    <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-white">
+                    <div className="w-full h-full rounded-full bg-slate-900 dark:bg-obsidian-950 flex items-center justify-center text-white">
                       <Plus className="w-5 h-5" />
                     </div>
                   </div>
@@ -98,8 +98,8 @@ export const BottomNav: React.FC = () => {
                         alt={user.name || 'Profile'}
                         className={`w-6 h-6 rounded-full object-cover transition-all ${
                           isActive
-                            ? 'ring-2 ring-amrin-glow border border-amrin-glow shadow-md shadow-amrin/40'
-                            : 'border border-slate-600 hover:border-slate-300'
+                            ? 'ring-2 ring-amrin border border-amrin shadow-md shadow-amrin/40'
+                            : 'border border-slate-400 dark:border-slate-600 hover:border-slate-700 dark:hover:border-slate-300'
                         }`}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -111,14 +111,14 @@ export const BottomNav: React.FC = () => {
                     <User
                       className={`w-6 h-6 transition-colors ${
                         user?.avatar && !user.avatar.includes('unsplash.com') ? 'hidden' : ''
-                      } ${isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'}`}
+                      } ${isActive ? 'text-amrin fill-amrin/20' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                     />
                   </motion.div>
 
                   {isActive && (
                     <motion.div
                       layoutId="activeBottomNavDot"
-                      className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-amrin-glow shadow-lg shadow-amrin"
+                      className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-amrin shadow-lg shadow-amrin"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -141,11 +141,11 @@ export const BottomNav: React.FC = () => {
                 >
                   <Icon
                     className={`w-6 h-6 transition-colors ${
-                      isActive ? 'text-amrin-glow fill-amrin/20' : 'text-slate-400 hover:text-white'
+                      isActive ? 'text-amrin fill-amrin/20' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   />
                   {item.path === '/chat' && unreadChatCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 px-1 py-0.2 min-w-[17px] h-[17px] text-[9px] font-black text-white bg-gradient-to-r from-afzal via-amrin to-heart rounded-full flex items-center justify-center shadow-lg shadow-heart/50 shrink-0 animate-pulse border border-obsidian-950">
+                    <span className="absolute -top-1.5 -right-2 px-1 py-0.2 min-w-[17px] h-[17px] text-[9px] font-black text-white bg-gradient-to-r from-afzal via-amrin to-heart rounded-full flex items-center justify-center shadow-lg shadow-heart/50 shrink-0 animate-pulse border border-white dark:border-obsidian-950">
                       {unreadChatCount > 99 ? '99+' : unreadChatCount}
                     </span>
                   )}
@@ -154,7 +154,7 @@ export const BottomNav: React.FC = () => {
                 {isActive && (
                   <motion.div
                     layoutId="activeBottomNavDot"
-                    className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-amrin-glow shadow-lg shadow-amrin"
+                    className="absolute -top-2 w-1.5 h-1.5 rounded-full bg-amrin shadow-lg shadow-amrin"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -177,7 +177,7 @@ export const BottomNav: React.FC = () => {
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-4/5 max-w-xs h-full bg-obsidian-950 border-l border-white/10 p-5 flex flex-col justify-between overflow-y-auto"
+              className="w-4/5 max-w-xs h-full bg-white dark:bg-obsidian-950 border-l border-slate-200 dark:border-white/10 p-5 flex flex-col justify-between overflow-y-auto"
             >
               <div className="space-y-6">
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">

@@ -54,7 +54,6 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: User,
     section: 'main',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
-    badge: 'Module 8',
     isImplemented: true,
   },
 
@@ -88,7 +87,6 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: Lock,
     section: 'memories',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER', 'INVITED_USER'],
-    badge: 'New',
     isImplemented: false,
   },
 
@@ -172,7 +170,6 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: Activity,
     section: 'admin',
     allowedRoles: ['SUPER_OWNER'],
-    badge: 'Admin',
     isImplemented: true,
   },
   {
@@ -182,7 +179,6 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: Baby,
     section: 'admin',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER'],
-    badge: 'Module 12',
     isImplemented: false,
   },
   {
@@ -192,7 +188,6 @@ export const NAVIGATION_CONFIG: NavItem[] = [
     icon: Users,
     section: 'admin',
     allowedRoles: ['SUPER_OWNER', 'CO_OWNER'],
-    badge: 'Module 13',
     isImplemented: false,
   },
 ];

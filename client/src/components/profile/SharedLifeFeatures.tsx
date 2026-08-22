@@ -134,10 +134,10 @@ export const SharedLifeFeatures: React.FC = () => {
   };
 
   return (
-    <Card variant="glass" className="p-6 border-white/10 space-y-6 select-none">
+    <Card variant="glass" className="p-6 border-slate-200 dark:border-white/10 space-y-6 select-none">
       
       {/* Shared Life Feature Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-white/10">
         {[
           { id: 'diary', label: 'Shared Diary', icon: BookOpen },
           { id: 'bucket', label: 'Bucket List', icon: CheckSquare },
@@ -156,7 +156,7 @@ export const SharedLifeFeatures: React.FC = () => {
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
                 isActive
                   ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-lg'
-                  : 'glass-card text-slate-400 hover:text-white'
+                  : 'glass-card text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-200 dark:border-white/5'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -168,8 +168,8 @@ export const SharedLifeFeatures: React.FC = () => {
 
       {/* Creation Quick Form */}
       {['diary', 'bucket', 'wishlist', 'notes'].includes(activeTab) && (
-        <div className="glass-card p-4 rounded-2xl border-white/10 space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-white">
+        <div className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
             <Plus className="w-4 h-4 text-amrin" />
             <span>Add New {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Item</span>
           </div>
@@ -180,14 +180,14 @@ export const SharedLifeFeatures: React.FC = () => {
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Title / Name..."
-              className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+              className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
             />
             <input
               type="text"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
               placeholder="Details / Description..."
-              className="bg-obsidian-950 border border-slate-700 rounded-xl py-2 px-3 text-xs text-white"
+              className="bg-white dark:bg-obsidian-950 border border-slate-300 dark:border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-violet-500"
             />
           </div>
 
@@ -204,19 +204,19 @@ export const SharedLifeFeatures: React.FC = () => {
         <div className="space-y-3">
           {diaryEntries && diaryEntries.length > 0 ? (
             diaryEntries.map((d) => (
-              <div key={d._id} className="glass-card p-4 rounded-2xl border-white/10 space-y-2">
+              <div key={d._id} className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono text-amrin-glow font-bold">
+                  <span className="text-xs font-mono text-amrin dark:text-amrin-glow font-bold">
                     {new Date(d.createdAt).toLocaleDateString()}
                   </span>
                   <Badge variant="cyan" size="sm">{d.createdBy.name}</Badge>
                 </div>
-                <h4 className="text-sm font-bold text-white">{d.title}</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">{d.content}</p>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">{d.title}</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{d.content}</p>
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-xs text-slate-400">No diary entries logged yet.</div>
+            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">No diary entries logged yet.</div>
           )}
         </div>
       )}
@@ -226,10 +226,10 @@ export const SharedLifeFeatures: React.FC = () => {
         <div className="space-y-3">
           {bucketItems && bucketItems.length > 0 ? (
             bucketItems.map((b) => (
-              <div key={b._id} className="glass-card p-4 rounded-2xl border-white/10 flex items-center justify-between gap-4">
+              <div key={b._id} className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4">
                 <div>
-                  <h4 className="text-sm font-bold text-white">{b.title}</h4>
-                  {b.description && <p className="text-xs text-slate-400 mt-0.5">{b.description}</p>}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">{b.title}</h4>
+                  {b.description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{b.description}</p>}
                 </div>
                 <Badge variant={b.status === 'COMPLETED' ? 'green' : 'violet'} size="sm">
                   {b.status}
@@ -237,7 +237,7 @@ export const SharedLifeFeatures: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-xs text-slate-400">No bucket items added yet.</div>
+            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">No bucket items added yet.</div>
           )}
         </div>
       )}
@@ -247,16 +247,16 @@ export const SharedLifeFeatures: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {wishlistItems && wishlistItems.length > 0 ? (
             wishlistItems.map((w) => (
-              <div key={w._id} className="glass-card p-4 rounded-2xl border-white/10 space-y-2">
+              <div key={w._id} className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-white">{w.name}</h4>
-                  {w.price && <span className="text-xs font-mono text-amrin-glow font-bold">${w.price}</span>}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">{w.name}</h4>
+                  {w.price && <span className="text-xs font-mono text-amrin dark:text-amrin-glow font-bold">${w.price}</span>}
                 </div>
-                {w.description && <p className="text-xs text-slate-400">{w.description}</p>}
+                {w.description && <p className="text-xs text-slate-500 dark:text-slate-400">{w.description}</p>}
               </div>
             ))
           ) : (
-            <div className="text-center col-span-2 py-8 text-xs text-slate-400">No wishlist items added.</div>
+            <div className="text-center col-span-2 py-8 text-xs text-slate-500 dark:text-slate-400">No wishlist items added.</div>
           )}
         </div>
       )}
@@ -266,23 +266,23 @@ export const SharedLifeFeatures: React.FC = () => {
         <div className="space-y-3">
           {goals && goals.length > 0 ? (
             goals.map((g) => (
-              <div key={g._id} className="glass-card p-4 rounded-2xl border-white/10 space-y-2">
+              <div key={g._id} className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-white">{g.title}</h4>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">{g.title}</h4>
                   <Badge variant={g.status === 'ACHIEVED' ? 'green' : 'violet'} size="sm">{g.status}</Badge>
                 </div>
-                {g.description && <p className="text-xs text-slate-400">{g.description}</p>}
-                <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                {g.description && <p className="text-xs text-slate-550 dark:text-slate-400">{g.description}</p>}
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
                   <div
                     className="h-1.5 rounded-full bg-gradient-to-r from-afzal to-amrin transition-all"
                     style={{ width: `${g.progress}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 text-right font-mono">{g.progress}% complete</p>
+                <p className="text-[11px] text-slate-550 dark:text-slate-400 text-right font-mono">{g.progress}% complete</p>
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-xs text-slate-400">No relationship goals set yet.</div>
+            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">No relationship goals set yet.</div>
           )}
         </div>
       )}
@@ -290,8 +290,8 @@ export const SharedLifeFeatures: React.FC = () => {
       {/* Tab 5: Mood Tracker */}
       {activeTab === 'mood' && (
         <div className="space-y-4">
-          <div className="glass-card p-4 rounded-2xl border-white/10 space-y-3 text-center">
-            <h4 className="text-xs font-bold text-white">Log Today's Mood</h4>
+          <div className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3 text-center">
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">Log Today's Mood</h4>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               {[
                 { emoji: '😊', name: 'HAPPY' },
@@ -304,7 +304,7 @@ export const SharedLifeFeatures: React.FC = () => {
                 <button
                   key={m.name}
                   onClick={() => handleLogMood(m.name as any)}
-                  className="text-2xl p-2 rounded-xl glass-card hover:scale-125 transition-transform"
+                  className="text-2xl p-2 rounded-xl glass-card bg-slate-50 border border-slate-200 dark:bg-white/5 dark:border-white/5 hover:scale-125 transition-transform"
                 >
                   {m.emoji}
                 </button>
@@ -315,13 +315,13 @@ export const SharedLifeFeatures: React.FC = () => {
           <div className="space-y-2">
             {moodEntries && moodEntries.length > 0 ? (
               moodEntries.map((m) => (
-                <div key={m._id} className="glass-card p-3 rounded-xl border-white/10 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-white">{m.userId?.name}: {m.mood}</span>
-                  <span className="text-slate-400 font-mono">{new Date(m.date).toLocaleDateString()}</span>
+                <div key={m._id} className="glass-card p-3 rounded-xl border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-900 dark:text-white">{m.userId?.name}: {m.mood}</span>
+                  <span className="text-slate-500 dark:text-slate-400 font-mono">{new Date(m.date).toLocaleDateString()}</span>
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-xs text-slate-400">No mood entries yet.</div>
+              <div className="text-center py-6 text-xs text-slate-550 dark:text-slate-400">No mood entries yet.</div>
             )}
           </div>
         </div>
@@ -332,12 +332,12 @@ export const SharedLifeFeatures: React.FC = () => {
         <div className="space-y-3">
           {capsules && capsules.length > 0 ? (
             capsules.map((c) => (
-              <div key={c._id} className="glass-card p-4 rounded-2xl border-white/10 flex items-center justify-between gap-4">
+              <div key={c._id} className="glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4">
                 <div className="space-y-1">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-amber-400" /> {c.title}
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400" /> {c.title}
                   </h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-550 dark:text-slate-400">
                     Unlocks on: {new Date(c.unlockDate).toLocaleDateString()}
                   </p>
                 </div>
@@ -347,7 +347,7 @@ export const SharedLifeFeatures: React.FC = () => {
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-xs text-slate-400">No memory capsules stored yet.</div>
+            <div className="text-center py-8 text-xs text-slate-500 dark:text-slate-400">No memory capsules stored yet.</div>
           )}
         </div>
       )}

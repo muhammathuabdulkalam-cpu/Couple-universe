@@ -169,10 +169,10 @@ export const GalleryPage: React.FC = () => {
                 </Badge>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {isInvitedUser ? 'My Gallery' : '3D Gallery'}
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
+            <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-0.5">
               {isInvitedUser
                 ? 'All your uploaded photos, videos, posts, and stories in one secure place.'
                 : 'All photos, videos, posts, and stories shared between Afzal & Amrin in real-time.'}
@@ -197,23 +197,23 @@ export const GalleryPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen((v) => !v)}
-          className="w-full glass-panel p-3 rounded-2xl border border-white/10 flex items-center justify-between shadow-xl bg-obsidian-950/90 active:scale-[0.99] transition-transform"
+          className="w-full glass-panel p-3 rounded-2xl border border-slate-200 dark:border-white/10 flex items-center justify-between shadow-xl bg-white dark:bg-obsidian-950/90 active:scale-[0.99] transition-transform"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-afzal/20 via-amrin/20 to-heart/20 border border-white/10 flex items-center justify-center text-amrin-glow">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-gradient-to-tr dark:from-afzal/20 dark:via-amrin/20 dark:to-heart/20 border border-blue-200 dark:border-white/10 flex items-center justify-center text-blue-600 dark:text-amrin-glow">
               <ActiveIcon className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Gallery Category</div>
-              <div className="text-xs font-extrabold text-white flex items-center gap-2">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">Gallery Category</div>
+              <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>{activeTabObj.label}</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-white/10 text-slate-300">
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
                   {activeTabObj.count}
                 </span>
               </div>
             </div>
           </div>
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isMobileMenuOpen ? 'rotate-180 text-amrin' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isMobileMenuOpen ? 'rotate-180 text-blue-600 dark:text-amrin' : ''}`} />
         </button>
 
         <AnimatePresence>
@@ -228,7 +228,7 @@ export const GalleryPage: React.FC = () => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.97 }}
                 transition={{ duration: 0.2 }}
-                className="absolute left-0 right-0 top-14 z-50 glass-card rounded-2xl p-2 border border-white/15 shadow-2xl bg-obsidian-950/95 backdrop-blur-2xl space-y-1"
+                className="absolute left-0 right-0 top-14 z-50 glass-card rounded-2xl p-2 border border-slate-200 dark:border-white/15 shadow-2xl bg-white dark:bg-obsidian-950/95 backdrop-blur-2xl space-y-1"
               >
                 {sectionTabs.map((tab) => {
                   const Icon = tab.icon;
@@ -243,16 +243,16 @@ export const GalleryPage: React.FC = () => {
                         setIsMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${isActive
-                          ? 'bg-gradient-to-r from-afzal/30 via-amrin/30 to-heart/30 text-white border border-white/20 shadow-lg'
-                          : 'text-slate-300 hover:text-white hover:bg-white/5'
+                          ? 'bg-blue-600 text-white shadow-lg'
+                          : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                         }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon className={`w-4 h-4 ${isActive ? 'text-amrin-glow' : 'text-slate-400'}`} />
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                         <span>{tab.label}</span>
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white font-bold' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400'
                           }`}
                       >
                         {tab.count}
@@ -267,7 +267,7 @@ export const GalleryPage: React.FC = () => {
       </div>
 
       {/* Desktop Mode Section Navigation Tabs (hidden sm:flex) */}
-      <div className="hidden sm:flex glass-panel p-1.5 rounded-2xl border border-white/10 items-center gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="hidden sm:flex glass-panel p-1.5 rounded-2xl border border-slate-200 dark:border-white/10 items-center gap-1.5 overflow-x-auto scrollbar-hide">
         {sectionTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -277,14 +277,14 @@ export const GalleryPage: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as GallerySectionTab)}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${isActive
-                  ? 'bg-gradient-to-r from-afzal/20 via-amrin/20 to-heart/20 text-white border border-white/20 shadow-md'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'
                 }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-amrin-glow' : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : ''}`} />
               <span>{tab.label}</span>
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-white/5 text-slate-500'
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-500'
                   }`}
               >
                 {tab.count}

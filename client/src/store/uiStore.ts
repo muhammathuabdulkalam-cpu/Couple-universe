@@ -14,8 +14,24 @@ interface UIState {
   removeToast: (id: string) => void;
 }
 
+const getInitialTheme = (): 'dark' | 'light' => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    if (saved === 'light' || saved === 'dark') {
+      if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      return saved;
+    }
+  }
+  document.documentElement.classList.add('dark');
+  return 'dark';
+};
+
 export const useUIStore = create<UIState>((set, get) => ({
-  theme: 'dark',
+  theme: getInitialTheme(),
   isSidebarOpen: false,
   isActivityDrawerOpen: false,
   toasts: [],
@@ -28,6 +44,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     } else {
       document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem('theme', newTheme);
     set({ theme: newTheme });
   },
 

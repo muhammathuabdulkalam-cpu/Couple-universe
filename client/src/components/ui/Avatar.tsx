@@ -1,4 +1,3 @@
-import { UserCircle2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 interface AvatarProps {
@@ -15,14 +14,6 @@ const sizeClasses = {
   md: 'w-10 h-10 text-sm',
   lg: 'w-12 h-12 text-base',
   xl: 'w-16 h-16 text-xl',
-};
-
-const iconSizeClasses = {
-  xs: 'w-4 h-4',
-  sm: 'w-5 h-5',
-  md: 'w-6 h-6',
-  lg: 'w-7 h-7',
-  xl: 'w-9 h-9',
 };
 
 export const Avatar: React.FC<AvatarProps> = ({
@@ -46,18 +37,17 @@ export const Avatar: React.FC<AvatarProps> = ({
     src.includes('404')
   );
 
-  const showIcon = isKnownBroken || imgError;
-
+  const showFallback = isKnownBroken || imgError;
   const baseSize = sizeClasses[size] || sizeClasses.md;
-  const iconSize = iconSizeClasses[size] || iconSizeClasses.md;
+  const initial = (name || alt || '?').trim()[0]?.toUpperCase() || '👤';
 
-  if (showIcon) {
+  if (showFallback) {
     return (
       <div
-        className={`${baseSize} rounded-full bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 border border-white/10 flex items-center justify-center shrink-0 ${className}`}
-        aria-label={alt}
+        className={`${baseSize} rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart text-white font-black flex items-center justify-center shrink-0 shadow-md ${className}`}
+        aria-label={alt || name || 'User Avatar'}
       >
-        <UserCircle2 className={`${iconSize} text-slate-400`} />
+        <span>{initial}</span>
       </div>
     );
   }

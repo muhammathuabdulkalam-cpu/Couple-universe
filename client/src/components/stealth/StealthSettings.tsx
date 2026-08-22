@@ -161,8 +161,8 @@ export const StealthSettings: React.FC = () => {
               <Shield className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-lg">Stealth Mode</h3>
-              <p className="text-xs text-slate-400">Mobile calculator gateway for private access</p>
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg">Stealth Mode</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Mobile calculator gateway for private access</p>
             </div>
           </div>
           <Badge variant={config?.enabled ? 'green' : 'gray'} size="sm">
@@ -195,7 +195,7 @@ export const StealthSettings: React.FC = () => {
         </div>
 
         {config?.lastUsed && (
-          <div className="text-[11px] text-slate-400 pt-1">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
             Last accessed: {new Date(config.lastUsed).toLocaleString()}
           </div>
         )}
@@ -203,14 +203,14 @@ export const StealthSettings: React.FC = () => {
 
       {/* Private Link Management */}
       <Card variant="glass" className="space-y-4">
-        <h4 className="font-bold text-white flex items-center gap-2">
+        <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Link2 className="w-4 h-4 text-afzal" />
           Private Link
         </h4>
 
         {/* Token Status */}
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-400">Token Status:</span>
+          <span className="text-slate-500 dark:text-slate-400">Token Status:</span>
           {config?.hasToken && !config?.isRevoked ? (
             <Badge variant="green" size="sm">Active</Badge>
           ) : config?.isRevoked ? (
@@ -223,9 +223,9 @@ export const StealthSettings: React.FC = () => {
         {/* Generated Link Display */}
         {generatedLink && (
           <div className="glass-card p-3 rounded-xl space-y-2">
-            <div className="text-[11px] text-amber-400 font-semibold">⚠ Copy this link now — it won't be shown again</div>
+            <div className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">⚠ Copy this link now — it won't be shown again</div>
             <div className="flex items-center gap-2">
-              <code className="text-xs text-white bg-obsidian-950/80 px-3 py-2 rounded-lg flex-1 overflow-x-auto whitespace-nowrap font-mono select-all">
+              <code className="text-xs text-slate-800 dark:text-white bg-slate-100 dark:bg-obsidian-950/80 px-3 py-2 rounded-lg flex-1 overflow-x-auto whitespace-nowrap font-mono select-all border border-slate-200 dark:border-white/5">
                 {generatedLink}
               </code>
               <Button
@@ -287,11 +287,11 @@ export const StealthSettings: React.FC = () => {
 
       {/* Secret Expression */}
       <Card variant="glass" className="space-y-4">
-        <h4 className="font-bold text-white flex items-center gap-2">
+        <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Key className="w-4 h-4 text-amrin" />
           Secret Unlock Expression
         </h4>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Configure the calculator expression that unlocks the app. Default: 9894+9248+09
         </p>
 
@@ -302,12 +302,12 @@ export const StealthSettings: React.FC = () => {
               value={secretExpression}
               onChange={(e) => setSecretExpression(e.target.value)}
               placeholder="Enter new secret expression"
-              className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 px-4 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors font-mono"
+              className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2.5 px-4 pr-10 text-sm text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors font-mono"
             />
             <button
               type="button"
               onClick={() => setShowSecret(!showSecret)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-550 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
             >
               {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>

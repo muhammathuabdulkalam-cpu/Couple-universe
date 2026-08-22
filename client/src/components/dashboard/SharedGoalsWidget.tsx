@@ -13,19 +13,19 @@ export const SharedGoalsWidget: React.FC = () => {
   return (
     <Card variant="glass" className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-amrin-glow flex items-center gap-1.5">
+        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
           <Target className="w-3.5 h-3.5" /> Shared Life Goals
         </span>
-        <span className="text-[10px] text-slate-400">2 / 4 Completed</span>
+        <span className="text-[10px] text-slate-500 dark:text-slate-400">2 / 4 Completed</span>
       </div>
 
       <div className="space-y-2">
         {goals.map((g, idx) => (
-          <div key={idx} className="glass-card p-3 rounded-xl flex items-center justify-between text-xs">
-            <span className={g.completed ? 'line-through text-slate-400' : 'text-white font-medium'}>
+          <div key={idx} className="glass-card p-3 rounded-xl flex items-center justify-between text-xs border border-slate-200 dark:border-white/5">
+            <span className={g.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-white font-medium'}>
               {g.title}
             </span>
-            <CheckSquare className={`w-4 h-4 ${g.completed ? 'text-emerald-400' : 'text-slate-600'}`} />
+            <CheckSquare className={`w-4 h-4 ${g.completed ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}`} />
           </div>
         ))}
       </div>

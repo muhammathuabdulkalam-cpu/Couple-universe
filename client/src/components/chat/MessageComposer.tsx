@@ -184,16 +184,16 @@ export const MessageComposer: React.FC = () => {
   };
 
   return (
-    <div className="shrink-0 p-3 sm:p-4 glass-panel border-t border-white/10 space-y-2 z-30 bg-obsidian-950/90 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="shrink-0 p-3 sm:p-4 glass-panel border-t border-slate-200 dark:border-white/10 space-y-2 z-30 bg-white/95 dark:bg-obsidian-950/90 backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       
       {/* Replying Preview Banner */}
       {replyingToMessage && (
         <div className="flex items-center justify-between glass-card px-3 py-1.5 rounded-xl border-amrin/30 text-xs">
           <div className="truncate">
             <span className="font-semibold text-amrin">Replying to {replyingToMessage.sender?.name}:</span>{' '}
-            <span className="text-slate-300 truncate">{replyingToMessage.content || 'Attachment'}</span>
+            <span className="text-slate-600 dark:text-slate-300 truncate">{replyingToMessage.content || 'Attachment'}</span>
           </div>
-          <button onClick={() => setReplyingToMessage(null)} className="p-1 text-slate-400 hover:text-white">
+          <button onClick={() => setReplyingToMessage(null)} className="p-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -206,7 +206,7 @@ export const MessageComposer: React.FC = () => {
           onCancel={() => setIsVoiceRecording(false)}
         />
       ) : isUploadingVoice ? (
-        <div className="text-center py-2 text-xs text-amrin-glow font-semibold animate-pulse">
+        <div className="text-center py-2 text-xs text-amrin dark:text-amrin-glow font-semibold animate-pulse">
           Uploading voice message...
         </div>
       ) : (
@@ -214,7 +214,7 @@ export const MessageComposer: React.FC = () => {
           
           {/* Emoji Popup Picker */}
           {showEmojiPicker && (
-            <div className="absolute bottom-14 left-2 z-40 glass-card p-3 rounded-2xl border-white/10 shadow-2xl flex items-center gap-2">
+            <div className="absolute bottom-14 left-2 z-40 glass-card p-3 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl flex items-center gap-2">
               {['❤️', '😄', '😍', '🔥', '✨', '👍', '🙏', '🎉'].map((e) => (
                 <button
                   key={e}
@@ -230,7 +230,7 @@ export const MessageComposer: React.FC = () => {
 
           {/* Module 4 Media Attachment Drawer */}
           {isMediaPickerOpen && mediaVault && (
-            <div className="glass-card p-3 rounded-2xl max-h-40 overflow-y-auto grid grid-cols-4 sm:grid-cols-6 gap-2 border-white/10 mb-2">
+            <div className="glass-card p-3 rounded-2xl max-h-40 overflow-y-auto grid grid-cols-4 sm:grid-cols-6 gap-2 border border-slate-200 dark:border-white/10 mb-2">
               {mediaVault.map((m) => {
                 const isSelected = selectedMediaId === m._id;
                 return (
@@ -238,7 +238,7 @@ export const MessageComposer: React.FC = () => {
                     key={m._id}
                     onClick={() => setSelectedMediaId(isSelected ? null : m._id)}
                     className={`aspect-square rounded-xl overflow-hidden relative cursor-pointer border ${
-                      isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-white/10'
+                      isSelected ? 'border-amrin ring-2 ring-amrin' : 'border-slate-200 dark:border-white/10'
                     }`}
                   >
                     <img src={m.thumbnailUrl} alt={m.title} className="w-full h-full object-cover" />
@@ -260,7 +260,7 @@ export const MessageComposer: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="p-2.5 rounded-full text-slate-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+              className="p-2.5 rounded-full text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors shrink-0"
               title="Emoji"
             >
               <Smile className="w-5 h-5" />
@@ -281,7 +281,7 @@ export const MessageComposer: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingDeviceFile}
               className={`p-2.5 rounded-full transition-colors shrink-0 ${
-                isUploadingDeviceFile ? 'text-amrin bg-amrin/20 animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                isUploadingDeviceFile ? 'text-amrin bg-amrin/20 animate-pulse' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5'
               }`}
               title="Upload Image/Video from Device"
             >
@@ -299,7 +299,7 @@ export const MessageComposer: React.FC = () => {
               onChange={handleTextChange}
               placeholder="Message..."
               disabled={isSendingMessage}
-              className="flex-1 bg-obsidian-950/80 border border-slate-700/80 rounded-full py-2.5 px-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin disabled:opacity-60"
+              className="flex-1 bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-full py-2.5 px-4 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin disabled:opacity-60"
             />
 
             {/* Dynamic Button: Mic (when empty) vs Send (when text typed or media attached with spinner loader) */}
@@ -320,7 +320,7 @@ export const MessageComposer: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsVoiceRecording(true)}
-                className="w-10 h-10 rounded-full bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700 flex items-center justify-center text-slate-300 transition-all shrink-0"
+                className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-500 dark:hover:text-rose-400 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 transition-all shrink-0"
                 title="Record Voice Note"
               >
                 <Mic className="w-5 h-5" />

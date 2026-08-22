@@ -44,7 +44,7 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
-  const { isActivityDrawerOpen, toggleActivityDrawer } = useUIStore();
+  const { isActivityDrawerOpen, toggleActivityDrawer, theme } = useUIStore();
 
   const { isSessionActive, partnerName, partnerAvatar, setDrawerOpen } = useListenTogetherStore();
   const { user } = useAuthStore();
@@ -70,41 +70,51 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
       <AnniversaryCountdownWidget />
 
       {/* Widget 4: Quick Actions */}
-      <Card variant="glass" className="p-4 space-y-3 border-white/10">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-200">
+      <Card variant="glass" className="p-4 space-y-3 border-slate-200 dark:border-white/10">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
           <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-afzal" /> Quick Actions</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="glass" size="sm" className="text-xs py-2 justify-start" leftIcon={<Plus className="w-3.5 h-3.5 text-afzal" />}>
+          <Button
+            variant="glass"
+            size="sm"
+            className="text-xs py-2 justify-center text-blue-600 dark:text-blue-400 font-bold bg-blue-50/80 dark:bg-white/5 border border-blue-200/80 dark:border-white/10 hover:bg-blue-100"
+            leftIcon={<Plus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+          >
             New Memory
           </Button>
-          <Button variant="glass" size="sm" className="text-xs py-2 justify-start" leftIcon={<Heart className="w-3.5 h-3.5 text-heart" />}>
+          <Button
+            variant="glass"
+            size="sm"
+            className="text-xs py-2 justify-center text-slate-800 dark:text-slate-200 font-bold bg-white/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 hover:bg-rose-50"
+            leftIcon={<Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500/20" />}
+          >
             Write Diary
           </Button>
         </div>
       </Card>
 
       {/* Widget 5: Weather */}
-      <Card variant="glass" className="p-4 flex items-center justify-between border-white/10">
+      <Card variant="glass" className="p-4 flex items-center justify-between border-slate-200 dark:border-white/10">
         <div className="flex items-center gap-3">
           <CloudSun className="w-8 h-8 text-amber-400" />
           <div>
-            <div className="text-xs font-bold text-white">Our Atmosphere</div>
-            <div className="text-[11px] text-slate-400">Sunny • 26°C</div>
+            <div className="text-xs font-bold text-slate-900 dark:text-white">Our Atmosphere</div>
+            <div className="text-[11px] text-slate-600 dark:text-slate-400">Sunny • 26°C</div>
           </div>
         </div>
-        <div className="text-right text-xs font-mono font-bold text-afzal-glow">
+        <div className="text-right text-xs font-mono font-bold text-afzal">
           Clear Skies
         </div>
       </Card>
 
       {/* Widget 6: Notifications */}
-      <Card variant="glass" className="p-4 space-y-3 border-white/10">
-        <div className="flex items-center justify-between text-xs font-bold text-white">
+      <Card variant="glass" className="p-4 space-y-3 border-slate-200 dark:border-white/10">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-900 dark:text-white">
           <span className="flex items-center gap-1.5"><Bell className="w-3.5 h-3.5 text-afzal" /> Notifications</span>
-          <span className="text-[10px] text-slate-400">0 unread</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400">0 unread</span>
         </div>
-        <p className="text-xs text-slate-400 text-center py-2">No new alerts.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">No new alerts.</p>
       </Card>
     </div>
   );
@@ -120,11 +130,11 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           <button
             type="button"
             onClick={() => setIsAppLauncherOpen(true)}
-            className="w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border border-white/15 shadow-xl active:scale-95 transition-all flex items-center justify-center text-slate-300 hover:text-white hover:border-amrin-glow/50 group"
+            className="w-11 h-11 rounded-full bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-xl border border-slate-200 dark:border-white/15 shadow-xl active:scale-95 transition-all flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-amrin/50 group"
             aria-label="Universe Apps"
             title="Universe Apps"
           >
-            <LayoutGrid className="w-5 h-5 group-hover:text-amrin-glow transition-colors" />
+            <LayoutGrid className="w-5 h-5 group-hover:text-amrin transition-colors" />
           </button>
 
           {/* 2. Listen Together Active Dual-Avatar Floating Button */}
@@ -165,10 +175,10 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
             <button
               type="button"
               onClick={() => toggleActivityDrawer(true)}
-              className={`w-11 h-11 rounded-full bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
+              className={`w-11 h-11 rounded-full bg-white/90 dark:bg-obsidian-950/90 backdrop-blur-xl border shadow-xl active:scale-95 transition-all flex items-center justify-center relative overflow-hidden ${
                 isPlayingSolo
-                  ? 'border-amrin-glow ring-2 ring-amrin-glow/50 shadow-lg shadow-amrin-glow/30'
-                  : 'border-white/15 text-slate-300 hover:text-white hover:border-amrin-glow/50'
+                  ? 'border-amrin ring-2 ring-amrin/50 shadow-lg shadow-amrin/30'
+                  : 'border-slate-200 dark:border-white/15 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-amrin/50'
               }`}
               aria-label="Open Activity Bar"
               title={isPlayingSolo ? `Playing: ${currentTrack?.title || 'Shared Melody'}` : 'Open Activity Bar'}
@@ -180,16 +190,16 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
                   className="w-full h-full object-cover rounded-full select-none"
                 />
               ) : isPlayingSolo ? (
-                <Music className="w-5 h-5 text-amrin-glow" />
+                <Music className="w-5 h-5 text-amrin" />
               ) : (
-                <Sparkles className="w-5 h-5 text-amber-300" />
+                <Sparkles className={`w-5 h-5 ${theme === 'light' ? 'text-blue-500' : 'text-amber-500 dark:text-amber-300'}`} />
               )}
             </button>
 
             {/* Top-Right Glowing Animated Music Note Bubble Badge while Playing Solo */}
             {isPlayingSolo && (
               <div
-                className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-afzal via-rose-500 to-amrin border-2 border-obsidian-950 shadow-lg shadow-rose-500/60 flex items-center justify-center pointer-events-none animate-bounce"
+                className="absolute -top-1 -right-1 z-20 w-5 h-5 rounded-full bg-gradient-to-tr from-afzal via-rose-500 to-amrin border-2 border-white dark:border-obsidian-950 shadow-lg shadow-rose-500/60 flex items-center justify-center pointer-events-none animate-bounce"
                 title="Playing Shared Music"
               >
                 <Music className="w-2.5 h-2.5 text-white animate-pulse" />
@@ -214,15 +224,15 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="w-80 max-w-[85vw] h-full bg-obsidian-950 border-l border-white/10 p-4 space-y-4 overflow-y-auto select-none"
+              className="w-80 max-w-[85vw] h-full bg-white dark:bg-obsidian-950 border-l border-slate-200 dark:border-white/10 p-4 space-y-4 overflow-y-auto select-none"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-white">
-                  <Sparkles className="w-4 h-4 text-amrin-glow" /> Activity & Context Bar
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
+                  <Sparkles className="w-4 h-4 text-amrin" /> Activity & Context Bar
                 </div>
                 <button
                   onClick={() => toggleActivityDrawer(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -240,16 +250,16 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 50 }}
-          className="hidden xl:flex flex-col w-80 h-[calc(100vh-4rem)] sticky top-16 border-l border-white/10 glass-panel shrink-0 p-4 space-y-4 overflow-y-auto select-none z-30"
+          className="hidden xl:flex flex-col w-80 h-[calc(100vh-4rem)] sticky top-16 border-l border-slate-200 dark:border-white/10 glass-panel shrink-0 p-4 space-y-4 overflow-y-auto select-none z-30"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-white">
-              <Sparkles className="w-4 h-4 text-amrin-glow" /> Activity & Context Bar
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
+              <Sparkles className="w-4 h-4 text-amrin" /> Activity & Context Bar
             </div>
             <button
               onClick={onToggle}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
+              className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

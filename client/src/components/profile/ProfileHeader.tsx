@@ -44,23 +44,23 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
 
   return (
     <>
-      <Card variant="glass" className="p-6 border-white/10 shadow-2xl relative overflow-hidden select-none">
+      <Card variant="glass" className="p-6 border-slate-200 dark:border-white/10 shadow-2xl relative overflow-hidden select-none">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
           
           {/* Instagram Style Large Avatar */}
           <div className="relative shrink-0">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-2xl">
-              <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center font-extrabold text-white text-3xl overflow-hidden p-0.5">
+              <div className="w-full h-full rounded-full bg-slate-100 dark:bg-obsidian-950 flex items-center justify-center font-extrabold text-slate-900 dark:text-white text-3xl overflow-hidden p-0.5">
                 {displayUser?.avatar && !displayUser.avatar.includes('unsplash.com') ? (
                   <img src={displayUser.avatar} alt={displayUser.name} className="w-full h-full object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; }} />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 flex items-center justify-center">
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
                     <UserCircle2 className="w-12 h-12 text-slate-400" />
                   </div>
                 )}
               </div>
             </div>
-            <span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute bottom-1 right-2" />
+            <span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-50 dark:border-obsidian-950 absolute bottom-1 right-2" />
           </div>
 
           {/* User & Relationship Details */}
@@ -68,7 +68,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
                 <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-                  <h2 className="text-2xl font-extrabold text-white tracking-tight">{displayUser?.name}</h2>
+                  <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">{displayUser?.name}</h2>
                   {isCoOwner && (
                     <Badge variant="cyan" size="sm">
                       <Shield className="w-3 h-3" /> Princess 👸
@@ -84,7 +84,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">{displayUser?.email}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{displayUser?.email}</p>
               </div>
 
               {/* Action Buttons: Show Edit/Logout ONLY on Self Profile */}
@@ -102,7 +102,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                   {currentUser?.role === 'SUPER_OWNER' && (
                     <button
                       onClick={() => navigate('/settings')}
-                      className="p-2 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-2 rounded-xl glass-panel text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                       title="Settings & Security"
                     >
                       <Settings className="w-4 h-4" />
@@ -111,7 +111,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
 
                   <button
                     onClick={handleLogout}
-                    className="p-2 rounded-xl glass-panel text-rose-400 hover:bg-rose-950/40 transition-colors"
+                    className="p-2 rounded-xl glass-panel text-rose-500 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/40 transition-colors"
                     title="Sign Out"
                   >
                     <LogOut className="w-4 h-4" />
@@ -127,10 +127,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
             </div>
 
             {/* Instagram Style Counts (Posts, Followers, Following) */}
-            <div className="flex items-center justify-center md:justify-start gap-6 sm:gap-8 py-2 border-y border-white/5">
+            <div className="flex items-center justify-center md:justify-start gap-6 sm:gap-8 py-2 border-y border-slate-200 dark:border-white/5">
               <div className="text-center md:text-left">
-                <span className="text-base font-extrabold text-white font-mono">{stats.postsCount}</span>
-                <span className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">{stats.postsCount}</span>
+                <span className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <Grid className="w-3 h-3 text-amrin" /> Posts
                 </span>
               </div>
@@ -140,10 +140,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                 onClick={() => setActiveUserListModal('followers')}
                 className="text-center md:text-left hover:opacity-80 transition-opacity cursor-pointer"
               >
-                <span className="text-base font-extrabold text-white font-mono">
+                <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
                   {stats.followersCount ?? followers.length}
                 </span>
-                <span className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <span className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <Users className="w-3 h-3 text-afzal" /> Followers
                 </span>
               </button>
@@ -153,10 +153,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
                 onClick={() => setActiveUserListModal('following')}
                 className="text-center md:text-left hover:opacity-80 transition-opacity cursor-pointer"
               >
-                <span className="text-base font-extrabold text-white font-mono">
+                <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
                   {stats.followingCount ?? following.length}
                 </span>
-                <span className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                <span className="block text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                   <Users className="w-3 h-3 text-heart" /> Following
                 </span>
               </button>
@@ -166,12 +166,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
             <div className="space-y-1.5 pt-1 text-center md:text-left">
 
               {displayUser?.username && (
-                <div className="text-xs text-slate-400 font-mono font-semibold">
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-mono font-semibold">
                   @{displayUser.username}
                 </div>
               )}
 
-              <p className="text-xs text-slate-300 leading-relaxed italic max-w-xl">
+              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic max-w-xl">
                 "{displayUser?.bio || 'Living our dream journey together in Afrin Verse ❤️'}"
               </p>
 
@@ -206,16 +206,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-sm bg-obsidian-950 border border-white/15 rounded-3xl p-5 space-y-4 shadow-2xl"
+              className="w-full max-w-sm bg-white dark:bg-obsidian-950 border border-slate-200 dark:border-white/15 rounded-3xl p-5 space-y-4 shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-                  <Users className="w-4 h-4 text-amrin-glow" />
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  <Users className="w-4 h-4 text-amrin dark:text-amrin-glow" />
                   <span>{activeUserListModal === 'followers' ? 'Followers' : 'Following'}</span>
                 </div>
                 <button
                   onClick={() => setActiveUserListModal(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  className="p-1 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -223,26 +223,26 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ profileUser, stats
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {(activeUserListModal === 'followers' ? followers : following).length === 0 ? (
-                  <p className="text-center text-xs text-slate-400 py-4">No users listed.</p>
+                  <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-4">No users listed.</p>
                 ) : (
                   (activeUserListModal === 'followers' ? followers : following).map((u: any, idx: number) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 overflow-hidden">
                           {u.avatar && !u.avatar.includes('unsplash.com') ? (
                             <img src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" onError={(e) => { e.currentTarget.style.display='none'; }} />
                           ) : (
-                            <div className="w-full h-full bg-obsidian-900 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                            <div className="w-full h-full bg-slate-100 dark:bg-obsidian-900 rounded-full flex items-center justify-center text-slate-700 dark:text-white font-bold text-xs">
                               {u.name?.[0] || 'U'}
                             </div>
                           )}
                         </div>
                         <div>
-                          <span className="text-xs font-bold text-white block">{u.name}</span>
-                          <span className="text-[10px] text-slate-400 block">{u.email}</span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block">{u.name}</span>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{u.email}</span>
                         </div>
                       </div>
                       <Badge variant="violet" size="sm">Partner</Badge>

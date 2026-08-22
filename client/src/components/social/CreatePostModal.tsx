@@ -324,14 +324,14 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 animate-fade-in select-none">
-      <div className="w-full max-w-xl glass-card rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in select-none">
+      <div className="w-full max-w-xl glass-card rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden relative flex flex-col max-h-[90vh] bg-white/95 dark:bg-obsidian-950/95">
         {/* Header */}
-        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-obsidian-950/80">
+        <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/90 dark:bg-obsidian-950/80">
           {step !== 'SELECT' ? (
             <button
               onClick={() => setStep(step === 'DETAILS' ? 'CROP' : 'SELECT')}
-              className="text-xs font-semibold text-amrin-glow hover:underline"
+              className="text-xs font-semibold text-amrin hover:underline"
             >
               Back
             </button>
@@ -339,7 +339,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <span className="w-8" />
           )}
 
-          <h3 className="text-sm font-bold text-white tracking-tight">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
             {step === 'SELECT' ? 'Create New Post' : step === 'CROP' ? 'Crop & Edit' : 'New Post Details'}
           </h3>
 
@@ -348,7 +348,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               resetState();
               onClose();
             }}
-            className="text-slate-400 hover:text-white p-1"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -384,16 +384,16 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-2xl">
-              <div className="w-full h-full rounded-full bg-obsidian-950 flex items-center justify-center text-amrin-glow">
-                <ImageIcon className="w-9 h-9" />
+              <div className="w-full h-full rounded-full bg-slate-900 dark:bg-obsidian-950 flex items-center justify-center text-amrin">
+                <ImageIcon className="w-9 h-9 text-white" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <h4 className="text-base font-bold text-white">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white">
                 {createType === 'STORY' ? 'Create a 24h Story' : 'Create a New Post'}
               </h4>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {createType === 'STORY'
                   ? 'Share an instant moment that expires in 24 hours'
                   : 'Share your favorite photos and videos with partner and family'}
@@ -412,7 +412,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="w-full py-2.5 px-4 rounded-2xl glass-panel border border-white/10 text-white font-semibold text-xs hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-2xl glass-panel border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-semibold text-xs hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
               >
                 <Camera className="w-4 h-4 text-amrin" /> Take Photo with Camera
               </button>
@@ -420,7 +420,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={() => setShowMediaPicker(true)}
-                className="w-full py-2.5 px-4 rounded-2xl glass-panel border border-white/10 text-slate-300 font-semibold text-xs hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-4 rounded-2xl glass-panel border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-2"
               >
                 <Grid className="w-4 h-4 text-afzal" /> Choose From Media Vault
               </button>
@@ -459,7 +459,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               onWheel={handleWheel}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
-              className="w-full flex items-center justify-center flex-1 bg-obsidian-950 p-2 rounded-2xl border border-white/10 h-[380px] relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
+              className="w-full flex items-center justify-center flex-1 bg-slate-950 p-2 rounded-2xl border border-slate-200 dark:border-white/10 h-[380px] relative overflow-hidden cursor-grab active:cursor-grabbing select-none"
               style={{ touchAction: 'none' }}
             >
               {/* Full Image Layer (Visible underneath overlay mask) */}
@@ -515,8 +515,8 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             {/* Controls Bar */}
-            <div className="glass-panel p-3 rounded-2xl border border-white/10 space-y-3">
-              <div className="flex items-center justify-between text-xs text-slate-300">
+            <div className="glass-panel p-3 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
                 <span className="font-bold flex items-center gap-1">
                   <Crop className="w-3.5 h-3.5 text-amrin" /> Aspect Ratio:
                 </span>
@@ -529,7 +529,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                       className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
                         aspectRatio === ratio
                           ? 'bg-gradient-to-r from-afzal to-amrin text-white shadow-md'
-                          : 'bg-white/5 text-slate-400 hover:text-white'
+                          : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       {ratio}
@@ -538,12 +538,12 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4 pt-1 border-t border-white/5">
+              <div className="flex items-center justify-between gap-4 pt-1 border-t border-slate-200 dark:border-white/5">
                 <div className="flex items-center gap-2 flex-1">
                   <button
                     type="button"
                     onClick={() => setZoom(Math.max(0.5, zoom - 0.15))}
-                    className="p-1.5 rounded-lg glass-panel text-slate-300 hover:text-white"
+                    className="p-1.5 rounded-lg glass-panel text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                     title="Zoom Out"
                   >
                     <ZoomOut className="w-4 h-4" />
@@ -555,12 +555,12 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     step="0.05"
                     value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="w-full accent-amrin bg-slate-800 h-1.5 rounded-lg cursor-pointer"
+                    className="w-full accent-amrin bg-slate-200 dark:bg-slate-800 h-1.5 rounded-lg cursor-pointer"
                   />
                   <button
                     type="button"
                     onClick={() => setZoom(Math.min(3.5, zoom + 0.15))}
-                    className="p-1.5 rounded-lg glass-panel text-slate-300 hover:text-white"
+                    className="p-1.5 rounded-lg glass-panel text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                     title="Zoom In"
                   >
                     <ZoomIn className="w-4 h-4" />
@@ -570,7 +570,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setRotation((r) => (r + 90) % 360)}
-                  className="px-3 py-1.5 rounded-xl glass-panel text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 shrink-0"
+                  className="px-3 py-1.5 rounded-xl glass-panel text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 shrink-0"
                 >
                   <RotateCw className="w-3.5 h-3.5 text-afzal" /> Rotate ({rotation}°)
                 </button>
@@ -600,9 +600,9 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* STEP 3: POST DETAILS & CAPTION */}
         {step === 'DETAILS' && (
           <div className="p-6 space-y-4 overflow-y-auto flex-1">
-            <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
               <div
-                className={`w-20 rounded-xl bg-black overflow-hidden border border-white/10 shrink-0 flex items-center justify-center shadow-md ${
+                className={`w-20 rounded-xl bg-black overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 flex items-center justify-center shadow-md ${
                   aspectRatio === '1:1'
                     ? 'h-20 aspect-square'
                     : aspectRatio === '4:5'
@@ -620,13 +620,13 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
 
               <div className="flex-1 space-y-1">
-                <label className="text-xs font-bold text-slate-300">Caption</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Caption</label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   placeholder="Write a caption for your post..."
                   rows={3}
-                  className="w-full bg-obsidian-900/90 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin"
+                  className="w-full bg-slate-50 dark:bg-obsidian-900/90 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin"
                 />
               </div>
             </div>
@@ -639,7 +639,7 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="Add location..."
-                  className="w-full bg-obsidian-900/90 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-obsidian-900/90 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
                 />
               </div>
 
@@ -650,17 +650,17 @@ export const CreatePostModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
                   placeholder="Tags (comma separated)..."
-                  className="w-full bg-obsidian-900/90 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-obsidian-900/90 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-300">Visibility</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Visibility</label>
               <select
                 value={visibility}
                 onChange={(e: any) => setVisibility(e.target.value)}
-                className="w-full bg-obsidian-900/90 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none"
+                className="w-full bg-slate-50 dark:bg-obsidian-900/90 border border-slate-200 dark:border-white/10 rounded-xl p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none"
               >
                 <option value="COUPLE">Partner Only ❤️</option>
                 <option value="FRIENDS">Friends & Family 👥</option>

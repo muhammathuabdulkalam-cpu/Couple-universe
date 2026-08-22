@@ -48,14 +48,16 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
   };
 
   const targetId = getTargetIdStr(activity._id);
+  const referenceId = activity.referenceId ? getTargetIdStr(activity.referenceId) : '';
   const targetType = (activity.refModel === 'TimelineEvent' ? 'MEMORY' : activity.refModel === 'Story' ? 'STORY' : 'ACTIVITY') as 'MEMORY' | 'STORY' | 'ACTIVITY';
+  const refQuery = referenceId ? `?referenceId=${referenceId}` : '';
 
   // Fetch reactions
   const { data: reactionsData } = useQuery<{ reactions: ReactionItem[]; summary: Record<string, number>; total: number }>({
-    queryKey: ['reactions', targetType, targetId],
+    queryKey: ['reactions', targetType, targetId, referenceId],
     queryFn: async () => {
       const res = await axiosClient.get<ApiResponse<{ reactions: ReactionItem[]; summary: Record<string, number>; total: number }>>(
-        `/reactions/${targetType}/${targetId}`
+        `/reactions/${targetType}/${targetId}${refQuery}`
       );
       return res.data.data!;
     },
@@ -64,9 +66,9 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
 
   // Fetch my reaction
   const { data: myReaction } = useQuery<ReactionItem | null>({
-    queryKey: ['myReaction', targetType, targetId],
+    queryKey: ['myReaction', targetType, targetId, referenceId],
     queryFn: async () => {
-      const res = await axiosClient.get<ApiResponse<ReactionItem>>(`/reactions/${targetType}/${targetId}/mine`);
+      const res = await axiosClient.get<ApiResponse<ReactionItem>>(`/reactions/${targetType}/${targetId}/mine${refQuery}`);
       return res.data.data ?? null;
     },
     enabled: !!targetId,
@@ -77,10 +79,12 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       axiosClient.post(`/reactions/${targetType}/${targetId}`, {
         emoji,
         authorId: activity.userId._id,
+        referenceId,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reactions', targetType, targetId] });
-      qc.invalidateQueries({ queryKey: ['myReaction', targetType, targetId] });
+      qc.invalidateQueries({ queryKey: ['reactions'] });
+      qc.invalidateQueries({ queryKey: ['myReaction'] });
+      qc.invalidateQueries({ queryKey: ['reactionsListModal'] });
     },
   });
 
@@ -140,12 +144,12 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
     <div
       className={`transition-all select-none w-full max-w-full ${
         variant === 'modal'
-          ? 'bg-transparent text-white'
-          : 'glass-card rounded-3xl border shadow-xl mb-5 overflow-hidden border-white/10 hover:border-white/20'
+          ? 'bg-transparent text-slate-900 dark:text-white'
+          : 'glass-card rounded-3xl border shadow-xl mb-5 overflow-hidden border-slate-200/80 dark:border-white/10 hover:border-amrin/40'
       } ${highlighted ? 'border-amrin shadow-2xl ring-2 ring-amrin/50' : ''}`}
     >
       {/* 1. Instagram Post Header */}
-      <div className="p-3.5 flex items-center justify-between border-b border-white/5 bg-obsidian-950/60">
+      <div className="p-3.5 flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-obsidian-950/60">
         <div
           className="flex items-center gap-3 cursor-pointer group"
           onClick={() => {
@@ -155,7 +159,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           }}
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-afzal via-amrin to-heart p-[2px] shadow-md shrink-0 group-hover:scale-105 transition-transform">
-            <div className="w-full h-full rounded-full bg-obsidian-950 overflow-hidden flex items-center justify-center">
+            <div className="w-full h-full rounded-full bg-slate-900 dark:bg-obsidian-950 overflow-hidden flex items-center justify-center">
               {activity.userId.avatar ? (
                 <img src={activity.userId.avatar} alt={activity.userId.name} className="w-full h-full object-cover"  onError={(e) => { if (!e.currentTarget.src || e.currentTarget.src.includes('unsplash.com')) { e.currentTarget.style.display='none'; } }}/>
               ) : (
@@ -164,8 +168,8 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
             </div>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white leading-snug group-hover:text-amrin-glow transition-colors">{activity.userId.name}</h4>
-            <p className="text-[10px] text-slate-400 font-mono">{activity.description?.startsWith('📍') ? activity.description : formattedDate}</p>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug group-hover:text-amrin transition-colors">{activity.userId.name}</h4>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{activity.description?.startsWith('📍') ? activity.description : formattedDate}</p>
           </div>
         </div>
 
@@ -173,18 +177,18 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           <button
             type="button"
             onClick={() => setShowMenu((v) => !v)}
-            className="p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-white/5"
+            className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/5"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-8 z-30 w-36 glass-panel rounded-2xl p-1.5 border border-white/10 shadow-2xl space-y-1 bg-obsidian-950/95 backdrop-blur-2xl">
+            <div className="absolute right-0 top-8 z-30 w-36 glass-panel rounded-2xl p-1.5 border border-slate-200 dark:border-white/10 shadow-2xl space-y-1 bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-2xl">
               {canDelete && (
                 <button
                   type="button"
                   onClick={handleDeletePost}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-3.5 h-3.5" /> Delete Post
                 </button>
@@ -196,7 +200,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
                     setShowReportModal(true);
                     setShowMenu(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs font-semibold text-amber-400 hover:bg-amber-500/10 rounded-xl transition-colors"
+                  className="w-full text-left px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors"
                 >
                   Report Post
                 </button>
@@ -234,7 +238,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
         return (
           <div
             onDoubleClick={handleDoubleTap}
-            className={`relative w-full ${aspectClass} bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer`}
+            className={`relative w-full ${aspectClass} bg-slate-100 dark:bg-obsidian-950 overflow-hidden flex items-center justify-center cursor-pointer`}
           >
             {isVideo ? (
               <video src={postImageUrl} controls className={fitClass} />
@@ -266,18 +270,18 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
       })()}
 
       {/* 3. Instagram Action Buttons Row */}
-      <div className="px-4 py-2.5 flex items-center justify-between border-t border-white/5 relative">
+      <div className="px-4 py-2.5 flex items-center justify-between border-t border-slate-200/60 dark:border-white/5 relative">
         <div className="flex items-center gap-4">
           {/* Heart / Like Button */}
           <div className="relative">
             <button
               type="button"
               onClick={() => handleReact('❤️')}
-              className="text-slate-300 hover:text-heart transition-colors p-1"
+              className="text-slate-600 dark:text-slate-300 hover:text-heart transition-colors p-1"
             >
               <Heart
                 className={`w-6 h-6 transition-transform active:scale-125 ${
-                  myReaction ? 'text-heart fill-heart' : 'text-slate-300'
+                  myReaction ? 'text-heart fill-heart' : 'text-slate-600 dark:text-slate-300'
                 }`}
               />
             </button>
@@ -293,7 +297,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
           <button
             type="button"
             onClick={() => setShowComments((v) => !v)}
-            className="text-slate-300 hover:text-white transition-colors p-1"
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors p-1"
           >
             <MessageCircle className="w-6 h-6" />
           </button>
@@ -306,7 +310,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
                 navigator.share({ title: activity.title || 'Afrin Verse Post', url: window.location.href });
               }
             }}
-            className="text-slate-300 hover:text-white transition-colors p-1"
+            className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors p-1"
           >
             <Send className="w-5 h-5" />
           </button>
@@ -319,26 +323,26 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
         <button
           type="button"
           onClick={() => setShowLikesModal(true)}
-          className="text-xs font-bold text-white hover:underline block text-left cursor-pointer"
+          className="text-xs font-bold text-slate-900 dark:text-white hover:underline block text-left cursor-pointer"
         >
           {likesDisplay}
         </button>
 
         {/* Post Author & Description */}
-        <div className="text-white leading-relaxed pt-0.5">
+        <div className="text-slate-900 dark:text-white leading-relaxed pt-0.5">
           <span className="font-bold mr-2">{activity.userId.name}</span>
-          <span className="text-slate-200">{activity.title || activity.description}</span>
+          <span className="text-slate-700 dark:text-slate-200">{activity.title || activity.description}</span>
         </div>
 
         {activity.description && activity.title && (
-          <p className="text-slate-400 text-[11px] leading-relaxed pt-0.5">{activity.description}</p>
+          <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed pt-0.5">{activity.description}</p>
         )}
 
         {/* View Comments Link */}
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}
-          className="text-slate-400 hover:text-slate-200 text-[11px] pt-1 block cursor-pointer"
+          className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-[11px] pt-1 block cursor-pointer"
         >
           {showComments ? 'Hide comments' : 'View all comments'}
         </button>
@@ -346,7 +350,7 @@ export const FeedCard: React.FC<Props> = ({ activity, autoOpenComments = false, 
 
       {/* Expandable Comment Section */}
       {showComments && (
-        <div className="p-4 border-t border-white/5 bg-obsidian-950/60">
+        <div className="p-4 border-t border-slate-200/60 dark:border-white/5 bg-slate-50/80 dark:bg-obsidian-950/60">
           <CommentSection targetType={targetType} targetId={targetId} authorId={activity.userId._id} />
         </div>
       )}

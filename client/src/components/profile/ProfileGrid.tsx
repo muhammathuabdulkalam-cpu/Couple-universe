@@ -7,7 +7,6 @@ import { useAuthStore } from '../../store/authStore.js';
 import { useMediaStore } from '../../store/mediaStore.js';
 import { ActivityItem, ApiResponse, MediaItem, StoryItem } from '../../types/index.js';
 import { FeedCard } from '../social/FeedCard.js';
-import { Skeleton } from '../ui/Skeleton.js';
 
 interface ProfileGridProps {
   activeTab: 'posts' | 'stories' | 'memories' | 'tagged';
@@ -80,7 +79,7 @@ export const ProfileGrid: React.FC<ProfileGridProps> = ({ activeTab, targetUser 
     return (
       <div className="grid grid-cols-3 gap-1 md:gap-3 pt-2">
         {Array.from({ length: 9 }).map((_, i) => (
-          <Skeleton key={i} className="aspect-square rounded-lg md:rounded-xl" />
+          <div key={i} className="aspect-square rounded-lg md:rounded-xl bg-slate-200 dark:bg-white/10 animate-pulse" />
         ))}
       </div>
     );

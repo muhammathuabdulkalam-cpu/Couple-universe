@@ -20,7 +20,7 @@ import { Card } from '../ui/Card.js';
 
 export const CalendarEventDetailModal: React.FC = () => {
   const { user } = useAuthStore();
-  const { addToast } = useUIStore();
+  const { addToast, theme } = useUIStore();
   const {
     selectedEventDetail,
     isDetailModalOpen,
@@ -181,7 +181,7 @@ export const CalendarEventDetailModal: React.FC = () => {
                     <Button variant="glass" size="sm" onClick={handleEdit}>
                       Edit Event
                     </Button>
-                    <Button variant="glass" size="sm" onClick={handleSoftDelete} className="text-rose-400">
+                    <Button variant="glass" size="sm" onClick={handleSoftDelete} className={theme === 'light' ? 'text-blue-600 hover:text-blue-700' : 'text-rose-400'}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>

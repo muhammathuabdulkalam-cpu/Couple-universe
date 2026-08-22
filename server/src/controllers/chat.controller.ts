@@ -245,9 +245,28 @@ export const getUserConversations = catchAsync(async (req: Request, res: Respons
     return superOwner ? superOwner._id.toString() : '';
   };
 
-  // 1. Auto-initialize 1-on-1 private conversations scoped by ownership
+  // 1. Auto-initialize conversations scoped by ownership
   try {
     if (currentUser.role === 'SUPER_OWNER' || currentUser.role === 'CO_OWNER') {
+      // Auto-create the RELATIONSHIP room between SUPER_OWNER & CO_OWNER if it doesn't exist
+      const existingRelationshipRoom = await Conversation.findOne({
+        type: 'RELATIONSHIP',
+        isDeleted: false,
+      });
+      if (!existingRelationshipRoom) {
+        const owners = await User.find({ role: { $in: ['SUPER_OWNER', 'CO_OWNER'] }, isDeleted: false }).select('_id');
+        const ownerIds = owners.map((o) => o._id);
+        await Conversation.create({
+          type: 'RELATIONSHIP',
+          participants: ownerIds.length > 0 ? ownerIds : [currentUser._id],
+          createdBy: currentUser._id,
+          groupInfo: {
+            name: 'Afzal & Amrin Relationship Chat ❤️',
+            description: 'Official private life communication room',
+          },
+        });
+      }
+
       const mySubUserIdStrs = await getMySubUserIds(currentUser._id);
 
       for (const subUserIdStr of mySubUserIdStrs) {

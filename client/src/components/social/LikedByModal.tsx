@@ -13,9 +13,6 @@ interface LikedByModalProps {
   onClose: () => void;
 }
 
-import { useAuthStore } from '../../store/authStore.js';
-import { useUIStore } from '../../store/uiStore.js';
-
 export const LikedByModal: React.FC<LikedByModalProps> = ({
   targetType,
   targetId,
@@ -23,8 +20,6 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
   onClose,
 }) => {
   const navigate = useNavigate();
-  const { user: currentUser } = useAuthStore();
-  const { addToast } = useUIStore();
   const [selectedEmoji, setSelectedEmoji] = useState<string>('ALL');
 
   const { data: reactionsData, isLoading } = useQuery<{
@@ -55,20 +50,8 @@ export const LikedByModal: React.FC<LikedByModalProps> = ({
 
   const emojiTabs = ['ALL', ...Object.keys(summary)];
 
-  const handleUserProfileClick = (uObj: any, uId: string) => {
+  const handleUserProfileClick = (_uObj: any, uId: string) => {
     if (!uId) return;
-
-    const currentUserIdStr = (currentUser?._id || currentUser?.id)?.toString();
-    const isSelf = currentUserIdStr === uId.toString();
-
-    if (currentUser?.role === 'INVITED_USER' && !isSelf) {
-      const isTargetOwner = uObj?.role === 'SUPER_OWNER' || uObj?.role === 'CO_OWNER';
-      if (!isTargetOwner) {
-        addToast('Access Restricted', 'Invited users can only view their own profile or their parent owner profile.', 'warning');
-        return;
-      }
-    }
-
     onClose();
     navigate('/profile', { state: { targetUserId: uId.toString() } });
   };

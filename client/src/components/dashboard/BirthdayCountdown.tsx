@@ -4,6 +4,7 @@ import { Sparkles, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
+import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse } from '../../types/index.js';
 
 import { Avatar } from '../ui/Avatar.js';
@@ -14,6 +15,7 @@ interface BirthdayCountdownProps {
 
 export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 'compact' }) => {
   const { user } = useAuthStore();
+  const theme = useUIStore((s) => s.theme);
 
   // Fetch Profile details (includes partner information & birthday)
   const { data: profileData } = useQuery<any>({
@@ -127,51 +129,55 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-panel p-3.5 rounded-3xl border border-white/10 shadow-xl bg-gradient-to-b from-obsidian-950 via-obsidian-900 to-obsidian-950 space-y-3 select-none overflow-hidden"
+        className="glass-panel p-3.5 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xl bg-white/90 dark:bg-gradient-to-b dark:from-obsidian-950 dark:via-obsidian-900 dark:to-obsidian-950 space-y-3 select-none overflow-hidden"
       >
         {/* Top Header Row */}
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-md shrink-0">
-            <div className="w-full h-full bg-obsidian-950 rounded-[10px] flex items-center justify-center overflow-hidden">
+          <div className={`w-9 h-9 rounded-xl p-0.5 shadow-md shrink-0 transition-all ${
+            theme === 'light'
+              ? 'bg-gradient-to-tr from-blue-600 via-sky-400 to-indigo-500'
+              : 'bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600'
+          }`}>
+            <div className="w-full h-full bg-slate-900 dark:bg-obsidian-950 rounded-[10px] flex items-center justify-center overflow-hidden">
               <Avatar src={targetAvatar} name={targetName} size="sm" />
             </div>
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> Birthday
+              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-500" /> Birthday
               </span>
-              <span className="px-1.5 py-0.2 rounded-full text-[8px] font-bold bg-amrin/20 text-amrin-glow border border-amrin/30">
+              <span className="px-1.5 py-0.2 rounded-full text-[8px] font-bold bg-violet-100 dark:bg-amrin/20 text-violet-800 dark:text-amrin-glow border border-violet-300 dark:border-amrin/30">
                 {targetRole}
               </span>
             </div>
-            <h4 className="text-xs font-extrabold text-white truncate mt-0.5">
+            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white truncate mt-0.5">
               {getHeadingText()}
             </h4>
           </div>
         </div>
 
         {/* 4 Stat Pills Grid */}
-        <div className="grid grid-cols-4 gap-1.5 text-center pt-1 border-t border-white/5">
-          <div className="glass-card py-1.5 rounded-xl border border-white/10">
-            <div className="text-xs font-extrabold text-amber-400 font-mono">{timeLeft.days}</div>
-            <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">DAYS</div>
+        <div className="grid grid-cols-4 gap-1.5 text-center pt-1 border-t border-slate-200/60 dark:border-white/5">
+          <div className="glass-card py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10">
+            <div className={`text-xs font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-amber-600 dark:text-amber-400'}`}>{timeLeft.days}</div>
+            <div className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">DAYS</div>
           </div>
 
-          <div className="glass-card py-1.5 rounded-xl border border-white/10">
-            <div className="text-xs font-extrabold text-rose-400 font-mono">{timeLeft.hours}</div>
-            <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">HRS</div>
+          <div className="glass-card py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10">
+            <div className={`text-xs font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-rose-600 dark:text-rose-400'}`}>{timeLeft.hours}</div>
+            <div className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">HRS</div>
           </div>
 
-          <div className="glass-card py-1.5 rounded-xl border border-white/10">
-            <div className="text-xs font-extrabold text-purple-400 font-mono">{timeLeft.minutes}</div>
-            <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">MINS</div>
+          <div className="glass-card py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10">
+            <div className={`text-xs font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-purple-600 dark:text-purple-400'}`}>{timeLeft.minutes}</div>
+            <div className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">MINS</div>
           </div>
 
-          <div className="glass-card py-1.5 rounded-xl border border-amrin/30">
-            <div className="text-xs font-extrabold text-white font-mono">{timeLeft.seconds}</div>
-            <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">SECS</div>
+          <div className={`glass-card py-1.5 rounded-xl border ${theme === 'light' ? 'border-blue-500/20' : 'border-amrin/30'}`}>
+            <div className={`text-xs font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>{timeLeft.seconds}</div>
+            <div className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">SECS</div>
           </div>
         </div>
       </motion.div>
@@ -183,7 +189,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-panel p-4 rounded-3xl border border-amber-500/30 shadow-2xl bg-gradient-to-r from-obsidian-950 via-obsidian-900 to-obsidian-950 relative overflow-hidden select-none"
+      className="glass-panel p-4 rounded-3xl border border-amber-500/30 shadow-2xl bg-white/90 dark:bg-gradient-to-r dark:from-obsidian-950 dark:via-obsidian-900 dark:to-obsidian-950 relative overflow-hidden select-none"
     >
       <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-purple-600/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -193,7 +199,7 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
           localStorage.setItem(`hide_birthday_${targetName}`, 'true');
           setIsDismissed(true);
         }}
-        className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition z-20"
+        className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition z-20"
         title="Dismiss Countdown"
       >
         <X className="w-4 h-4" />
@@ -203,52 +209,56 @@ export const BirthdayCountdown: React.FC<BirthdayCountdownProps> = ({ variant = 
         
         {/* Left: Partner Avatar & Greeting */}
         <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-0.5 shadow-lg shadow-rose-500/20 shrink-0">
-            <div className="w-full h-full bg-obsidian-950 rounded-[14px] flex items-center justify-center overflow-hidden">
+          <div className={`w-12 h-12 rounded-2xl p-0.5 shrink-0 transition-all ${
+            theme === 'light'
+              ? 'bg-gradient-to-tr from-blue-600 via-sky-400 to-indigo-500 shadow-lg shadow-blue-500/25'
+              : 'bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 shadow-lg shadow-rose-500/20'
+          }`}>
+            <div className="w-full h-full bg-slate-900 dark:bg-obsidian-950 rounded-[14px] flex items-center justify-center overflow-hidden">
               <Avatar src={targetAvatar} name={targetName} size="md" />
             </div>
           </div>
 
           <div className="space-y-0.5 truncate">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Upcoming Partner Birthday
+              <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Upcoming Partner Birthday
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amrin/20 text-amrin-glow border border-amrin/30">
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-100 dark:bg-amrin/20 text-violet-800 dark:text-amrin-glow border border-violet-300 dark:border-amrin/30">
                 {targetRole}
               </span>
             </div>
 
-            <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate">
+            <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
               {getHeadingText()}
             </h3>
 
-            <p className="text-xs text-slate-400 truncate">
-              Celebrating <strong className="text-white">{targetName}'s</strong> special milestone birthday
+            <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
+              Celebrating <strong className="text-slate-900 dark:text-white">{targetName}'s</strong> special milestone birthday
             </p>
           </div>
         </div>
 
         {/* Right: Live Countdown Stat Pills */}
-        <div className="flex items-center gap-2 text-center shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10">
-            <div className="text-sm sm:text-base font-extrabold text-amber-400 font-mono">{timeLeft.days}</div>
-            <div className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">DAYS</div>
+        <div className="flex items-center gap-2 text-center shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-200/60 dark:border-white/5 pt-3 md:pt-0">
+          <div className={`glass-panel px-3.5 py-1.5 rounded-xl border ${theme === 'light' ? 'border-blue-500/20 bg-blue-50/50' : 'border-amber-500/30 bg-amber-500/10'}`}>
+            <div className={`text-sm sm:text-base font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-amber-600 dark:text-amber-400'}`}>{timeLeft.days}</div>
+            <div className="text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">DAYS</div>
           </div>
 
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-white/10">
-            <div className="text-sm sm:text-base font-extrabold text-rose-400 font-mono">{timeLeft.hours}</div>
-            <div className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">HRS</div>
+          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10">
+            <div className={`text-sm sm:text-base font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-rose-600 dark:text-rose-400'}`}>{timeLeft.hours}</div>
+            <div className="text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">HRS</div>
           </div>
 
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-white/10">
-            <div className="text-sm sm:text-base font-extrabold text-purple-400 font-mono">{timeLeft.minutes}</div>
-            <div className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">MINS</div>
+          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10">
+            <div className={`text-sm sm:text-base font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-purple-600 dark:text-purple-400'}`}>{timeLeft.minutes}</div>
+            <div className="text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">MINS</div>
           </div>
 
-          <div className="glass-panel px-3.5 py-1.5 rounded-xl border border-amrin/30">
-            <div className="text-sm sm:text-base font-extrabold text-white font-mono">{timeLeft.seconds}</div>
-            <div className="text-[8px] font-bold text-slate-300 uppercase tracking-wider">SECS</div>
+          <div className={`glass-panel px-3.5 py-1.5 rounded-xl border ${theme === 'light' ? 'border-blue-500/20' : 'border-amrin/30'}`}>
+            <div className={`text-sm sm:text-base font-extrabold font-mono ${theme === 'light' ? 'text-blue-600' : 'text-slate-900 dark:text-white'}`}>{timeLeft.seconds}</div>
+            <div className="text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">SECS</div>
           </div>
         </div>
 

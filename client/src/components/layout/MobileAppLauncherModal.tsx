@@ -126,30 +126,30 @@ export const MobileAppLauncherModal: React.FC<MobileAppLauncherModalProps> = ({
           exit={{ opacity: 0, scale: 0.85, y: 20 }}
           transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-sm bg-obsidian-950/95 border border-white/15 rounded-3xl p-5 space-y-5 shadow-2xl relative overflow-hidden select-none"
+          className="w-full max-w-sm bg-white/95 dark:bg-obsidian-950/95 border border-slate-200 dark:border-white/15 rounded-3xl p-5 space-y-5 shadow-2xl relative overflow-hidden select-none"
         >
           {/* Subtle Background Glow Spheres */}
           <div className="pointer-events-none absolute -top-20 -left-20 w-40 h-40 bg-afzal/20 rounded-full blur-3xl" />
           <div className="pointer-events-none absolute -bottom-20 -right-20 w-40 h-40 bg-amrin/20 rounded-full blur-3xl" />
 
           {/* Modal Header */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-3.5 relative">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3.5 relative">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-afzal to-amrin flex items-center justify-center text-white shadow-md">
                 <LayoutGrid className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-extrabold text-white tracking-tight">
+                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">
                   Universe Apps
                 </h3>
-                <p className="text-[10px] text-slate-400 font-medium">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                   Tap to launch feature
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -171,24 +171,24 @@ export const MobileAppLauncherModal: React.FC<MobileAppLauncherModalProps> = ({
                   {/* Icon Box */}
                   <div
                     className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${app.gradient} p-0.5 shadow-xl flex items-center justify-center relative transition-transform group-active:scale-95 ${
-                      isActive ? 'ring-2 ring-white ring-offset-2 ring-offset-obsidian-950 shadow-rose-500/50' : ''
+                      isActive ? 'ring-2 ring-amrin ring-offset-2 ring-offset-white dark:ring-offset-obsidian-950 shadow-rose-500/50' : ''
                     }`}
                   >
-                    <div className="w-full h-full rounded-[14px] bg-obsidian-950/80 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-obsidian-950/40 transition-colors">
-                      <Icon className={`w-7 h-7 text-white ${isActive ? 'animate-pulse' : ''}`} />
+                    <div className="w-full h-full rounded-[14px] bg-white/90 dark:bg-obsidian-950/80 backdrop-blur-md flex items-center justify-center text-slate-900 dark:text-white group-hover:bg-white/70 dark:group-hover:bg-obsidian-950/40 transition-colors">
+                      <Icon className={`w-7 h-7 text-slate-900 dark:text-white ${isActive ? 'animate-pulse' : ''}`} />
                     </div>
 
                     {/* Active Route Indicator Dot */}
                     {isActive && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-obsidian-950 shadow-md animate-ping" />
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-obsidian-950 shadow-md animate-ping" />
                     )}
                   </div>
 
                   {/* App Name */}
-                  <span className="text-[11px] font-bold text-white mt-1.5 truncate w-full group-hover:text-rose-300 transition-colors">
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white mt-1.5 truncate w-full group-hover:text-amrin transition-colors">
                     {app.name}
                   </span>
-                  <span className="text-[9px] text-slate-400 font-medium truncate w-full">
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 font-medium truncate w-full">
                     {app.subtitle}
                   </span>
                 </motion.button>
@@ -197,7 +197,7 @@ export const MobileAppLauncherModal: React.FC<MobileAppLauncherModalProps> = ({
           </div>
 
           {/* Footer Branding */}
-          <div className="border-t border-white/10 pt-3 text-center flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-400">
+          <div className="border-t border-slate-200 dark:border-white/10 pt-3 text-center flex items-center justify-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
             <Heart className="w-3.5 h-3.5 text-heart fill-heart" />
             <span>Afzal & Amrin Verse</span>
           </div>

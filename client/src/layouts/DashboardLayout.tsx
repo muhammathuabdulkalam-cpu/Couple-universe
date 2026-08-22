@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { socketClient } from '../api/socketClient.js';
 import { InAppChatNotificationBanner } from '../components/chat/InAppChatNotificationBanner.js';
+import { IncomingCallModal } from '../components/chat/IncomingCallModal.js';
+import { ActiveCallScreen } from '../components/chat/ActiveCallScreen.js';
 import { BottomNav } from '../components/layout/BottomNav.js';
 import { Breadcrumb } from '../components/layout/Breadcrumb.js';
 import { MobileHeader } from '../components/layout/MobileHeader.js';
@@ -12,7 +15,9 @@ import { ListenTogetherDrawer } from '../components/music/ListenTogetherDrawer.j
 import { ListenTogetherInviteBanner } from '../components/music/ListenTogetherInviteBanner.js';
 import { MusicPlayerFloating } from '../components/music/MusicPlayerFloating.js';
 import { NotificationPanel } from '../components/social/NotificationPanel.js';
+import { WebRTCProvider } from '../context/WebRTCContext.js';
 import { useAuthStore } from '../store/authStore.js';
+import { useCallStore } from '../store/callStore.js';
 import { useNotificationStore } from '../store/notificationStore.js';
 
 interface DashboardLayoutProps {
@@ -21,7 +26,7 @@ interface DashboardLayoutProps {
   fullViewport?: boolean;
 }
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
+export const DashboardLayoutContent: React.FC<DashboardLayoutProps> = ({ children, fullViewport = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const isChatRoute = location.pathname.startsWith('/chat');
@@ -30,6 +35,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
   const { accessToken } = useAuthStore();
   const { initSocketListeners, fetchUnreadCounts } = useNotificationStore();
+
+  const { callStatus, remoteUser, setRinging, endCall } = useCallStore();
+  const incomingOfferRef = useRef<RTCSessionDescriptionInit | null>(null);
 
   useEffect(() => {
     const handleNavigateMusic = () => {
@@ -63,26 +71,72 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
     }
   }, [accessToken, initSocketListeners, fetchUnreadCounts]);
 
+  // ─── Global Call Socket Listeners ─────────────────────────────────────────
+  useEffect(() => {
+    const socket = socketClient.getSocket();
+    if (!socket) return;
+
+    const handleIncomingCall = (data: {
+      callType: 'audio' | 'video';
+      callerId: string;
+      callerName: string;
+      callerAvatar?: string;
+    }) => {
+      console.log('📞 Global Incoming Call Event Received:', data);
+      if (useCallStore.getState().callStatus === 'idle') {
+        setRinging(
+          { userId: data.callerId, name: data.callerName, avatar: data.callerAvatar },
+          data.callType
+        );
+      }
+    };
+
+    const handleWebRTCOffer = (data: { offer: RTCSessionDescriptionInit; fromUserId: string }) => {
+      console.log('📩 Global WebRTC Offer Received');
+      incomingOfferRef.current = data.offer;
+    };
+
+    const handleCallEnded = () => endCall();
+    const handleCallRejected = () => endCall();
+
+    socket.on('call:incoming', handleIncomingCall);
+    socket.on('call:webrtc-offer', handleWebRTCOffer);
+    socket.on('call:ended', handleCallEnded);
+    socket.on('call:rejected', handleCallRejected);
+
+    return () => {
+      socket.off('call:incoming', handleIncomingCall);
+      socket.off('call:webrtc-offer', handleWebRTCOffer);
+      socket.off('call:ended', handleCallEnded);
+      socket.off('call:rejected', handleCallRejected);
+    };
+  }, [setRinging, endCall]);
+
+  const callTargetId = remoteUser?.userId || '';
+
   return (
-    <div className="relative flex flex-col bg-obsidian-950 text-slate-100 h-[100dvh] overflow-x-hidden overflow-y-hidden select-none w-full max-w-full">
-      {/* Background Ambient Glow Spheres (Hidden on mobile to prevent overflow bleeding) */}
-      <div className="pointer-events-none absolute top-0 left-1/4 w-[600px] h-[600px] bg-afzal/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" />
-      <div className="pointer-events-none absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-amrin/10 rounded-full blur-[150px] animate-pulse-glow hidden md:block" style={{ animationDelay: '2s' }} />
+    <div className="relative w-full h-screen h-[100dvh] flex flex-col bg-slate-50 dark:bg-obsidian-950 text-slate-900 dark:text-slate-100 overflow-hidden select-none">
+      {/* Global Incoming Call Notification & Ringing Modal */}
+      <IncomingCallModal offerRef={incomingOfferRef} />
 
-      {/* Global Listen Together Invite Banner */}
-      <ListenTogetherInviteBanner />
-
-      {/* Top Navigation Bar & Instagram Mobile Header */}
-      {!fullViewport && (
-        <>
-          <MobileHeader />
-          <Navbar />
-        </>
+      {/* Global Active Call & Calling Overlay Screen */}
+      {(callStatus === 'active' || callStatus === 'calling') && (
+        <ActiveCallScreen targetUserId={callTargetId} />
       )}
 
-      {/* Main Application Workspace Shell */}
-      <div className="flex w-full max-w-[1920px] mx-auto flex-1 min-h-0 overflow-hidden">
-        {/* Left Expandable Sidebar */}
+      {/* Listen Together Active Session Global Invite Banner */}
+      <ListenTogetherInviteBanner />
+
+      {/* Mobile Top App Bar */}
+      <MobileHeader />
+
+      {/* Main Top Header Navbar */}
+      <Navbar />
+
+      {/* Main Workspace Grid (Left Sidebar + Center Content + Right Panel) */}
+      <div className="flex-1 min-h-0 w-full flex overflow-hidden">
+        
+        {/* Left Navigation Sidebar */}
         <Sidebar
           isExpanded={isSidebarExpanded}
           onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
@@ -112,13 +166,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
       {/* Mobile Bottom Navigation */}
       <BottomNav />
 
-      {/* Instagram-Style In-App Chat Notification & Quick Reply Banner */}
+      {/* In-App Chat Notification & Quick Reply Banner */}
       <InAppChatNotificationBanner />
 
-      {/* Global Notification Drawer & Panel */}
+      {/* Global Notification Panel */}
       <NotificationPanel />
 
-      {/* Global Floating Mini / Desktop Audio Player */}
+      {/* Global Floating Mini Audio Player */}
       <MusicPlayerFloating />
 
       {/* Global Listen Together Control Drawer */}
@@ -129,3 +183,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, full
     </div>
   );
 };
+
+export const DashboardLayout: React.FC<DashboardLayoutProps> = (props) => (
+  <WebRTCProvider>
+    <DashboardLayoutContent {...props} />
+  </WebRTCProvider>
+);

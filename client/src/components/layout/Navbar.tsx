@@ -51,6 +51,17 @@ export const Navbar: React.FC = () => {
 
   const userAvatar = profileData?.avatar || user?.avatar;
 
+  // Fetch Scoped User Search API Results
+  const { data: searchApiResults } = useQuery<any[]>({
+    queryKey: ['searchUsers', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return [];
+      const res = await axiosClient.get<ApiResponse<any[]>>(`/users?search=${encodeURIComponent(searchQuery.trim())}`);
+      return res.data.data || [];
+    },
+    enabled: isAuthenticated && searchQuery.trim().length > 0,
+  });
+
   const handleLogout = async () => {
     setIsDropdownOpen(false);
     await logout();
@@ -58,22 +69,22 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 glass-panel shrink-0 select-none hidden md:block">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-white/10 glass-panel shrink-0 select-none hidden md:block">
       <div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
         {/* Left: Brand Logo & Tagline */}
         <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-3 group shrink-0">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-afzal via-amrin to-heart p-0.5 shadow-lg shadow-amrin/20 transition-transform group-hover:scale-105 overflow-hidden">
+          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-500 p-0.5 shadow-lg shadow-blue-500/20 transition-transform group-hover:scale-105 overflow-hidden">
             <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[10px]" />
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-lg text-white tracking-tight">
+              <span className="font-display font-bold text-lg text-slate-900 dark:text-white tracking-tight">
                 Couple Universe
               </span>
-              <span className="text-heart text-sm">❤️</span>
+              <span className="text-blue-500 text-sm">💙</span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium tracking-wide">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide">
               Established March 26, 2026
             </p>
           </div>
@@ -81,18 +92,26 @@ export const Navbar: React.FC = () => {
 
         {/* Center: Global Search Bar */}
         {isAuthenticated && (() => {
-          const partner = profileData?.partner || {
-            _id: user?.role === 'SUPER_OWNER' ? 'co-owner-id' : 'super-owner-id',
-            name: user?.role === 'SUPER_OWNER' ? 'Amrin' : 'Afzal',
-            email: user?.role === 'SUPER_OWNER' ? 'amrin@verse.app' : 'afzal@verse.app',
-            role: user?.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER',
-            avatar: null,
-          };
+          const partner = profileData?.partner;
+          const followers = profileData?.followers || [];
 
-          const candidates = [
+          const baseCandidates = [
             user ? { _id: user._id || user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } : null,
-            partner ? { _id: partner._id, name: partner.name, email: partner.email, role: partner.role, avatar: partner.avatar } : null,
-          ].filter(Boolean) as any[];
+            partner ? { _id: partner._id || partner.id, name: partner.name, email: partner.email, role: partner.role, avatar: partner.avatar } : null,
+            ...followers.map((f: any) => ({ _id: f._id || f.id, name: f.name, email: f.email, role: f.role, avatar: f.avatar })),
+            ...(searchApiResults || []).map((u: any) => ({ _id: u._id || u.id, name: u.name, email: u.email, role: u.role, avatar: u.avatar })),
+          ].filter(Boolean);
+
+          // Deduplicate candidate users by _id
+          const seenMap = new Map();
+          const candidates: any[] = [];
+          baseCandidates.forEach((c: any) => {
+            const idStr = String(c._id);
+            if (idStr && !seenMap.has(idStr)) {
+              seenMap.set(idStr, true);
+              candidates.push(c);
+            }
+          });
 
           const trimmed = searchQuery.trim().toLowerCase();
           const searchResults = trimmed
@@ -114,13 +133,13 @@ export const Navbar: React.FC = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search profile by name (e.g. Amrin, Afzal)..."
-                  className="w-full bg-obsidian-950/80 border border-slate-800 rounded-xl py-2 left-10 pl-10 pr-10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
+                  placeholder="Search sub-users and partner by name..."
+                  className="w-full bg-white/80 dark:bg-obsidian-950/80 border border-slate-200 dark:border-slate-800 rounded-xl py-2 left-10 pl-10 pr-10 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -134,19 +153,20 @@ export const Navbar: React.FC = () => {
                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    className="absolute top-12 left-0 right-0 z-50 glass-panel rounded-2xl p-2.5 border border-white/15 shadow-2xl space-y-2 bg-obsidian-950/98 backdrop-blur-2xl"
+                    className="absolute top-12 left-0 right-0 z-50 glass-panel rounded-2xl p-2.5 border border-slate-200 dark:border-white/15 shadow-2xl space-y-2 bg-white/95 dark:bg-obsidian-950/98 backdrop-blur-2xl"
                   >
-                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 px-2">
                       User Profile Search Results
                     </div>
 
                     {searchResults.length === 0 ? (
-                      <div className="p-3 text-center text-xs text-slate-400">
-                        No user found matching "{searchQuery}"
+                      <div className="p-3 text-center text-xs text-slate-500 dark:text-slate-400">
+                        No sub-user or partner found matching "{searchQuery}"
                       </div>
                     ) : (
                       searchResults.map((matchedUser) => {
                         const isAmrin = matchedUser.name?.toLowerCase().includes('amrin') || matchedUser.role === 'CO_OWNER';
+                        const isSubUser = matchedUser.role === 'INVITED_USER';
 
                         return (
                           <div
@@ -155,26 +175,26 @@ export const Navbar: React.FC = () => {
                               navigate('/profile', { state: { targetUserId: matchedUser._id } });
                               setSearchQuery('');
                             }}
-                            className="flex items-center justify-between p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all group"
+                            className="flex items-center justify-between p-3 rounded-2xl bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 cursor-pointer transition-all group"
                           >
                             <div className="flex items-center gap-3">
                               <Avatar src={matchedUser.avatar} name={matchedUser.name} size="sm" />
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-extrabold text-white group-hover:text-amrin-glow transition-colors truncate">
+                                  <span className="text-xs font-extrabold text-slate-900 dark:text-white group-hover:text-amrin-glow transition-colors truncate">
                                     {matchedUser.name}
                                   </span>
-                                  <Badge variant={isAmrin ? 'cyan' : 'green'} size="sm">
-                                    {isAmrin ? 'Princess 👸' : 'Owner'}
+                                  <Badge variant={isSubUser ? 'violet' : isAmrin ? 'cyan' : 'green'} size="sm">
+                                    {isSubUser ? 'Sub-User' : isAmrin ? 'Princess 👸' : 'Owner'}
                                   </Badge>
                                 </div>
-                                <span className="text-[10px] text-slate-400 block truncate">{matchedUser.email}</span>
-                                <span className="text-[10px] text-amrin-glow font-semibold block mt-0.5">
-                                  Tap to view full profile, followers, posts & stories →
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">{matchedUser.email}</span>
+                                <span className="text-[10px] text-amrin font-semibold block mt-0.5">
+                                  Tap to view profile, posts & memories →
                                 </span>
                               </div>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white shrink-0" />
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white shrink-0" />
                           </div>
                         );
                       })
@@ -196,12 +216,12 @@ export const Navbar: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => toggleNotifDrawer()}
-                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative"
+                  className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors relative"
                   aria-label="Notifications"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadNotifCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-afzal to-heart text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-heart animate-pulse">
+                    <span className="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-white dark:border-obsidian-950 shadow-lg shadow-blue-500/30 animate-pulse">
                       {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
                     </span>
                   )}
@@ -212,12 +232,12 @@ export const Navbar: React.FC = () => {
               <div className="relative">
                 <Link
                   to="/chat"
-                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative block"
+                  className="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors relative block"
                   aria-label="Direct Messages"
                 >
-                  <MessageCircle className="w-4 h-4 text-slate-300 hover:text-amrin-glow" />
+                  <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-300 hover:text-blue-600" />
                   {unreadChatCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-amrin via-amrin-glow to-heart text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-amrin/40 animate-pulse">
+                    <span className="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[10px] font-extrabold rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center border-2 border-white dark:border-obsidian-950 shadow-lg shadow-blue-500/30 animate-pulse">
                       {unreadChatCount > 99 ? '99+' : unreadChatCount}
                     </span>
                   )}
@@ -229,7 +249,7 @@ export const Navbar: React.FC = () => {
                 variant="glass"
                 size="sm"
                 onClick={toggleTheme}
-                className="p-2 rounded-xl"
+                className="p-2 rounded-xl border border-slate-200 dark:border-white/10"
                 aria-label="Toggle Theme"
               >
                 {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-amrin" />}
@@ -239,13 +259,13 @@ export const Navbar: React.FC = () => {
               <div className="relative">
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2.5 p-1 rounded-xl glass-card border border-white/10 hover:border-amrin/40 transition-colors"
+                  className="flex items-center gap-2.5 p-1 rounded-xl glass-card border border-slate-200 dark:border-white/10 hover:border-amrin/40 transition-colors"
                 >
                   <Avatar src={userAvatar} name={user.name} size="sm" />
                   <div className="hidden lg:block text-left text-xs pr-1">
-                    <div className="font-semibold text-white leading-tight">{user.name}</div>
+                    <div className="font-semibold text-slate-900 dark:text-white leading-tight">{user.name}</div>
                     {user.role !== 'INVITED_USER' && (
-                      <div className="text-[10px] text-slate-400 capitalize">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
                         {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : 'System Admin'}
                       </div>
                     )}
@@ -260,13 +280,13 @@ export const Navbar: React.FC = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-56 rounded-2xl glass-panel border border-white/10 shadow-2xl p-2 z-50 space-y-1 bg-obsidian-950/95 backdrop-blur-2xl"
+                      className="absolute right-0 mt-2 w-56 rounded-2xl glass-panel border border-slate-200 dark:border-white/10 shadow-2xl p-2 z-50 space-y-1 bg-white/95 dark:bg-obsidian-950/95 backdrop-blur-2xl"
                     >
-                      <div className="px-3 py-2 border-b border-white/5 flex items-center gap-3">
+                      <div className="px-3 py-2 border-b border-slate-200 dark:border-white/5 flex items-center gap-3">
                         <Avatar src={userAvatar} name={user.name} size="sm" />
                         <div className="min-w-0">
-                          <div className="text-xs font-bold text-white truncate">{user.name}</div>
-                          <div className="text-[11px] text-slate-400 truncate">{user.email}</div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{user.email}</div>
                           {user.role !== 'INVITED_USER' && (
                             <Badge variant={user.role === 'SUPER_OWNER' ? 'green' : 'violet'} className="mt-1">
                               {user.role === 'SUPER_OWNER' ? 'Super Owner' : user.role === 'CO_OWNER' ? 'Co-Owner' : 'System Admin'}
@@ -278,7 +298,7 @@ export const Navbar: React.FC = () => {
                       <Link
                         to="/profile"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
                       >
                         <User className="w-4 h-4 text-afzal" /> Profile
                       </Link>
@@ -287,15 +307,15 @@ export const Navbar: React.FC = () => {
                         <Link
                           to="/admin/dashboard"
                           onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-emerald-400 hover:bg-emerald-950/30 transition-colors"
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-colors"
                         >
-                          <Shield className="w-4 h-4 text-emerald-400" /> Admin Console
+                          <Shield className="w-4 h-4 text-emerald-500" /> Admin Console
                         </Link>
                       )}
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-950/30 transition-colors border-t border-white/5 mt-1"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors border-t border-slate-200 dark:border-white/5 mt-1"
                       >
                         <LogOut className="w-4 h-4" /> Sign Out
                       </button>

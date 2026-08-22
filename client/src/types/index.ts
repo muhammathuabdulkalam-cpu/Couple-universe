@@ -296,7 +296,7 @@ export interface CalendarEvent {
 // Chat & Conversation Types
 // -------------------------------------------------------
 export type ConversationType = 'PRIVATE' | 'GROUP' | 'RELATIONSHIP';
-export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'GIF' | 'FILE';
+export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'GIF' | 'FILE' | 'CALL';
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
 
 export interface ConversationItem {

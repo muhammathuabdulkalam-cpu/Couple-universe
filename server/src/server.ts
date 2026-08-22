@@ -96,7 +96,10 @@ async function ensureDefaultAvatarsPopulated(): Promise<void> {
 
 const startServer = async (): Promise<void> => {
   try {
-    // Start Express HTTP Server immediately so port 5000 is open instantly
+    // Connect to MongoDB Database FIRST before opening HTTP server port
+    await connectDatabase();
+
+    // Start Express HTTP Server after DB is connected and ready
     server = app.listen(env.PORT, () => {
       logger.info(`🚀 ${PLATFORM_CONSTANTS.APP_NAME} server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
       logger.info(`🔗 Health status available at: http://localhost:${env.PORT}${PLATFORM_CONSTANTS.API_PREFIX}/health`);
@@ -106,14 +109,13 @@ const startServer = async (): Promise<void> => {
     socketService.init(server);
     logger.info('⚡ Real-time Socket.io communication engine initialized');
 
-    // Connect to MongoDB Database
-    await connectDatabase();
-
-    // Ensure System Admin Account is Active & Restored
-    await ensureSystemAdminUserExists();
-
-    // Ensure Default Profile Avatars are Populated in MongoDB
-    await ensureDefaultAvatarsPopulated();
+    // Run startup seeds and asset syncs asynchronously in background
+    ensureSystemAdminUserExists().catch((err) => {
+      logger.warn(`⚠️ System Admin auto-seed warning: ${err.message}`);
+    });
+    ensureDefaultAvatarsPopulated().catch((err) => {
+      logger.warn(`⚠️ Avatar auto-populate warning: ${err.message}`);
+    });
 
     // Auto-sync Cloudinary audio, gallery & profile libraries asynchronously on startup
     syncCloudinaryAudioToDb().catch((syncErr) => {

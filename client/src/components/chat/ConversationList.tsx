@@ -51,7 +51,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
   const [search, setSearch] = useState('');
 
   // Fetch Conversations via React Query with 3s background auto-sync
-  const { data: convData, refetch, isRefetching } = useQuery<ConversationItem[]>({
+  const { data: convData, refetch, isRefetching, isLoading } = useQuery<ConversationItem[]>({
     queryKey: ['userConversations'],
     queryFn: async () => {
       const res = await axiosClient.get<ApiResponse<ConversationItem[]>>('/chat/conversations');
@@ -133,7 +133,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-amrin" />
-          <h3 className="text-base font-bold text-white tracking-tight">Chats</h3>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Chats</h3>
           {isInvitedUser && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
               <Lock className="w-2.5 h-2.5" /> End-to-End Encrypted
@@ -160,13 +160,29 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search chats..."
-          className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amrin"
+          className="w-full bg-white dark:bg-obsidian-950/80 border border-slate-300 dark:border-slate-700/80 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
         />
       </div>
 
       {/* Conversation Cards List */}
       <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-        {filteredConversations.length > 0 ? (
+        {isLoading || (!convData && (conversations || []).length === 0) ? (
+          /* Loading Skeletons */
+          <div className="space-y-2.5 p-1">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-3 rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-white/5 animate-pulse flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-full bg-slate-300 dark:bg-slate-700/60 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-slate-300 dark:bg-slate-700/60 rounded w-1/2" />
+                  <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredConversations.length > 0 ? (
           filteredConversations.map((c) => {
             const isActive = activeConversation?._id === c._id;
             const otherParticipant = c.participants?.find((p) => (p._id || p.id)?.toString() !== currentUserIdStr);
@@ -217,7 +233,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                     ? 'bg-gradient-to-r from-afzal/20 via-amrin/20 to-heart/20 border-amrin/40 shadow-lg ring-1 ring-amrin/30'
                     : isUnread
                       ? 'bg-gradient-to-r from-afzal/15 via-amrin/15 to-heart/15 border-amrin/30 shadow-md'
-                      : 'glass-card border-white/5 hover:border-white/20'
+                      : 'glass-card border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                   }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -230,35 +246,35 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
                       )}
                     </div>
                     {isOnline && (
-                      <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-obsidian-950 absolute -bottom-0.5 -right-0.5" />
+                      <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-obsidian-950 absolute -bottom-0.5 -right-0.5" />
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
-                      <h4 className={`text-xs truncate flex items-center gap-1.5 ${isUnread ? 'font-black text-white' : 'font-semibold text-slate-200'}`}>
+                      <h4 className={`text-xs truncate flex items-center gap-1.5 ${isUnread ? 'font-black text-slate-900 dark:text-white' : 'font-semibold text-slate-700 dark:text-slate-200'}`}>
                         <span>{partnerName}</span>
                         {isCoOwner && (
-                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-amrin/20 text-amrin-glow border-amrin/40">
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-amrin/20 text-amrin dark:text-amrin-glow border-amrin/40">
                             Princess 👸
                           </span>
                         )}
                         {isInvitedUser && (
-                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-emerald-500/20 text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
+                          <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full border bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40 flex items-center gap-0.5">
                             <Lock className="w-2 h-2" /> Encrypted
                           </span>
                         )}
                       </h4>
 
                       {lastMsg && (
-                        <span className={`text-[10px] shrink-0 ${isUnread ? 'font-extrabold text-amrin-glow' : 'font-mono text-slate-400'}`}>
+                        <span className={`text-[10px] shrink-0 ${isUnread ? 'font-extrabold text-amrin dark:text-amrin-glow' : 'font-mono text-slate-500 dark:text-slate-400'}`}>
                           {new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <p className={`text-[11px] truncate ${isUnread ? 'text-slate-100 font-extrabold' : 'text-slate-400 font-normal'}`}>
+                      <p className={`text-[11px] truncate ${isUnread ? 'text-slate-900 dark:text-slate-100 font-black' : 'text-slate-500 dark:text-slate-400 font-normal'}`}>
                         {getRecentMessagePreview(lastMsg, isSender)}
                       </p>
 
@@ -278,12 +294,12 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onSelectConv
             <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
               <Lock className="w-5 h-5" />
             </div>
-            <p className="text-xs text-slate-300 font-semibold">
+            <p className="text-xs text-slate-800 dark:text-slate-300 font-semibold">
               {isInvitedUser
                 ? '🔒 Private End-to-End Encrypted Chat'
                 : 'No active chats.'}
             </p>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
               {isInvitedUser
                 ? 'Your 1-on-1 private encrypted chat with your space owner will appear here.'
                 : 'Click above to open Relationship Room.'}

@@ -66,14 +66,14 @@ export const MemoryDetailModal: React.FC = () => {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian-950/90 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto select-none">
         
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-4xl my-auto">
-          <Card variant="glass" className="p-0 border-white/10 shadow-2xl overflow-hidden relative">
+          <Card variant="glass" className="p-0 border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden relative">
             
             {/* Top Close Floating Bar */}
             <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
               <button
                 onClick={handleFavoriteToggle}
-                className={`p-2.5 rounded-full glass-card border border-white/10 ${
-                  selectedEventDetail.isFavorite ? 'text-heart fill-heart bg-heart/20' : 'text-slate-300 hover:text-heart'
+                className={`p-2.5 rounded-full glass-card border border-slate-200 dark:border-white/10 ${
+                  selectedEventDetail.isFavorite ? 'text-heart fill-heart bg-heart/20' : 'text-slate-500 hover:text-heart dark:text-slate-300'
                 }`}
                 title="Favorite Memory"
               >
@@ -82,7 +82,7 @@ export const MemoryDetailModal: React.FC = () => {
 
               <button
                 onClick={() => setDetailModalOpen(false)}
-                className="p-2.5 rounded-full glass-card border border-white/10 text-slate-300 hover:text-white"
+                className="p-2.5 rounded-full glass-card border border-slate-200 dark:border-white/10 text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -91,7 +91,7 @@ export const MemoryDetailModal: React.FC = () => {
 
             {/* Hero Cover Image Banner */}
             {coverMedia ? (
-              <div className="w-full h-80 bg-obsidian-950 relative overflow-hidden flex items-center justify-center border-b border-white/10">
+              <div className="w-full h-80 bg-slate-100 dark:bg-obsidian-950 relative overflow-hidden flex items-center justify-center border-b border-slate-200 dark:border-white/10">
                 <img
                   src={coverMedia.optimizedUrl || coverMedia.secureUrl}
                   alt={selectedEventDetail.title}
@@ -112,12 +112,12 @@ export const MemoryDetailModal: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="p-8 border-b border-white/10 space-y-2">
+              <div className="p-8 border-b border-slate-200 dark:border-white/10 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-3xl">{selectedEventDetail.emoji}</span>
                   <Badge variant="violet" size="sm">{selectedEventDetail.chapter}</Badge>
                 </div>
-                <h1 className="text-3xl font-extrabold text-white tracking-tight">{selectedEventDetail.title}</h1>
+                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{selectedEventDetail.title}</h1>
               </div>
             )}
 
@@ -125,9 +125,9 @@ export const MemoryDetailModal: React.FC = () => {
             <div className="p-6 sm:p-8 space-y-6">
               
               {/* Metadata Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 glass-card p-4 rounded-2xl border-white/10 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-4 glass-card p-4 rounded-2xl border border-slate-200 dark:border-white/10 text-xs">
                 <div className="flex items-center gap-4 flex-wrap">
-                  <span className="flex items-center gap-1.5 font-semibold text-amrin-glow">
+                  <span className="flex items-center gap-1.5 font-semibold text-amrin dark:text-amrin-glow">
                     <Calendar className="w-4 h-4 text-amrin" />
                     {new Date(selectedEventDetail.eventDate).toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -138,19 +138,19 @@ export const MemoryDetailModal: React.FC = () => {
                   </span>
 
                   {selectedEventDetail.location?.name && (
-                    <span className="flex items-center gap-1 text-slate-300">
+                    <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
                       <MapPin className="w-4 h-4 text-afzal" /> {selectedEventDetail.location.name}
                     </span>
                   )}
 
                   {selectedEventDetail.weather && (
-                    <span className="flex items-center gap-1 text-amber-400 font-medium">
+                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
                       <CloudSun className="w-4 h-4" /> {selectedEventDetail.weather}
                     </span>
                   )}
 
                   {selectedEventDetail.mood && (
-                    <span className="flex items-center gap-1 text-afzal-glow font-medium">
+                    <span className="flex items-center gap-1 text-afzal dark:text-afzal-glow font-medium">
                       <Star className="w-4 h-4" /> {selectedEventDetail.mood}
                     </span>
                   )}
@@ -159,7 +159,7 @@ export const MemoryDetailModal: React.FC = () => {
                 {(user?.role === 'SUPER_OWNER' || user?.role === 'CO_OWNER') && (
                   <button
                     onClick={handleEdit}
-                    className="text-xs font-semibold text-afzal-glow hover:underline"
+                    className="text-xs font-semibold text-afzal dark:text-afzal-glow hover:underline"
                   >
                     Edit Memory
                   </button>
@@ -168,21 +168,21 @@ export const MemoryDetailModal: React.FC = () => {
 
               {/* Memory Story Content */}
               {selectedEventDetail.shortDescription && (
-                <div className="text-sm font-semibold text-slate-200 leading-relaxed italic">
+                <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-relaxed italic">
                   "{selectedEventDetail.shortDescription}"
                 </div>
               )}
 
               {selectedEventDetail.content && (
-                <div className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line space-y-2 border-t border-white/5 pt-4">
+                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-2 border-t border-slate-200 dark:border-white/5 pt-4">
                   {selectedEventDetail.content}
                 </div>
               )}
 
               {/* Attached Image Gallery (Google Photos Style Uncropped) */}
               {selectedEventDetail.mediaIds && selectedEventDetail.mediaIds.length > 0 && (
-                <div className="space-y-3 border-t border-white/5 pt-4">
-                  <h4 className="text-xs uppercase font-bold text-slate-400 tracking-wider">
+                <div className="space-y-3 border-t border-slate-200 dark:border-white/5 pt-4">
+                  <h4 className="text-xs uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                     Memory Gallery ({selectedEventDetail.mediaIds.length} Attachments)
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -190,7 +190,7 @@ export const MemoryDetailModal: React.FC = () => {
                       <div
                         key={media._id}
                         onClick={() => openViewer(media)}
-                        className="aspect-square rounded-xl overflow-hidden glass-card border border-white/10 bg-obsidian-950/90 relative cursor-pointer hover:scale-105 transition-transform flex items-center justify-center p-1"
+                        className="aspect-square rounded-xl overflow-hidden glass-card border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-obsidian-950/90 relative cursor-pointer hover:scale-105 transition-transform flex items-center justify-center p-1"
                       >
                         <img
                           src={media.thumbnailUrl || media.secureUrl}
@@ -206,10 +206,10 @@ export const MemoryDetailModal: React.FC = () => {
 
               {/* Tags & People */}
               {((selectedEventDetail.tags && selectedEventDetail.tags.length > 0) || (selectedEventDetail.people && selectedEventDetail.people.length > 0)) && (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 pt-4 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 dark:border-white/5 pt-4 text-xs">
                   {selectedEventDetail.tags && selectedEventDetail.tags.length > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <Tag className="w-3.5 h-3.5 text-slate-400" />
+                      <Tag className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                       <div className="flex flex-wrap gap-1">
                         {selectedEventDetail.tags.map((tag, i) => (
                           <Badge key={i} variant="cyan" size="sm">#{tag}</Badge>
@@ -221,18 +221,18 @@ export const MemoryDetailModal: React.FC = () => {
                   {selectedEventDetail.people && selectedEventDetail.people.length > 0 && (
                     <div className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-amrin" />
-                      <span className="text-slate-300 font-medium">Tagged: {selectedEventDetail.people.join(', ')}</span>
+                      <span className="text-slate-600 dark:text-slate-300 font-medium">Tagged: {selectedEventDetail.people.join(', ')}</span>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Previous & Next Navigation Footer */}
-              <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs">
+              <div className="flex items-center justify-between border-t border-slate-200 dark:border-white/10 pt-4 text-xs">
                 {prevMemory ? (
                   <button
                     onClick={() => setSelectedEventDetail(prevMemory)}
-                    className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
                   >
                     <ChevronLeft className="w-4 h-4" /> Previous: {prevMemory.title}
                   </button>
@@ -243,7 +243,7 @@ export const MemoryDetailModal: React.FC = () => {
                 {nextMemory && (
                   <button
                     onClick={() => setSelectedEventDetail(nextMemory)}
-                    className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors ml-auto"
+                    className="flex items-center gap-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors ml-auto"
                   >
                     Next: {nextMemory.title} <ChevronRight className="w-4 h-4" />
                   </button>

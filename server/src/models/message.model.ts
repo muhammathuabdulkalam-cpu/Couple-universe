@@ -1,6 +1,6 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
-export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'GIF' | 'FILE';
+export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'VOICE' | 'GIF' | 'FILE' | 'CALL';
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'READ';
 
 export interface IMessageReaction {
@@ -64,7 +64,7 @@ const messageSchema = new Schema<IMessage>(
     },
     type: {
       type: String,
-      enum: ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'GIF', 'FILE'],
+      enum: ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'GIF', 'FILE', 'CALL'],
       default: 'TEXT',
       index: true,
     },

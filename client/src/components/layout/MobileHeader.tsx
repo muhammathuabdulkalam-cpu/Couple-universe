@@ -1,17 +1,19 @@
 import { AnimatePresence } from 'framer-motion';
-import { Bell, ChevronRight, MessageCircle, Search, X } from 'lucide-react';
+import { Bell, ChevronRight, MessageCircle, Moon, Search, Sun, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { axiosClient } from '../../api/axiosClient.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { useNotificationStore } from '../../store/notificationStore.js';
+import { useUIStore } from '../../store/uiStore.js';
 import { ApiResponse } from '../../types/index.js';
 import { Avatar } from '../ui/Avatar.js';
 import { Badge } from '../ui/Badge.js';
 
 export const MobileHeader: React.FC = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useUIStore();
   const { user, isAuthenticated, accessToken } = useAuthStore();
   const {
     unreadNotifCount,
@@ -68,7 +70,7 @@ export const MobileHeader: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full glass-panel bg-obsidian-950/95 backdrop-blur-2xl border-b border-white/10 px-4 py-2.5 flex items-center justify-between md:hidden select-none">
+      <header className="sticky top-0 z-40 w-full glass-panel bg-white/90 dark:bg-obsidian-950/95 backdrop-blur-2xl border-b border-slate-200 dark:border-white/10 px-4 py-2.5 flex items-center justify-between md:hidden select-none">
 
         {/* Left: Brand Logo & Title (Instagram Style) */}
         <Link to="/dashboard" className="flex items-center gap-2 group">
@@ -76,7 +78,7 @@ export const MobileHeader: React.FC = () => {
             <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[10px]" />
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="font-display font-extrabold text-base text-white tracking-tight">
+            <span className="font-display font-extrabold text-base text-slate-900 dark:text-white tracking-tight">
               Couple Universe
             </span>
             <span className="text-xs text-heart">❤️</span>
@@ -90,22 +92,32 @@ export const MobileHeader: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsSearchOpen(true)}
-            className="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 transition-all"
             aria-label="Search Profile"
           >
-            <Search className="w-5 h-5 text-amrin-glow" />
+            <Search className="w-5 h-5 text-amrin" />
+          </button>
+
+          {/* Theme Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 transition-all"
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-amrin" />}
           </button>
 
           {/* Notification Bell Icon */}
           <button
             type="button"
             onClick={toggleNotifDrawer}
-            className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 transition-all"
             aria-label="Notifications"
           >
             <Bell className="w-5 h-5" />
             {unreadNotifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-afzal to-heart text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-heart/40 animate-pulse">
+              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-afzal to-heart text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-2 border-white dark:border-obsidian-950 shadow-lg shadow-heart/40 animate-pulse">
                 {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
               </span>
             )}
@@ -114,12 +126,12 @@ export const MobileHeader: React.FC = () => {
           {/* Direct Chat Icon */}
           <Link
             to="/chat"
-            className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:scale-95 transition-all"
+            className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 active:scale-95 transition-all"
             aria-label="Direct Messages"
           >
-            <MessageCircle className="w-5 h-5 text-slate-300 group-hover:text-amrin-glow" />
+            <MessageCircle className="w-5 h-5 text-slate-600 dark:text-slate-300 hover:text-amrin" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-amrin via-amrin-glow to-heart text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-2 border-obsidian-950 shadow-lg shadow-amrin/40 animate-pulse">
+              <span className="absolute -top-0.5 -right-0.5 bg-gradient-to-r from-amrin via-amrin-glow to-heart text-white text-[10px] font-extrabold rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center border-2 border-white dark:border-obsidian-950 shadow-lg shadow-amrin/40 animate-pulse">
                 {unreadChatCount > 99 ? '99+' : unreadChatCount}
               </span>
             )}

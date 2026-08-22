@@ -63,25 +63,25 @@ export const LoginPage: React.FC = () => {
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="w-full max-w-md">
         
         <div className="mb-4 text-center">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full border border-white/10">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 px-3 py-1.5 rounded-full border border-slate-200 dark:border-white/10">
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Welcome
           </Link>
         </div>
 
-        <Card variant="glass" className="p-8 border-white/10 shadow-2xl">
+        <Card variant="glass" className="p-8 border-slate-200 dark:border-white/10 shadow-2xl bg-white/95 dark:bg-obsidian-950/95">
           <div className="text-center space-y-2 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-afzal to-amrin p-0.5 mx-auto overflow-hidden shadow-xl">
               <img src="/logo.png" alt="Couple Universe Logo" className="w-full h-full object-cover rounded-[14px]" />
             </div>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight">Sign In to Universe</h2>
-            <p className="text-xs text-slate-400">Enter your credentials to access your private vault</p>
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Sign In to Universe</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Enter your credentials to access your private vault</p>
           </div>
 
           {errorMessage && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-200 text-xs font-bold shadow-lg flex items-center gap-2"
+              className="mb-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-200 text-xs font-bold shadow-lg flex items-center gap-2"
             >
               <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 animate-ping" />
               <span>{errorMessage}</span>
@@ -90,7 +90,7 @@ export const LoginPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
@@ -99,15 +99,15 @@ export const LoginPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="afzal@afrinuniverse.com"
                   required
-                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 left-10 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-afzal focus:ring-1 focus:ring-afzal transition-colors"
+                  className="w-full bg-slate-50 dark:bg-obsidian-950/80 border border-slate-200 dark:border-slate-700/80 rounded-xl py-2.5 left-10 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-afzal focus:ring-1 focus:ring-afzal transition-colors"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-300">Password</label>
-                <Link to="/forgot-password" className="text-xs text-amrin-glow hover:underline">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
+                <Link to="/forgot-password" className="text-xs text-blue-600 dark:text-amrin-glow hover:underline">
                   Forgot Password?
                 </Link>
               </div>
@@ -119,12 +119,12 @@ export const LoginPage: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   required
-                  className="w-full bg-obsidian-950/80 border border-slate-700/80 rounded-xl py-2.5 pl-10 pr-10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
+                  className="w-full bg-slate-50 dark:bg-obsidian-950/80 border border-slate-200 dark:border-slate-700/80 rounded-xl py-2.5 pl-10 pr-10 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amrin focus:ring-1 focus:ring-amrin transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -132,12 +132,12 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-700 bg-obsidian-950 text-amrin focus:ring-amrin"
+                  className="rounded border-slate-300 bg-white dark:bg-obsidian-950 text-blue-600 focus:ring-blue-500"
                 />
                 <span>Remember me for 30 days</span>
               </label>
@@ -147,16 +147,16 @@ export const LoginPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full mt-2"
+              className="w-full mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
               isLoading={isLoading}
             >
               Sign In
             </Button>
           </form>
 
-          <div className="mt-8 text-center text-xs text-slate-400 border-t border-white/5 pt-6">
+          <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-white/5 pt-6">
             Need an account?{' '}
-            <Link to="/register" className="font-semibold text-afzal-glow hover:underline">
+            <Link to="/register" className="font-semibold text-blue-600 dark:text-afzal-glow hover:underline">
               Register via Invite Code
             </Link>
           </div>
