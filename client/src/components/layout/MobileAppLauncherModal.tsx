@@ -12,6 +12,7 @@ import {
   Sparkles,
   User,
   X,
+  Youtube,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -32,6 +33,15 @@ export const MobileAppLauncherModal: React.FC<MobileAppLauncherModalProps> = ({
   if (!isOpen) return null;
 
   const apps = [
+    {
+      id: 'youtube-sync',
+      name: 'YouTube Sync',
+      subtitle: 'Watch & Listen Live',
+      path: '/youtube-sync',
+      icon: Youtube,
+      gradient: 'from-red-600 via-rose-500 to-pink-600',
+      badge: '🎬 Live',
+    },
     {
       id: 'music',
       name: 'Shared Music',
