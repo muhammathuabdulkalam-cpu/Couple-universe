@@ -313,6 +313,16 @@ export const ListenTogetherDrawer: React.FC = () => {
             <button
               onClick={() => {
                 setDrawerOpen(false);
+                navigate('/youtube-sync');
+              }}
+              className="w-full py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-md"
+            >
+              <Radio className="w-3.5 h-3.5 text-white animate-pulse" /> Launch YouTube Sync 🎬
+            </button>
+
+            <button
+              onClick={() => {
+                setDrawerOpen(false);
                 navigate('/shared-music');
               }}
               className="w-full py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer"

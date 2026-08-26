@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ChevronRight,
@@ -24,10 +25,11 @@ import { MusicWaveform } from './MusicWaveform';
 interface HomeSectionsTabProps {
   onOpenDedicateModal?: (song: NormalizedSong) => void;
   onOpenUploadModal?: () => void;
-  onSelectTab?: (tab: 'home' | 'search' | 'playlists' | 'dedications' | 'favorites' | 'uploads') => void;
+  onSelectTab?: (tab: 'home' | 'youtube' | 'search' | 'playlists' | 'dedications' | 'favorites' | 'uploads') => void;
 }
 
 export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicateModal, onOpenUploadModal, onSelectTab }) => {
+  const navigate = useNavigate();
   const currentTrack = useMusicPlayerStore((s) => s.currentTrack);
   const isPlaying = useMusicPlayerStore((s) => s.isPlaying);
   const isAudioLoading = useMusicPlayerStore((s) => s.isLoading);
@@ -258,14 +260,28 @@ export const HomeSectionsTab: React.FC<HomeSectionsTabProps> = ({ onOpenDedicate
           </div>
         </div>
 
-        {/* Action Row: Upload Song & Listen Together in Same Single Row */}
+        {/* Action Row: Upload Song, YouTube Sync & Listen Together in Same Single Row */}
         <div className="flex flex-row flex-nowrap items-center justify-between sm:justify-start gap-2 sm:gap-3 pt-1 w-full max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={() => onOpenUploadModal && onOpenUploadModal()}
-            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:from-rose-500 dark:to-pink-600 dark:hover:from-rose-600 dark:hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-blue-500/20 dark:shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0"
+            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 dark:from-rose-500 dark:to-pink-600 dark:hover:from-rose-600 dark:hover:to-pink-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-blue-500/20 dark:shadow-rose-500/30 hover:scale-105 active:scale-95 transition shrink-0 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
             <span>Upload Song</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (onSelectTab) {
+                onSelectTab('youtube');
+              } else {
+                navigate('/youtube-sync');
+              }
+            }}
+            className="h-8 sm:h-10 px-3 sm:px-5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-rose-600 hover:from-purple-700 hover:to-rose-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-purple-500/20 hover:scale-105 active:scale-95 transition shrink-0 cursor-pointer"
+          >
+            <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-pulse text-white" />
+            <span>YouTube Sync 🎬</span>
           </button>
 
           <div className="shrink-0">

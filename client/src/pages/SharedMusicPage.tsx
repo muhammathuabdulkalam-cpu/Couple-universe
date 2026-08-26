@@ -4,6 +4,7 @@ import {
   Heart,
   HeartHandshake,
   ListMusic,
+  Radio,
   Search,
   UploadCloud,
 } from 'lucide-react';
@@ -16,12 +17,14 @@ import { MusicSearchTab } from '../components/music/MusicSearchTab';
 import { PlaylistsTab } from '../components/music/PlaylistsTab';
 import { UploadedSongsTab } from '../components/music/UploadedSongsTab';
 import { UploadSongModal } from '../components/music/UploadSongModal';
+import { YouTubeListenTogetherTab } from '../components/music/YouTubeListenTogetherTab';
 import { useAuthStore } from '../store/authStore';
 import { useListenTogetherStore } from '../store/listenTogetherStore';
+import { useYouTubeListenStore } from '../store/youtubeListenStore';
 import { useUIStore } from '../store/uiStore.js';
 import { NormalizedSong } from '../types/music.types';
 
-type TabType = 'home' | 'search' | 'playlists' | 'uploads' | 'dedications' | 'favorites';
+type TabType = 'home' | 'youtube' | 'search' | 'playlists' | 'uploads' | 'dedications' | 'favorites';
 
 export const SharedMusicPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -31,6 +34,7 @@ export const SharedMusicPage: React.FC = () => {
 
   const { accessToken } = useAuthStore();
   const { initListenSocket } = useListenTogetherStore();
+  const { initYouTubeSocket } = useYouTubeListenStore();
 
   // Initialize Listen Together Socket
   useEffect(() => {
@@ -40,8 +44,9 @@ export const SharedMusicPage: React.FC = () => {
     }
     if (socket) {
       initListenSocket(socket);
+      initYouTubeSocket(socket);
     }
-  }, [accessToken, initListenSocket]);
+  }, [accessToken, initListenSocket, initYouTubeSocket]);
 
   const handleOpenDedicateModal = React.useCallback((song: NormalizedSong) => {
     setSongToDedicate(song);
@@ -78,6 +83,20 @@ export const SharedMusicPage: React.FC = () => {
             >
               <Compass className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <span>Home</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('youtube')}
+              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold flex items-center gap-1.5 transition shrink-0 ${
+                activeTab === 'youtube'
+                  ? theme === 'light'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/25'
+                    : 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                  : 'bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 md:w-4 md:h-4 text-rose-400 animate-pulse" />
+              <span>YouTube Sync</span>
             </button>
 
             <button
@@ -161,6 +180,10 @@ export const SharedMusicPage: React.FC = () => {
             onSelectTab={setActiveTab}
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
           />
+        </div>
+
+        <div className={activeTab === 'youtube' ? 'block' : 'hidden'}>
+          <YouTubeListenTogetherTab />
         </div>
 
         <div className={activeTab === 'search' ? 'block' : 'hidden'}>

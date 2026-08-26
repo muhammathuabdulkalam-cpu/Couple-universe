@@ -35,8 +35,9 @@ const ProfilePage = lazy(() => import('../pages/profile/ProfilePage.js').then((m
 const SocialFeedPage = lazy(() => import('../pages/social/SocialFeedPage.js').then((m) => ({ default: m.SocialFeedPage })));
 const StoriesPage = lazy(() => import('../pages/social/StoriesPage.js').then((m) => ({ default: m.StoriesPage })));
 
-// Shared Music Page
+// Shared Music & YouTube Sync Pages
 const SharedMusicPage = lazy(() => import('../pages/SharedMusicPage.js').then((m) => ({ default: m.SharedMusicPage })));
+const YouTubeSyncPage = lazy(() => import('../pages/YouTubeSyncPage.js').then((m) => ({ default: m.YouTubeSyncPage })));
 
 // Lazy Loaded Error Pages
 const UnauthorizedPage = lazy(() => import('../pages/error/UnauthorizedPage.js').then((m) => ({ default: m.UnauthorizedPage })));
@@ -241,6 +242,20 @@ export const AppRouter: React.FC = () => {
               <FeatureRouteGuard featureKey={FEATURES.MUSIC}>
                 <DashboardLayout>
                   <SharedMusicPage />
+                </DashboardLayout>
+              </FeatureRouteGuard>
+            </AuthGuard>
+          }
+        />
+
+        {/* YouTube Sync Route */}
+        <Route
+          path="/youtube-sync"
+          element={
+            <AuthGuard>
+              <FeatureRouteGuard featureKey={FEATURES.MUSIC}>
+                <DashboardLayout>
+                  <YouTubeSyncPage />
                 </DashboardLayout>
               </FeatureRouteGuard>
             </AuthGuard>

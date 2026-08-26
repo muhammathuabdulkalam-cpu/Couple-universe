@@ -20,6 +20,7 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  YOUTUBE_API_KEY: z.string().optional().default(process.env.YOUTUBE_API_KEY || ''),
   RELATIONSHIP_START_DATE: z.string().default('2026-03-26'),
   ADMIN_EMAIL: z.string().email().default('admin@gmail.com'),
   ADMIN_PASSWORD: z.string().min(6).default('Afzal@1234'),

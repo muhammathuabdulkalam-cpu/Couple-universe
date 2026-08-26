@@ -18,6 +18,7 @@ import { User } from '../models/user.model';
 import { CloudinaryService } from '../services/cloudinary.service';
 import { MusicProviderFactory } from '../services/musicProviders/MusicProviderFactory';
 import { NormalizedSong } from '../services/musicProviders/MusicProvider.interface';
+import { searchYouTubeVideos } from '../services/youtube.service';
 import { getSocketServer } from '../utils/socketServer';
 import { ApiResponse } from '../utils/ApiResponse';
 import { AppError } from '../utils/AppError';
@@ -340,6 +341,29 @@ export const searchMusic = catchAsync(async (req: Request, res: Response) => {
   result.total += localNormalized.length;
 
   return ApiResponse.success(res, 'Music search results retrieved successfully', result);
+});
+
+/**
+ * YouTube Data API v3 Search Controller
+ */
+export const searchYouTube = catchAsync(async (req: Request, res: Response) => {
+  const query = (req.query.q as string) || '';
+  if (!query.trim()) {
+    return ApiResponse.success(res, 'Empty query', { results: [] });
+  }
+
+  const response = await searchYouTubeVideos(query.trim());
+  if (!response.success) {
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      success: false,
+      message: response.message || 'YouTube search failed',
+      results: [],
+    });
+  }
+
+  return ApiResponse.success(res, 'YouTube search results retrieved successfully', {
+    results: response.results,
+  });
 });
 
 /**

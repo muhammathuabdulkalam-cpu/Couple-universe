@@ -8,6 +8,7 @@ import { Conversation } from '../models/conversation.model';
 import { Message } from '../models/message.model';
 import { User } from '../models/user.model';
 import { registerListenTogetherHandlers } from './listenTogether.socket';
+import { registerYouTubeListenTogetherHandlers } from './youtubeListenTogether.socket';
 import { setSocketServer } from '../utils/socketServer';
 
 export interface UserPresence {
@@ -90,6 +91,7 @@ class SocketService {
 
       // Register Listen Together Socket Handlers
       registerListenTogetherHandlers(this.io!, socket);
+      registerYouTubeListenTogetherHandlers(this.io!, socket);
 
       // Socket Event Handlers
       socket.on('join_conversation', (conversationId: string) => {

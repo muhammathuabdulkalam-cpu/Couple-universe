@@ -22,6 +22,7 @@ import {
   removeSongFromPlaylist,
   respondListenInvite,
   searchMusic,
+  searchYouTube,
   toggleFavorite,
   updatePlaylist,
   uploadSong,
@@ -60,6 +61,7 @@ router.post('/listen-together/end', endListenSession);
 
 // Search, Summary, Uploaded & Lyrics
 router.get('/search', searchMusic);
+router.get('/youtube/search', searchYouTube);
 router.get('/uploaded', getUploadedSongs);
 router.post('/uploaded/sync', syncCloudinarySongs);
 router.post('/uploaded/import', importSong);

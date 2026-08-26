@@ -20,6 +20,7 @@ import { BirthdayCountdown } from '../dashboard/BirthdayCountdown.js';
 import { TodaysMemoryWidget } from '../dashboard/TodaysMemoryWidget.js';
 import { MobileAppLauncherModal } from './MobileAppLauncherModal.js';
 import { RightSidebarMusicWidget } from './RightSidebarMusicWidget.js';
+import { YouTubeSyncWidget } from './YouTubeSyncWidget.js';
 import { Button } from '../ui/Button.js';
 import { Card } from '../ui/Card.js';
 
@@ -59,6 +60,9 @@ export const RightContextPanel: React.FC<RightContextPanelProps> = ({ isOpen, on
 
   const panelContent = (
     <div className="space-y-4">
+      {/* Widget 0: YouTube Sync Now Playing (shows when YouTube is active) */}
+      <YouTubeSyncWidget />
+
       {/* Widget 1: Real-time Shared Music Player (Top Priority) */}
       <RightSidebarMusicWidget />
 
