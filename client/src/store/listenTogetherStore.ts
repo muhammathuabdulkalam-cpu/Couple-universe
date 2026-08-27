@@ -43,11 +43,15 @@ let pollStatusInterval: any = null;
 
 export const fetchPartnerProfile = async (): Promise<{ name: string | null; avatar: string | null }> => {
   try {
+    const isSessionActive = useListenTogetherStore.getState().isSessionActive;
+    if (!isSessionActive) {
+      return { name: null, avatar: null };
+    }
     const res = await axiosClient.get<{ success: boolean; data: any }>('/profile');
     const partner = res.data?.data?.partner;
     if (partner) {
       const pName = partner.name || 'Partner';
-      // Only use a real avatar URL — no Unsplash or stock photo fallbacks
+      // Only use a real custom avatar URL
       const pAvatar = partner.avatar && partner.avatar.trim() !== '' && !partner.avatar.includes('unsplash.com')
         ? partner.avatar
         : null;
@@ -471,13 +475,17 @@ export const useListenTogetherStore = create<ListenTogetherState>((set, get) => 
       set({ isInviting: true });
       const session = await musicApi.createListenInvite(targetUserId);
       const partnerInfo = resolvePartner(session);
-      const name = partnerInfo.name || get().partnerName || 'Partner';
-      const avatar = partnerInfo.avatar || get().partnerAvatar;
-      set({ activeSession: session, partnerName: name, partnerAvatar: avatar, isInviting: false });
+      const name = partnerInfo.name || 'Partner';
+      const avatar = partnerInfo.avatar || null;
+      set({
+        activeSession: session,
+        isSessionActive: false,
+        partnerConnected: false,
+        partnerName: name,
+        partnerAvatar: avatar,
+        isInviting: false,
+      });
 
-      if (!name || name === 'Partner' || !avatar) {
-        fetchPartnerProfile();
-      }
       useUIStore.getState().addToast('Invitation Sent 🎵', `Sent Listen Together invite to ${name}`, 'success');
     } catch (err: any) {
       set({ isInviting: false });

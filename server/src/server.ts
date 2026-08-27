@@ -94,6 +94,63 @@ async function ensureDefaultAvatarsPopulated(): Promise<void> {
   }
 }
 
+async function cleanupOrphanedInvitedUsers(): Promise<void> {
+  try {
+    const { InvitedUser } = await import('./models/invitedUser.model');
+    const { Invite } = await import('./models/invite.model');
+    const { Relationship } = await import('./models/relationship.model');
+
+    const pendingInvites = await InvitedUser.find({
+      status: { $in: ['PENDING', 'ACTIVE', 'INVITED'] },
+      isDeleted: false,
+    });
+
+    for (const inv of pendingInvites) {
+      let matchedUser: any = null;
+
+      if (inv.registeredUserId) {
+        matchedUser = await User.findById(inv.registeredUserId);
+      }
+
+      if (!matchedUser && inv.email) {
+        matchedUser = await User.findOne({ email: inv.email.toLowerCase(), isDeleted: { $ne: true } });
+      }
+
+      if (!matchedUser && inv.tokenCode) {
+        const inviteObj = await Invite.findOne({ code: inv.tokenCode });
+        if (inviteObj && inviteObj.usedBy) {
+          matchedUser = await User.findById(inviteObj.usedBy);
+        }
+      }
+
+      if (!matchedUser && inv.relationshipId) {
+        const rel = await Relationship.findById(inv.relationshipId);
+        if (rel && rel.members) {
+          const nonOwnerMember = rel.members.find((m: any) => {
+            const role = (m.role || '').toUpperCase();
+            return role !== 'SUPER_OWNER' && role !== 'CO_OWNER';
+          });
+          if (nonOwnerMember && nonOwnerMember.user) {
+            matchedUser = await User.findById(nonOwnerMember.user);
+          }
+        }
+      }
+
+      if (matchedUser) {
+        inv.status = 'REGISTERED';
+        inv.registeredUserId = matchedUser._id;
+        inv.email = matchedUser.email;
+        inv.name = matchedUser.name;
+        if (matchedUser.avatar) inv.avatar = matchedUser.avatar;
+        await inv.save();
+        logger.info(`🧹 Cleaned up and linked registered user [${matchedUser.name}] to InvitedUser document [${inv._id}]`);
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`⚠️ InvitedUser cleanup warning: ${err.message}`);
+  }
+}
+
 const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB Database FIRST before opening HTTP server port
@@ -115,6 +172,9 @@ const startServer = async (): Promise<void> => {
     });
     ensureDefaultAvatarsPopulated().catch((err) => {
       logger.warn(`⚠️ Avatar auto-populate warning: ${err.message}`);
+    });
+    cleanupOrphanedInvitedUsers().catch((err) => {
+      logger.warn(`⚠️ InvitedUser cleanup warning: ${err.message}`);
     });
 
     // Auto-sync Cloudinary audio, gallery & profile libraries asynchronously on startup

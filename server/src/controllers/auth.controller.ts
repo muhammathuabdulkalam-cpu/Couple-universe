@@ -169,8 +169,14 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       await InviteService.consumeInviteAtomic(cleanCode, registeredUser._id.toString(), session);
       const { InvitedUser } = await import('../models/invitedUser.model');
       await InvitedUser.findOneAndUpdate(
-        { tokenCode: cleanCode },
-        { status: 'ACTIVE', avatar: registeredUser.avatar || '' },
+        { $or: [{ tokenCode: cleanCode }, { relationshipId: derivedRelationshipId }] },
+        {
+          status: 'REGISTERED',
+          registeredUserId: registeredUser._id,
+          email: registeredUser.email,
+          name: registeredUser.name,
+          avatar: registeredUser.avatar || '',
+        },
         { session }
       ).catch(() => {});
     }

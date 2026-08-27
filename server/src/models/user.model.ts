@@ -27,6 +27,8 @@ export interface IUser extends Document {
   deletedAt?: Date;
   deletedBy?: mongoose.Types.ObjectId;
   relationshipId?: mongoose.Types.ObjectId;
+  createdBy?: mongoose.Types.ObjectId;
+  invitedBy?: mongoose.Types.ObjectId;
   enabledFeatures?: string[];
   onboardingCompleted: boolean;
   isPrivate?: boolean;
@@ -71,6 +73,16 @@ const userSchema = new Schema<IUser>(
     relationshipId: {
       type: Schema.Types.ObjectId,
       ref: 'Relationship',
+      index: true,
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    invitedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       index: true,
     },
     enabledFeatures: {

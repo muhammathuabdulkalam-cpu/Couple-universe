@@ -9,10 +9,18 @@ import { useYouTubeListenStore } from '../store/youtubeListenStore';
 export const YouTubeSyncPage: React.FC = () => {
   const { accessToken } = useAuthStore();
   const { initListenSocket } = useListenTogetherStore();
-  const { initYouTubeSocket } = useYouTubeListenStore();
+  const { initYouTubeSocket, setViewMode } = useYouTubeListenStore();
 
-  // Initialize Socket.IO connection and listen together stores
+  // Scroll to top on mount, initialize socket, and always start on home view
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    const main = document.querySelector('main');
+    if (main) {
+      main.scrollTop = 0;
+      main.scrollTo({ top: 0, behavior: 'instant' });
+    }
+    // Always show home UI when navigating to this page
+    setViewMode('home');
     let socket = socketClient.getSocket();
     if ((!socket || !socket.connected) && accessToken) {
       socket = socketClient.connect(accessToken);
@@ -21,12 +29,12 @@ export const YouTubeSyncPage: React.FC = () => {
       initListenSocket(socket);
       initYouTubeSocket(socket);
     }
-  }, [accessToken, initListenSocket, initYouTubeSocket]);
+  }, [accessToken, initListenSocket, initYouTubeSocket, setViewMode]);
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-900 dark:text-white pb-36 space-y-4 pt-2 md:pt-4 w-full max-w-full overflow-x-hidden px-3 md:px-8">
+    <div className="min-h-screen bg-transparent text-slate-900 dark:text-white pb-36 w-full max-w-full overflow-x-hidden">
       {/* 1. Incoming Invite Banner */}
-      <div className="max-w-7xl mx-auto w-full">
+      <div className="max-w-7xl mx-auto w-full px-3 md:px-8 pt-2 md:pt-4">
         <ListenTogetherInviteBanner />
       </div>
 

@@ -291,13 +291,18 @@ export class UserService {
     const pendingUserItems = pendingInvitedUsers
       .filter((inv: any) => {
         if (!inv || !inv._id) return false;
+        const invStatus = (inv.status || '').toUpperCase();
+        if (['REGISTERED', 'ACCEPTED', 'COMPLETED', 'USED', 'REVOKED'].includes(invStatus)) return false;
+
         const invId = inv._id.toString();
+        const invRegId = inv.registeredUserId ? inv.registeredUserId.toString() : '';
         const invEmail = (inv.email || '').toLowerCase().trim();
         const invName = (inv.name || '').toLowerCase().trim();
+        const invFirstWord = invName ? invName.split(' ')[0] : '';
 
-        if (registeredIds.has(invId)) return false;
-        if (invEmail && registeredEmails.has(invEmail)) return false;
-        if (invName && registeredNames.has(invName)) return false;
+        if (registeredIds.has(invId) || (invRegId && registeredIds.has(invRegId))) return false;
+        if (invEmail && Array.from(registeredEmails).some((e) => e === invEmail || (e && invEmail && (e.includes(invEmail) || invEmail.includes(e))))) return false;
+        if (invName && invFirstWord && invFirstWord.length > 2 && Array.from(registeredNames).some((n) => n === invName || n.includes(invFirstWord) || invName.includes(n.split(' ')[0]))) return false;
         return true;
       })
       .map((inv: any) => ({

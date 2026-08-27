@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { axiosClient } from '../api/axiosClient';
 import { useAuthStore } from './authStore';
+import { useListenTogetherStore } from './listenTogetherStore';
 import { useUIStore } from './uiStore';
 
 export interface YouTubeParticipant {
@@ -45,6 +46,8 @@ export interface YouTubeChatMessage {
 }
 
 interface YouTubeListenState {
+  viewMode: 'home' | 'watch';
+  setViewMode: (mode: 'home' | 'watch') => void;
   roomId: string | null;
   roomState: YouTubeRoomState | null;
   isJoined: boolean;
@@ -86,6 +89,8 @@ interface YouTubeListenState {
 let socketInstance: any = null;
 
 export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
+  viewMode: 'home',
+  setViewMode: (viewMode: 'home' | 'watch') => set({ viewMode }),
   roomId: null,
   roomState: null,
   isJoined: false,
@@ -167,6 +172,7 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
       const currentUserId = currentUser?._id?.toString() || currentUser?.id?.toString();
 
       set((state) => ({
+        viewMode: 'watch',
         roomState: state.roomState
           ? {
               ...state.roomState,
@@ -309,11 +315,19 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
   changeVideo: (videoId: string, videoTitle: string, thumbnail: string, channelTitle = '') => {
     const rId = get().roomId || 'default';
 
-    console.log('⚡ changeVideo called with videoId:', videoId);
+    try {
+      localStorage.setItem('yt_last_played', JSON.stringify({
+        videoId,
+        title: videoTitle,
+        thumbnail: thumbnail || `https://img.youtube.com/vi/${videoId}/sddefault.jpg`,
+        channelTitle: channelTitle || 'YouTube Music',
+      }));
+    } catch (e) {}
 
-    // Always create/update roomState immediately so the player reacts
+    // Always create/update roomState immediately and switch to watch mode
     const now = Date.now();
     set((state) => ({
+      viewMode: 'watch',
       roomState: state.roomState
         ? {
             ...state.roomState,
@@ -346,7 +360,8 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
       },
     }));
 
-    if (socketInstance && socketInstance.connected) {
+    const isSessionActive = useListenTogetherStore.getState().isSessionActive;
+    if (socketInstance && socketInstance.connected && isSessionActive) {
       socketInstance.emit('listen-together:video-change', {
         roomId: rId,
         videoId,
@@ -359,21 +374,24 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
 
   sendPlay: (currentTime: number) => {
     const rId = get().roomId || 'default';
-    if (socketInstance && socketInstance.connected && !get().isRemoteAction) {
+    const isSessionActive = useListenTogetherStore.getState().isSessionActive;
+    if (socketInstance && socketInstance.connected && !get().isRemoteAction && isSessionActive) {
       socketInstance.emit('listen-together:play', { roomId: rId, currentTime });
     }
   },
 
   sendPause: (currentTime: number) => {
     const rId = get().roomId || 'default';
-    if (socketInstance && socketInstance.connected && !get().isRemoteAction) {
+    const isSessionActive = useListenTogetherStore.getState().isSessionActive;
+    if (socketInstance && socketInstance.connected && !get().isRemoteAction && isSessionActive) {
       socketInstance.emit('listen-together:pause', { roomId: rId, currentTime });
     }
   },
 
   sendSeek: (currentTime: number) => {
     const rId = get().roomId || 'default';
-    if (socketInstance && socketInstance.connected && !get().isRemoteAction) {
+    const isSessionActive = useListenTogetherStore.getState().isSessionActive;
+    if (socketInstance && socketInstance.connected && !get().isRemoteAction && isSessionActive) {
       socketInstance.emit('listen-together:seek', { roomId: rId, currentTime });
     }
   },
@@ -437,6 +455,10 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
       set({ searchQuery: '', searchResults: [], searchError: null });
       return;
     }
+
+    try {
+      localStorage.setItem('yt_last_search', query.trim());
+    } catch (e) {}
 
     try {
       set({ searchQuery: query, isSearching: true, searchError: null });

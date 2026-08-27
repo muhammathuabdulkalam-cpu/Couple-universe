@@ -11,7 +11,7 @@ import {
   X,
   Disc,
   Home,
-  Globe,
+  User,
 } from 'lucide-react';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
 import { Avatar } from '../ui/Avatar';
@@ -119,11 +119,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           </div>
 
           <button
-            onClick={() => navigate('/welcome')}
+            onClick={() => navigate('/profile')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition cursor-pointer shadow-lg shadow-indigo-600/30"
+          >
+            <User className="w-4 h-4" />
+            <span>Go to Super Owner Profile</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/dashboard')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-300 text-xs font-bold transition cursor-pointer"
           >
-            <Globe className="w-4 h-4 text-indigo-400" />
-            <span>Go to Welcome Page</span>
+            <Home className="w-4 h-4 text-indigo-400" />
+            <span>Go to Client Workspace</span>
           </button>
 
           <button
@@ -160,13 +168,22 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
               <span>Core Server Online</span>
             </div>
 
-            {/* Go to Welcome Page Button */}
+            {/* Go to Profile Button */}
             <button
-              onClick={() => navigate('/welcome')}
-              className="px-4 py-2 rounded-full bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/30 text-xs font-black transition flex items-center gap-2 shadow-md cursor-pointer"
+              onClick={() => navigate('/profile')}
+              className="px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition flex items-center gap-2 shadow-lg shadow-indigo-600/30 cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Super Owner Profile</span>
+            </button>
+
+            {/* Go to Workspace Button */}
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-indigo-200 border border-indigo-500/30 text-xs font-black transition flex items-center gap-2 shadow-md cursor-pointer"
             >
               <Home className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Go to Welcome Page</span>
+              <span>Client App</span>
             </button>
 
             {/* Quick Action Button */}

@@ -1,22 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Check,
   CheckCircle2,
-  Heart,
+  ChevronUp,
   MessageSquare,
   Music,
   Play,
-  Radio,
   RotateCcw,
   Search,
   Send,
   Share2,
   ThumbsUp,
+  UserCheck,
+  UserPlus,
   X,
 } from 'lucide-react';
 import { useUIStore } from '../../store/uiStore';
 import { useYouTubeListenStore } from '../../store/youtubeListenStore';
+import { useListenTogetherStore } from '../../store/listenTogetherStore';
 import { YouTubePlayer } from './YouTubePlayer';
+import { YouTubeHomeUI } from './YouTubeHomeUI';
+import { ListenTogetherUserPickerModal } from './ListenTogetherUserPickerModal';
+import { CoupleUniverseLoader } from './CoupleUniverseLoader';
 
 const QUICK_TAGS = [
   'All',
@@ -36,28 +42,67 @@ export const YouTubeListenTogetherTab: React.FC = () => {
   const [activeTag, setActiveTag] = useState('All');
   const [isLiked, setIsLiked] = useState(false);
   const [chatInputText, setChatInputText] = useState('');
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+  const [isUserPickerOpen, setIsUserPickerOpen] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const mobileChatBottomRef = useRef<HTMLDivElement>(null);
+  const relatedSearchDoneRef = useRef<string | null>(null);
 
+  // --- Store hooks (must be before any useEffect that uses them) ---
   const {
+    viewMode,
+    setViewMode,
     roomState,
     isJoined,
     controlMode,
     isHost,
-    syncStatus,
     searchResults,
     isSearching,
     chatMessages,
     changeVideo,
     sendChatMessage,
     joinRoom,
-    leaveRoom,
     requestSync,
     searchYouTube,
   } = useYouTubeListenStore();
 
+  const {
+    isSessionActive,
+    activeSession,
+  } = useListenTogetherStore();
+
+  const isRealSyncActive = isSessionActive && activeSession?.status === 'ACTIVE';
+  const isInvitePending = activeSession?.status === 'INVITED';
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    const main = document.querySelector('main');
+    if (main) {
+      main.scrollTop = 0;
+      main.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
+  // Force scroll to top whenever view mode or playing video changes
+  useEffect(() => {
+    scrollToTop();
+  }, [viewMode, roomState?.videoId]);
+
+  // Auto-fetch related videos whenever the playing video changes (for sidebar "Up Next")
+  useEffect(() => {
+    const currentVideoId = roomState?.videoId;
+    const videoTitle = roomState?.videoTitle;
+    if (currentVideoId && videoTitle && relatedSearchDoneRef.current !== currentVideoId) {
+      relatedSearchDoneRef.current = currentVideoId;
+      const query = videoTitle.replace(/[|\[\](){}]/g, ' ').trim().split(' ').slice(0, 5).join(' ');
+      searchYouTube(query);
+    }
+  }, [roomState?.videoId, roomState?.videoTitle, searchYouTube]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    mobileChatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, isMobileChatOpen]);
 
   const extractYouTubeVideoId = (input: string): string | null => {
     if (!input) return null;
@@ -73,21 +118,18 @@ export const YouTubeListenTogetherTab: React.FC = () => {
     return null;
   };
 
-  // Auto load popular suggestions on mount if empty
-  React.useEffect(() => {
-    if (searchResults.length === 0) {
-      searchYouTube('Despacito');
-    }
-  }, []);
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
       const extractedId = extractYouTubeVideoId(searchInput.trim());
       if (extractedId) {
-        changeVideo(extractedId, `YouTube Video (${extractedId})`, `https://img.youtube.com/vi/${extractedId}/hqdefault.jpg`, 'YouTube Stream');
+        // Direct YouTube link → load it immediately and switch to watch
+        changeVideo(extractedId, `YouTube Video (${extractedId})`, `https://img.youtube.com/vi/${extractedId}/sddefault.jpg`, 'YouTube Stream');
+        scrollToTop();
         useUIStore.getState().addToast('Loaded YouTube Link 🎬', `Playing video ID: ${extractedId}`, 'success');
       } else {
+        // Text search → go back to home view and search there
+        setViewMode('home');
         searchYouTube(searchInput.trim());
       }
     }
@@ -112,176 +154,154 @@ export const YouTubeListenTogetherTab: React.FC = () => {
     });
   };
 
+  const handleLogoClick = () => {
+    setViewMode('home');
+    useYouTubeListenStore.setState({ searchResults: [], searchQuery: '', isSearching: false, searchError: null });
+    scrollToTop();
+  };
+
   // Allow control when: not in a room (solo session) OR host OR collaborative mode
   const canControl = !isJoined || controlMode === 'COLLABORATIVE' || isHost;
   const participants = roomState?.participants || [];
 
-  return (
-    <div className="w-full max-w-7xl mx-auto space-y-4 md:space-y-6 pb-24 select-none">
-      {/* 1. Header Bar: Room Info & YouTube Search Bar (Mobile & Desktop Responsive) */}
-      <div className="p-4 md:p-5 rounded-3xl bg-slate-900/90 dark:bg-obsidian-950/90 backdrop-blur-2xl border border-slate-200/20 dark:border-white/10 shadow-2xl text-white">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 md:gap-4">
-          {/* Top Row on Mobile / Left Section on Desktop */}
-          <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-to-tr from-rose-500 via-pink-500 to-purple-600 flex items-center justify-center shadow-lg shadow-rose-500/25 shrink-0">
-                <Radio className="w-5 h-5 md:w-6 md:h-6 text-white animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h2 className="text-sm md:text-lg font-black tracking-tight text-white flex items-center gap-1">
-                    YouTube Listen Together
-                    <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-ping" />
-                  </h2>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border ${
-                      syncStatus === 'CONNECTED'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    {syncStatus}
-                  </span>
-                </div>
-                <p className="text-[11px] md:text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
-                  <span>Room: <strong className="text-rose-400 font-mono">{roomState?.roomId || 'default'}</strong></span>
-                  <span>•</span>
-                  <span>{participants.length} Synced</span>
-                </p>
-              </div>
-            </div>
+  // If user is on home view mode, render YouTube Home UI
+  if (viewMode === 'home') {
+    return <YouTubeHomeUI />;
+  }
 
-            {/* Mobile Actions: Disconnect / Join + Share */}
-            <div className="flex lg:hidden items-center gap-1.5">
-              {isJoined ? (
+  return (
+    <div className="w-full pb-24 select-none">
+      {/* ── YouTube-style Top Navigation Bar ── */}
+      <div className="sticky top-0 z-40 px-0 py-0">
+        <div className="flex items-center gap-2 px-3 md:px-5 py-2.5 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-b border-white/10 shadow-2xl">
+
+          {/* Left: YouTube Logo — clicking goes Home */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 cursor-pointer group shrink-0"
+              title="YouTube Hub Home"
+            >
+              <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-rose-600 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/25 group-hover:scale-105 transition shrink-0">
+                <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+              </div>
+              <span className="hidden md:flex flex-col leading-none">
+                <span className="text-sm font-black text-white tracking-tight">YouTube Hub</span>
+                <span className="text-[9px] font-bold text-rose-400 tracking-wider uppercase">Now Watching</span>
+              </span>
+            </button>
+          </div>
+
+          {/* Center: Search — takes all remaining space */}
+          <form
+            onSubmit={handleSearchSubmit}
+            className="flex-1 flex items-center gap-1 min-w-0"
+          >
+            <div className="flex-1 flex items-center bg-white/5 border border-white/10 focus-within:border-rose-500/60 focus-within:ring-1 focus-within:ring-rose-500/20 rounded-2xl overflow-hidden transition min-w-0">
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search songs..."
+                className="flex-1 pl-3 md:pl-4 pr-2 py-2 md:py-2.5 bg-transparent text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none min-w-0"
+              />
+              {searchInput && (
                 <button
                   type="button"
-                  onClick={leaveRoom}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-[10px] flex items-center gap-1 transition active:scale-95 cursor-pointer"
+                  onClick={() => setSearchInput('')}
+                  className="p-1.5 text-slate-400 hover:text-white transition cursor-pointer shrink-0"
                 >
-                  <X className="w-3 h-3 text-rose-400" />
-                  <span>Leave</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => joinRoom('default')}
-                  className="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold text-[10px] flex items-center gap-1 transition active:scale-95 cursor-pointer"
-                >
-                  <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                  <span>Join</span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
-          </div>
-
-          {/* YouTube Search Bar (Full Width on Mobile, Flexible on Desktop) */}
-          <form onSubmit={handleSearchSubmit} className="w-full lg:flex-1 lg:max-w-xl relative flex items-center">
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search Tamil, Hindi, English songs..."
-              className="w-full pl-9 pr-11 py-2 md:py-2.5 rounded-2xl bg-white/5 border border-white/15 focus:border-rose-500 text-xs font-medium text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 transition shadow-inner"
-            />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3" />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => setSearchInput('')}
-                className="p-1 text-slate-400 hover:text-white absolute right-9 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
             <button
               type="submit"
-              className="p-2 md:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs absolute right-1 shadow-md transition cursor-pointer"
+              className="w-9 h-9 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white flex items-center justify-center transition cursor-pointer shrink-0 shadow-lg shadow-rose-500/25"
+              title="Search"
             >
-              <Search className="w-3.5 h-3.5" />
+              <Search className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Desktop Actions */}
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={requestSync}
-              className="p-2 rounded-2xl bg-white/10 hover:bg-white/15 text-white transition active:scale-95 cursor-pointer"
-              title="Resync Player"
-            >
-              <RotateCcw className="w-4 h-4 text-rose-400" />
-            </button>
-
-            {isJoined ? (
-              <button
-                type="button"
-                onClick={leaveRoom}
-                className="px-3.5 py-2 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-extrabold text-xs flex items-center gap-1 transition active:scale-95 cursor-pointer"
-                title="Disconnect from Room Session"
-              >
-                <X className="w-3.5 h-3.5 text-rose-400" />
-                <span>Disconnect</span>
-              </button>
+          {/* Right: Actions — icon-only on mobile */}
+          <div className="flex items-center gap-1 shrink-0">
+            {isRealSyncActive ? (
+              <div className="w-9 h-9 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center" title="Synced with partner">
+                <UserCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+            ) : isInvitePending ? (
+              <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              </div>
             ) : (
               <button
                 type="button"
-                onClick={() => joinRoom('default')}
-                className="px-3.5 py-2 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-extrabold text-xs flex items-center gap-1 transition active:scale-95 cursor-pointer"
-                title="Join Session"
+                onClick={() => setIsUserPickerOpen(true)}
+                className="flex items-center gap-1.5 h-9 px-2.5 md:px-3.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs shadow-lg shadow-rose-500/25 transition active:scale-95 cursor-pointer"
               >
-                <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span>Join Session</span>
+                <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Invite</span>
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={requestSync}
+              className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-300 flex items-center justify-center transition active:scale-95 cursor-pointer"
+              title="Resync Player"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
 
             <button
               type="button"
               onClick={handleCopyShareLink}
-              className="px-4 py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-500/25 transition active:scale-95 cursor-pointer"
+              className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center transition active:scale-95 cursor-pointer"
+              title="Share"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Share2 className="w-4 h-4" />}
-              <span>{copiedLink ? 'Copied' : 'Share Room'}</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. Main YouTube Watch Page Layout */}
+      {/* 2. Main Content — padded inner container */}
+      <div className="px-3 md:px-6 pt-4 space-y-4 md:space-y-6">
+      {/* YouTube Watch Page Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
         {/* Left Column: YouTube Video Theater & Chat */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className="lg:col-span-7 space-y-3">
           {/* Main Video Theater Container */}
-          <div className="relative rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10 group">
+          <div className="relative rounded-2xl md:rounded-3xl overflow-hidden bg-black shadow-2xl border border-white/10 group">
             <YouTubePlayer />
           </div>
 
-          {/* YouTube Video Details & Channel Info Box */}
-          <div className="p-4 md:p-5 rounded-3xl bg-slate-900/90 dark:bg-obsidian-950/90 backdrop-blur-xl border border-white/10 text-white space-y-4 shadow-xl">
+          {/* YouTube Video Title & Channel Info */}
+          <div className="px-1 space-y-3 text-white">
+            {/* Title */}
             <div className="space-y-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                  YouTube Now Playing
-                </span>
-              </div>
-              <h2 className="text-base md:text-xl font-black text-white tracking-tight leading-snug">
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                Now Playing
+              </span>
+              <h2 className="text-sm md:text-xl font-black text-white tracking-tight leading-snug mt-1">
                 {roomState?.videoTitle || 'Select a YouTube Video to Start Listening'}
               </h2>
             </div>
 
-            {/* Channel Bar & Action Buttons */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 font-extrabold text-xs shrink-0">
+            {/* Channel + Action Buttons row */}
+            <div className="flex flex-wrap items-center justify-between gap-2 py-2 border-t border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 font-extrabold text-xs shrink-0">
                   {(roomState?.channelTitle || 'YT').substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-xs md:text-sm font-bold text-white flex items-center gap-1">
+                  <h3 className="text-xs font-bold text-white flex items-center gap-1">
                     {roomState?.channelTitle || 'YouTube Channel'}
-                    <CheckCircle2 className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+                    <CheckCircle2 className="w-3 h-3 text-rose-400 fill-rose-400" />
                   </h3>
-                  <span className="text-[10px] text-slate-400 font-medium">Verified Channel</span>
+                  <span className="text-[10px] text-slate-400">Verified Channel</span>
                 </div>
               </div>
 
@@ -289,7 +309,7 @@ export const YouTubeListenTogetherTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsLiked(!isLiked)}
-                  className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer ${
                     isLiked
                       ? 'bg-rose-500 text-white border-rose-500 shadow-md'
                       : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
@@ -302,7 +322,7 @@ export const YouTubeListenTogetherTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCopyShareLink}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Share</span>
@@ -310,8 +330,53 @@ export const YouTubeListenTogetherTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Session-Scoped Private Live Room Chat Container */}
-            <div className="p-4 md:p-5 rounded-3xl bg-slate-900/90 dark:bg-obsidian-950/90 backdrop-blur-xl border border-white/10 text-white space-y-3 shadow-xl">
+            {/* ── YouTube-style CHAT BAR (replaces comment section on mobile) ── */}
+            {/* Visible on mobile only; tapping opens slide-up chat */}
+            <div
+              onClick={() => setIsMobileChatOpen(true)}
+              className="lg:hidden rounded-2xl bg-white/5 border border-white/10 overflow-hidden cursor-pointer active:bg-white/10 transition"
+            >
+              {/* Bar header — like YouTube Comments "X comments" row */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-rose-400" />
+                  <span className="text-sm font-black text-white">Chat</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    {chatMessages.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                  <span>{isJoined ? 'Open chat' : 'Tap to connect'}</span>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              {/* Preview of last message — like YouTube shows 1 comment preview */}
+              <div className="px-4 py-2.5">
+                {chatMessages.length > 0 ? (
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 font-bold text-[10px] shrink-0 mt-0.5">
+                      {chatMessages[chatMessages.length - 1].userName.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-slate-300">
+                        {chatMessages[chatMessages.length - 1].userName}
+                      </span>
+                      <p className="text-xs text-slate-400 truncate">
+                        {chatMessages[chatMessages.length - 1].text}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 italic">
+                    {isJoined ? 'No messages yet — say hi to your partner! 👋' : 'Join a session to chat while watching together'}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Desktop Inline Live Room Chat Container (hidden on mobile, visible on lg) */}
+            <div className="hidden lg:block p-4 md:p-5 rounded-3xl bg-slate-900/90 dark:bg-obsidian-950/90 backdrop-blur-xl border border-white/10 text-white space-y-3 shadow-xl">
               <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-rose-400" />
@@ -409,26 +474,26 @@ export const YouTubeListenTogetherTab: React.FC = () => {
                   className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-rose-500/25 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Send</span>
+                <span className="hidden sm:inline">Send</span>
                 </button>
               </form>
             </div>
           </div>
         </div>
 
-        {/* Right Column: YouTube "Up Next" Video Sidebar (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          {/* Quick Suggestion Tag Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {/* Right Column: YouTube "Up Next" (5 Cols on desktop, full width on mobile) */}
+        <div className="lg:col-span-5 space-y-3">
+          {/* Filter tag chips — scrollable horizontally */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none px-1">
             {QUICK_TAGS.map((tag) => (
               <button
                 key={tag}
                 type="button"
                 onClick={() => handleQuickTagClick(tag)}
-                className={`px-3 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition cursor-pointer flex-shrink-0 ${
                   activeTag === tag
-                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25 font-extrabold'
-                    : 'bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300'
+                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
+                    : 'bg-white/8 hover:bg-white/12 border border-white/10 text-slate-300'
                 }`}
               >
                 {tag}
@@ -436,119 +501,241 @@ export const YouTubeListenTogetherTab: React.FC = () => {
             ))}
           </div>
 
-          {/* Up Next & Search Results Container */}
-          <div className="p-4 rounded-3xl bg-slate-900/90 dark:bg-obsidian-950/90 backdrop-blur-xl border border-white/10 text-white space-y-3 shadow-xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <Music className="w-4 h-4 text-rose-400" />
-                Up Next & Search Results
-              </h3>
-              <span className="text-[10px] text-slate-400 font-mono">{searchResults.length} Videos</span>
+          {/* Up Next Header — YouTube style */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Music className="w-3.5 h-3.5 text-rose-400" />
+              <span className="text-xs font-black text-white uppercase tracking-widest">Up Next</span>
             </div>
+            <span className="text-[10px] text-slate-500 font-mono">{searchResults.length} videos</span>
+          </div>
 
-            {/* Video Cards List */}
-            <div className="space-y-3 max-h-[580px] overflow-y-auto pr-1">
-              {/* Direct Link Detection Card */}
-              {(() => {
-                const directId = extractYouTubeVideoId(searchInput);
-                if (!directId) return null;
-                return (
-                  <div
-                    key={`direct-${directId}`}
-                    className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 group shadow-xl mb-3"
-                  >
+          {/* Video Cards List — YouTube style */}
+          <div className="space-y-1">
+            {/* Direct Link Card */}
+            {(() => {
+              const directId = extractYouTubeVideoId(searchInput);
+              if (!directId) return null;
+              return (
+                <div
+                  key={`direct-${directId}`}
+                  onClick={() => {
+                    if (canControl) {
+                      changeVideo(directId, `YouTube Video (${directId})`, `https://img.youtube.com/vi/${directId}/sddefault.jpg`, 'Direct Link');
+                      scrollToTop();
+                    }
+                  }}
+                  className="group flex gap-3 p-2 rounded-xl hover:bg-white/5 transition cursor-pointer active:bg-white/10"
+                >
+                  <div className="relative w-40 aspect-video rounded-xl overflow-hidden shrink-0 bg-slate-900">
                     <img
-                      src={`https://img.youtube.com/vi/${directId}/hqdefault.jpg`}
-                      alt="Direct YouTube Link"
-                      className="w-32 aspect-video rounded-xl object-cover shadow-md shrink-0 border border-rose-500/30"
+                      src={`https://img.youtube.com/vi/${directId}/sddefault.jpg`}
+                      alt="Direct Link"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-rose-500 text-white uppercase tracking-wider">
-                        Direct Link
-                      </span>
-                      <h4 className="text-xs font-bold text-white truncate">Video ID: {directId}</h4>
-                      <button
-                        type="button"
-                        disabled={!canControl}
-                        onClick={() => changeVideo(directId, `YouTube Video (${directId})`, `https://img.youtube.com/vi/${directId}/hqdefault.jpg`, 'Direct Link')}
-                        className="px-3 py-1 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[10px] flex items-center gap-1 cursor-pointer shadow-md"
-                      >
-                        <Play className="w-3 h-3 fill-current ml-0.5" /> Play
-                      </button>
-                    </div>
+                    <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-black/80 rounded text-[9px] font-bold text-white">LINK</div>
                   </div>
-                );
-              })()}
+                  <div className="flex-1 min-w-0 py-0.5">
+                    <p className="text-xs font-bold text-white line-clamp-2 leading-snug">Video ID: {directId}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                      Direct YouTube Link
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
-              {/* Search Results List */}
-              {isSearching ? (
-                <div className="py-16 text-center space-y-3">
-                  <div className="w-8 h-8 border-2 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-xs text-slate-400">Loading YouTube videos...</p>
-                </div>
-              ) : searchResults.length === 0 ? (
-                <div className="py-16 text-center space-y-2">
-                  <Music className="w-10 h-10 text-slate-600 mx-auto" />
-                  <h4 className="text-xs font-bold text-slate-300">No Videos Found</h4>
-                </div>
-              ) : (
-                searchResults.map((item) => (
-                  <div
-                    key={item.videoId}
-                    className="group p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 transition flex items-start gap-3 cursor-pointer"
-                    onClick={() => canControl && changeVideo(item.videoId, item.title, item.thumbnail, item.channelTitle)}
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative w-32 aspect-video rounded-xl overflow-hidden shrink-0 shadow-md border border-white/10 bg-slate-900">
-                      <img
-                        src={item.thumbnail || `https://img.youtube.com/vi/${item.videoId}/hqdefault.jpg`}
-                        alt={item.title}
-                        onError={(e: any) => {
-                          const target = e.currentTarget as HTMLImageElement;
-                          const id = item.videoId;
-                          if (target.src.includes('hqdefault')) {
-                            target.src = `https://img.youtube.com/vi/${id}/sddefault.jpg`;
-                          } else if (target.src.includes('sddefault')) {
-                            target.src = `https://img.youtube.com/vi/${id}/0.jpg`;
-                          } else {
-                            target.onerror = null; // stop further retries
-                          }
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                        <Play className="w-6 h-6 text-white fill-current" />
+            {/* Search Results */}
+            {isSearching ? (
+              <div className="py-6 text-center">
+                <CoupleUniverseLoader message="Loading videos..." size="sm" />
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="py-12 text-center space-y-2">
+                <Music className="w-10 h-10 text-slate-700 mx-auto" />
+                <p className="text-xs font-bold text-slate-500">No videos found</p>
+              </div>
+            ) : (
+              searchResults.map((item) => (
+                <div
+                  key={item.videoId}
+                  onClick={() => {
+                    if (canControl) {
+                      changeVideo(item.videoId, item.title, item.thumbnail, item.channelTitle);
+                      scrollToTop();
+                    }
+                  }}
+                  className="group flex gap-3 p-2 rounded-xl hover:bg-white/5 transition cursor-pointer active:bg-white/10"
+                >
+                  {/* Thumbnail — 16:9 like YouTube */}
+                  <div className="relative w-40 aspect-video rounded-xl overflow-hidden shrink-0 bg-slate-900 border border-white/[0.06]">
+                    <img
+                      src={item.thumbnail || `https://img.youtube.com/vi/${item.videoId}/sddefault.jpg`}
+                      alt={item.title}
+                      onError={(e: any) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        const id = item.videoId;
+                        if (target.src.includes('maxresdefault') || target.src.includes('sddefault')) {
+                          target.src = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+                        } else if (target.src.includes('hqdefault')) {
+                          target.src = `https://img.youtube.com/vi/${id}/0.jpg`;
+                        } else {
+                          target.onerror = null;
+                        }
+                      }}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                    {/* Play overlay on hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                      <div className="w-9 h-9 rounded-full bg-rose-500/90 flex items-center justify-center shadow-lg">
+                        <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                       </div>
                     </div>
-
-                    {/* Metadata */}
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <h4 className="text-xs font-bold text-white line-clamp-2 leading-tight group-hover:text-rose-300 transition">
-                        {item.title}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1">
-                        {item.channelTitle}
-                        <CheckCircle2 className="w-3 h-3 text-rose-400 fill-rose-400" />
-                      </p>
-                      <button
-                        type="button"
-                        disabled={!canControl}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          changeVideo(item.videoId, item.title, item.thumbnail, item.channelTitle);
-                        }}
-                        className="px-3 py-1 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-extrabold text-[10px] flex items-center gap-1 shadow-md transition active:scale-95 disabled:opacity-50 cursor-pointer"
-                      >
-                        <Play className="w-3 h-3 fill-current ml-0.5" /> Play
-                      </button>
-                    </div>
                   </div>
-                ))
-              )}
-            </div>
+
+                  {/* Metadata — title + channel, like YouTube */}
+                  <div className="flex-1 min-w-0 py-0.5 space-y-0.5">
+                    <h4 className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-rose-300 transition">
+                      {item.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
+                      <span className="truncate">{item.channelTitle}</span>
+                      <CheckCircle2 className="w-3 h-3 text-rose-400 fill-rose-400 shrink-0" />
+                    </p>
+                    <p className="text-[10px] text-slate-500">YouTube Music</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
+      </div>{/* end padded content */}
+
+      {/* Floating Slide-Up Mobile Live Chat Sheet Modal */}
+      <AnimatePresence>
+        {isMobileChatOpen && (
+          <div
+            className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-sm lg:hidden flex flex-col justify-end"
+            onClick={() => setIsMobileChatOpen(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-h-[82vh] bg-slate-950/95 border-t border-white/15 rounded-t-3xl p-4 shadow-2xl flex flex-col space-y-3"
+            >
+              {/* Drag Handle */}
+              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto shrink-0 mb-0.5" />
+
+              {/* Sheet Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-rose-400" />
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                    {isJoined ? 'Private Session Chat' : 'Live Room Chat'}
+                  </h3>
+                  {isJoined && (
+                    <span className="text-[9px] text-rose-300 bg-rose-500/20 px-2 py-0.5 rounded-full border border-rose-500/30 font-bold">
+                      {participants.length} connected
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setIsMobileChatOpen(false)}
+                  className="p-1 rounded-full text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Message Stream */}
+              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[200px] max-h-[48vh]">
+                {!isJoined ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs gap-2 py-8 text-center px-4">
+                    <MessageSquare className="w-8 h-8 text-rose-500/50" />
+                    <p className="font-bold text-slate-300">Disconnected from Room Session</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        joinRoom('default');
+                      }}
+                      className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs shadow-md"
+                    >
+                      Connect & Chat
+                    </button>
+                  </div>
+                ) : chatMessages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs gap-1 py-8">
+                    <MessageSquare className="w-6 h-6 text-slate-600" />
+                    <span>No session messages yet. Say hi to your partner!</span>
+                  </div>
+                ) : (
+                  chatMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${msg.isMe ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-0.5 px-1">
+                        <span className="text-[10px] font-bold text-slate-400">{msg.userName}</span>
+                        <span className="text-[9px] text-slate-500">
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div
+                        className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-xs font-medium leading-relaxed ${
+                          msg.isMe
+                            ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-tr-none'
+                            : 'bg-white/10 text-slate-200 rounded-tl-none border border-white/10'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={mobileChatBottomRef} />
+              </div>
+
+              {/* Input Form */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (chatInputText.trim() && isJoined) {
+                    sendChatMessage(chatInputText);
+                    setChatInputText('');
+                  }
+                }}
+                className="flex items-center gap-2 pt-2 border-t border-white/10 shrink-0"
+              >
+                <input
+                  type="text"
+                  disabled={!isJoined}
+                  placeholder={isJoined ? 'Type a message...' : 'Join session to chat'}
+                  value={chatInputText}
+                  onChange={(e) => setChatInputText(e.target.value)}
+                  className="flex-1 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-rose-500 transition disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!chatInputText.trim() || !isJoined}
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold text-xs flex items-center gap-1 shadow-lg shadow-rose-500/25 active:scale-95 disabled:opacity-40"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <ListenTogetherUserPickerModal
+        isOpen={isUserPickerOpen}
+        onClose={() => setIsUserPickerOpen(false)}
+      />
     </div>
   );
 };

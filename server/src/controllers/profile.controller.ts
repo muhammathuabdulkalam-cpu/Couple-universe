@@ -15,8 +15,11 @@ import { getSocketServer } from '../utils/socketServer';
 import { CloudinaryService } from '../services/cloudinary.service';
 import { logger } from '../config/logger.config';
 
-const getDefaultAvatar = (_name?: string, _role?: string) => {
-  return '';
+const getDefaultAvatar = (name?: string, _role?: string) => {
+  if (name && name.trim()) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=6366f1&color=fff`;
+  }
+  return 'https://ui-avatars.com/api/?name=User&background=6366f1&color=fff';
 };
 
 /**
@@ -323,21 +326,6 @@ export const getProfile = catchAsync(async (req: Request, res: Response) => {
     partner = await User.findOne({ role: ROLES.CO_OWNER, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
   } else if (user.role === ROLES.CO_OWNER) {
     partner = await User.findOne({ role: ROLES.SUPER_OWNER, isDeleted: { $ne: true } }).select('name email role avatar bio birthday');
-  } else {
-    // For Invited Users, their partner card ALWAYS resolves to their exact parent owner!
-    const parentOwner = await getParentOwnerForUser(user._id);
-    if (parentOwner && parentOwner._id.toString() !== user._id.toString()) {
-      partner = {
-        _id: parentOwner._id,
-        id: parentOwner._id,
-        name: parentOwner.name,
-        email: parentOwner.email,
-        role: parentOwner.role,
-        avatar: parentOwner.avatar,
-        bio: parentOwner.bio,
-        birthday: parentOwner.birthday,
-      };
-    }
   }
 
   // Fast avatar fallback (avoid slow regex DB queries)

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Calendar, Clock, Eye, Layers, Image as ImageIcon, BookOpen, Music, CheckCircle2 } from 'lucide-react';
+import { Heart, Calendar, Clock, Eye, Layers, Image as ImageIcon, BookOpen, Music, CheckCircle2, User } from 'lucide-react';
 import { PrimaryCoupleData } from '../../types/admin.types';
 import { useAdminAuthStore } from '../../store/adminAuthStore';
 import { Avatar } from '../ui/Avatar';
@@ -50,16 +50,25 @@ export const PrimaryCoupleOverview: React.FC<PrimaryCoupleOverviewProps> = ({ da
             </div>
           </div>
 
-          {/* Quick View Button */}
-          {partner1?.id && (
+          {/* Quick View & Return to Profile Buttons */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setSelectedUserIdForDrawer(partner1.id)}
-              className="px-4 py-2.5 rounded-full bg-white hover:bg-slate-200 text-slate-950 font-black text-xs shadow-lg flex items-center gap-2 transition w-fit"
+              onClick={() => window.location.href = '/profile'}
+              className="px-4 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition w-fit cursor-pointer"
             >
-              <Eye className="w-4 h-4 text-slate-950" />
-              <span>Quick View Owners</span>
+              <User className="w-4 h-4 text-white" />
+              <span>Return to Super Owner Profile</span>
             </button>
-          )}
+            {partner1?.id && (
+              <button
+                onClick={() => setSelectedUserIdForDrawer(partner1.id)}
+                className="px-4 py-2.5 rounded-full bg-white hover:bg-slate-200 text-slate-950 font-black text-xs shadow-lg flex items-center gap-2 transition w-fit cursor-pointer"
+              >
+                <Eye className="w-4 h-4 text-slate-950" />
+                <span>Quick View</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Partners & Online Status Grid */}

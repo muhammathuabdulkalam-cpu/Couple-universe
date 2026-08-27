@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useYouTubeListenStore } from '../../store/youtubeListenStore';
 import { useUIStore } from '../../store/uiStore';
 import { Card } from '../ui/Card';
+import { SafeYouTubeThumbnail } from '../music/SafeYouTubeThumbnail';
 
 export const YouTubeSyncWidget: React.FC = () => {
   const navigate = useNavigate();
@@ -14,9 +15,6 @@ export const YouTubeSyncWidget: React.FC = () => {
   if (!roomState?.videoId) return null;
 
   const isPlaying = roomState.isPlaying;
-  const thumbnail =
-    roomState.thumbnail ||
-    `https://img.youtube.com/vi/${roomState.videoId}/0.jpg`;
 
   const handleClick = () => {
     toggleActivityDrawer(false);
@@ -51,14 +49,11 @@ export const YouTubeSyncWidget: React.FC = () => {
       <div className="flex items-center gap-3">
         {/* Thumbnail */}
         <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 shadow-md border border-rose-500/20 group-hover:scale-105 transition-transform bg-slate-900">
-          <img
-            src={thumbnail}
+          <SafeYouTubeThumbnail
+            videoId={roomState.videoId}
+            customUrl={roomState.thumbnail}
             alt={roomState.videoTitle || 'YouTube Video'}
             className="w-full h-full object-cover"
-            onError={(e: any) => {
-              e.currentTarget.src = `https://img.youtube.com/vi/${roomState.videoId}/0.jpg`;
-              e.currentTarget.onerror = null;
-            }}
           />
           {/* Play overlay on hover */}
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

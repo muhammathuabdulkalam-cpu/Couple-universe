@@ -4,6 +4,7 @@ export interface IInvitedUser extends Document {
   _id: mongoose.Types.ObjectId;
   name: string;
   email?: string;
+  registeredUserId?: mongoose.Types.ObjectId;
   relationshipId: mongoose.Types.ObjectId;
   relationshipName: string;
   relationshipType: string;
@@ -13,7 +14,7 @@ export interface IInvitedUser extends Document {
   tokenCode: string;
   targetRole: string;
   enabledFeatures: string[];
-  status: 'PENDING' | 'ACTIVE' | 'REVOKED' | 'EXPIRED';
+  status: 'PENDING' | 'ACTIVE' | 'REGISTERED' | 'REVOKED' | 'EXPIRED';
   avatar?: string;
   isDeleted: boolean;
   createdAt: Date;
@@ -24,6 +25,7 @@ const invitedUserSchema = new Schema<IInvitedUser>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, trim: true, default: '' },
+    registeredUserId: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     relationshipId: { type: Schema.Types.ObjectId, ref: 'Relationship', default: null, index: true },
     relationshipName: { type: String, default: '' },
     relationshipType: { type: String, default: 'Friendship' },
@@ -33,7 +35,7 @@ const invitedUserSchema = new Schema<IInvitedUser>(
     tokenCode: { type: String, required: true, index: true },
     targetRole: { type: String, default: 'INVITED_USER' },
     enabledFeatures: [{ type: String }],
-    status: { type: String, enum: ['PENDING', 'ACTIVE', 'REVOKED', 'EXPIRED'], default: 'PENDING', index: true },
+    status: { type: String, enum: ['PENDING', 'ACTIVE', 'REGISTERED', 'REVOKED', 'EXPIRED'], default: 'PENDING', index: true },
     avatar: { type: String, default: '' },
     isDeleted: { type: Boolean, default: false, index: true },
   },

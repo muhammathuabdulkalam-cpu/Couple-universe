@@ -688,17 +688,17 @@ export const deleteUploadedSong = catchAsync(async (req: Request, res: Response)
 export const getListenTargets = catchAsync(async (req: Request, res: Response) => {
   const user = req.user!;
   const targets: Array<{ id: string; name: string; avatar: string; role: string; email?: string }> = [];
+  const { InvitedUser } = await import('../models/invitedUser.model');
+  const { Relationship } = await import('../models/relationship.model');
 
   if (user.role === 'INVITED_USER') {
     // Invited users can invite ONLY their direct parent owner
-    const { InvitedUser } = await import('../models/invitedUser.model');
-    const { Relationship } = await import('../models/relationship.model');
-
     let parentOwnerId: string | null = null;
 
     // Source A: InvitedUser doc
     const invitedDoc = await InvitedUser.findOne({
       $or: [
+        { registeredUserId: user._id },
         { email: user.email?.toLowerCase() },
         { name: new RegExp(`^${user.name}$`, 'i') },
       ],
@@ -723,7 +723,7 @@ export const getListenTargets = catchAsync(async (req: Request, res: Response) =
       }
     }
 
-    // Fallback: Super Owner (Afzal)
+    // Fallback: Super Owner
     if (!parentOwnerId) {
       const superOwner = await User.findOne({ role: 'SUPER_OWNER', isDeleted: false }).select('_id');
       if (superOwner) parentOwnerId = superOwner._id.toString();
@@ -743,7 +743,7 @@ export const getListenTargets = catchAsync(async (req: Request, res: Response) =
     }
   } else {
     // Parent Owners (SUPER_OWNER / CO_OWNER):
-    // 1. Partner Owner (SUPER_OWNER or CO_OWNER)
+    // 1. Partner Owner (SUPER_OWNER gets CO_OWNER, CO_OWNER gets SUPER_OWNER)
     const partnerRole = user.role === 'SUPER_OWNER' ? 'CO_OWNER' : 'SUPER_OWNER';
     const partner = await User.findOne({
       _id: { $ne: user._id },
@@ -761,46 +761,70 @@ export const getListenTargets = catchAsync(async (req: Request, res: Response) =
       });
     }
 
-    // 2. Sub-users strictly created/invited by THIS specific owner user
-    const { InvitedUser } = await import('../models/invitedUser.model');
-    const subInvites = await InvitedUser.find({
-      ownerUserId: user._id,
+    // 2. Fetch ONLY sub-users/invited-users created BY THIS OWNER (user._id)
+    const ownerIdObj = user._id;
+
+    const ownerInvites = await InvitedUser.find({
+      ownerUserId: ownerIdObj,
       isDeleted: false,
-    }).select('name email');
+    }).select('_id name email avatar registeredUserId status');
 
-    const subUserEmails = subInvites.map((i) => (i.email || '').toLowerCase()).filter(Boolean);
-    const subUserNames = subInvites.map((i) => (i.name || '').toLowerCase()).filter(Boolean);
+    const registeredUserIds = ownerInvites
+      .map((i) => i.registeredUserId?.toString())
+      .filter(Boolean);
 
-    let subUsers: any[] = [];
-    if (subUserEmails.length > 0 || subUserNames.length > 0) {
-      subUsers = await User.find({
-        _id: { $ne: user._id },
-        role: 'INVITED_USER',
-        isDeleted: false,
-        $or: [
-          { createdBy: user._id },
-          ...(subUserEmails.length > 0 ? [{ email: { $in: subUserEmails } }] : []),
-          ...(subUserNames.length > 0 ? [{ name: { $in: subUserNames.map((n) => new RegExp(`^${n}$`, 'i')) } }] : []),
-        ],
-      }).select('_id name email avatar role');
-    } else {
-      subUsers = await User.find({
-        _id: { $ne: user._id },
-        role: 'INVITED_USER',
-        createdBy: user._id,
-        isDeleted: false,
-      }).select('_id name email avatar role');
-    }
+    const invitedEmails = ownerInvites
+      .map((i) => i.email?.toLowerCase())
+      .filter((e): e is string => Boolean(e && e.trim() !== ''));
 
-    subUsers.forEach((su) => {
+    // Find User records corresponding strictly to sub-users created by THIS owner
+    const mySubUsers = await User.find({
+      _id: { $ne: user._id },
+      role: 'INVITED_USER',
+      isDeleted: { $ne: true },
+      $or: [
+        { createdBy: ownerIdObj },
+        { invitedBy: ownerIdObj },
+        ...(registeredUserIds.length > 0 ? [{ _id: { $in: registeredUserIds.map((id) => new mongoose.Types.ObjectId(id)) } }] : []),
+        ...(invitedEmails.length > 0 ? [{ email: { $in: invitedEmails } }] : []),
+      ],
+    }).select('_id name email avatar role createdBy invitedBy');
+
+    // Add registered sub-users to targets (STRICTLY filter out any sub-user explicitly created by another owner)
+    mySubUsers.forEach((su) => {
       const suId = su._id.toString();
-      if (!targets.some((t) => t.id === suId)) {
+      const suCreatedByStr = su.createdBy?.toString() || su.invitedBy?.toString();
+
+      // If su has a createdBy/invitedBy defined and it points to someone ELSE (e.g. Super Owner when logged in as Co-Owner), skip it unless it's in ownerInvites for this user!
+      if (suCreatedByStr && suCreatedByStr !== user._id.toString()) {
+        const isExplicitlyInMyInvites = registeredUserIds.includes(suId) || (su.email && invitedEmails.includes(su.email.toLowerCase()));
+        if (!isExplicitlyInMyInvites) return;
+      }
+
+      if (!targets.some((t) => t.id === suId || (su.email && t.email?.toLowerCase() === su.email.toLowerCase()))) {
         targets.push({
           id: suId,
           name: su.name,
-          avatar: su.avatar || '',
+          avatar: su.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(su.name || 'User')}&background=6366f1&color=fff`,
           role: su.role,
           email: su.email,
+        });
+      }
+    });
+
+    // Also include invitations created by THIS owner that haven't registered as a User yet
+    ownerInvites.forEach((inv) => {
+      const invId = inv.registeredUserId?.toString() || inv._id.toString();
+      const isAlreadyInTargets = targets.some(
+        (t) => t.id === invId || (inv.email && t.email?.toLowerCase() === inv.email.toLowerCase())
+      );
+      if (!isAlreadyInTargets && inv.status !== 'REVOKED' && inv.status !== 'EXPIRED') {
+        targets.push({
+          id: inv._id.toString(),
+          name: inv.name,
+          avatar: inv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(inv.name || 'User')}&background=6366f1&color=fff`,
+          role: 'INVITED_USER',
+          email: inv.email,
         });
       }
     });

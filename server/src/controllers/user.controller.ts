@@ -37,17 +37,33 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
     const activeUsers = await User.find({ isDeleted: { $ne: true } }).select('_id');
     allowedUserIds = activeUsers.map((u) => u._id);
   } else if (requestingUser.role === ROLES.SUPER_OWNER || requestingUser.role === ROLES.CO_OWNER) {
-    const owners = await User.find({
-      role: { $in: [ROLES.SUPER_OWNER, ROLES.CO_OWNER] },
+    const { InvitedUser } = await import('../models/invitedUser.model');
+
+    // Partner Owner
+    const partnerRole = requestingUser.role === ROLES.SUPER_OWNER ? ROLES.CO_OWNER : ROLES.SUPER_OWNER;
+    const partner = await User.findOne({ _id: { $ne: requestingUser._id }, role: partnerRole, isDeleted: { $ne: true } }).select('_id');
+
+    // Sub-users created under THIS owner
+    const ownerInvites = await InvitedUser.find({ ownerUserId: requestingUser._id, isDeleted: false }).select('registeredUserId email');
+    const registeredIds = ownerInvites.map((i) => i.registeredUserId).filter(Boolean);
+    const inviteEmails = ownerInvites.map((i) => i.email?.toLowerCase()).filter(Boolean);
+
+    const subUsers = await User.find({
+      role: ROLES.INVITED_USER,
       isDeleted: { $ne: true },
+      $or: [
+        { createdBy: requestingUser._id },
+        { invitedBy: requestingUser._id },
+        ...(registeredIds.length > 0 ? [{ _id: { $in: registeredIds } }] : []),
+        ...(inviteEmails.length > 0 ? [{ email: { $in: inviteEmails } }] : []),
+      ],
     }).select('_id');
-    const ownerIds = owners.map((u) => u._id);
 
-    const { getSubUsersForOwner } = await import('./profile.controller');
-    const subUsers = await getSubUsersForOwner(requestingUser._id);
-    const subUserIds = subUsers.map((u) => u._id);
-
-    allowedUserIds = Array.from(new Set([...ownerIds.map((id) => id.toString()), ...subUserIds.map((id) => id.toString())]));
+    allowedUserIds = [
+      requestingUser._id,
+      partner ? partner._id : null,
+      ...subUsers.map((u) => u._id),
+    ].filter(Boolean);
   } else {
     // Invited Users
     const { getParentOwnerForUser } = await import('./profile.controller');
