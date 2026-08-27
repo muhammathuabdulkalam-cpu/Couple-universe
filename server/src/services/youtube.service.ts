@@ -97,16 +97,24 @@ const FALLBACK_VIDEOS: YouTubeSearchResult[] = [
 ];
 
 /**
- * Tier 1: YouTube InnerTube API (Fast, Native JSON, Cloud Hosted compatible)
+ * Tier 1: YouTube InnerTube API with Full YouTube Headers & Regional Context
  */
 async function searchViaInnerTube(query: string): Promise<YouTubeSearchResult[]> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
     const res = await fetch('https://www.youtube.com/youtubei/v1/search', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        'Origin': 'https://www.youtube.com',
+        'Referer': 'https://www.youtube.com/',
+        'X-YouTube-Client-Name': '1',
+        'X-YouTube-Client-Version': '2.20240301.00.00',
       },
       body: JSON.stringify({
         context: {
@@ -114,14 +122,20 @@ async function searchViaInnerTube(query: string): Promise<YouTubeSearchResult[]>
             clientName: 'WEB',
             clientVersion: '2.20240301.00.00',
             hl: 'en',
-            gl: 'US',
+            gl: 'IN',
+            utcOffsetMinutes: 330,
           },
         },
         query,
       }),
     });
 
-    if (!res.ok) return [];
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      logger.warn(`⚠️ InnerTube returned HTTP ${res.status}`);
+      return [];
+    }
 
     const data: any = await res.json();
     const contents =
@@ -135,15 +149,16 @@ async function searchViaInnerTube(query: string): Promise<YouTubeSearchResult[]>
           const video = item?.videoRenderer;
           if (video && video.videoId) {
             const thumbs: any[] = video.thumbnail?.thumbnails || [];
-            const bestThumb = thumbs.slice(-1)[0]?.url || `https://img.youtube.com/vi/${video.videoId}/0.jpg`;
+            const bestThumb =
+              thumbs.slice(-1)[0]?.url || `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
 
             results.push({
               videoId: video.videoId,
               title: video.title?.runs?.[0]?.text || 'Untitled Video',
-              description: '',
+              description: video.detailedMetadataSnippets?.[0]?.snippetText?.runs?.[0]?.text || '',
               thumbnail: bestThumb,
               channelTitle: video.ownerText?.runs?.[0]?.text || 'YouTube Channel',
-              publishedAt: new Date().toISOString(),
+              publishedAt: video.publishedTimeText?.simpleText || new Date().toISOString(),
             });
           }
         }

@@ -35,6 +35,63 @@ export interface YouTubeSearchResult {
   publishedAt: string;
 }
 
+async function directBrowserYouTubeSearch(query: string): Promise<YouTubeSearchResult[]> {
+  try {
+    const res = await fetch('https://www.youtube.com/youtubei/v1/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20240301.00.00',
+            hl: 'en',
+            gl: 'IN',
+          },
+        },
+        query,
+      }),
+    });
+
+    if (!res.ok) return [];
+
+    const data: any = await res.json();
+    const contents =
+      data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+    const results: YouTubeSearchResult[] = [];
+
+    if (Array.isArray(contents)) {
+      for (const sec of contents) {
+        const itemSection = sec?.itemSectionRenderer?.contents || [];
+        for (const item of itemSection) {
+          const video = item?.videoRenderer;
+          if (video && video.videoId) {
+            const thumbs: any[] = video.thumbnail?.thumbnails || [];
+            const bestThumb =
+              thumbs.slice(-1)[0]?.url || `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
+
+            results.push({
+              videoId: video.videoId,
+              title: video.title?.runs?.[0]?.text || 'Untitled Video',
+              description: '',
+              thumbnail: bestThumb,
+              channelTitle: video.ownerText?.runs?.[0]?.text || 'YouTube Channel',
+              publishedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+    }
+
+    return results;
+  } catch (e) {
+    console.warn('⚠️ Direct browser YouTube search error:', e);
+    return [];
+  }
+}
+
 export interface YouTubeChatMessage {
   id: string;
   userId: string;
@@ -449,7 +506,7 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
     const elapsedSeconds = (Date.now() - (state.playbackUpdatedAt || Date.now())) / 1000;
     return Math.max(0, (state.currentTime || 0) + elapsedSeconds);
   },
-
+  
   searchYouTube: async (query: string) => {
     if (!query.trim()) {
       set({ searchQuery: '', searchResults: [], searchError: null });
@@ -467,7 +524,6 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
       );
 
       const raw = response.data as any;
-      // Try all possible response shapes from the backend
       let results: YouTubeSearchResult[] = [];
       if (Array.isArray(raw?.data?.results)) {
         results = raw.data.results;
@@ -479,9 +535,34 @@ export const useYouTubeListenStore = create<YouTubeListenState>((set, get) => ({
         results = raw;
       }
 
-      console.log(`⚡ YouTube search "${query}" returned ${results.length} results`, results);
+      // Check if backend returned static fallback videos when the query wasn't asking for Despacito/Counting Stars
+      const isFallbackResult =
+        results.length > 0 &&
+        results.some((r) => r.videoId === 'kJQP7kiw5Fk') &&
+        results.some((r) => r.videoId === 'hT_nvWreIhg') &&
+        !query.toLowerCase().includes('despacito');
+
+      if (results.length === 0 || isFallbackResult) {
+        console.log(`⚡ Backend returned fallback or 0 items for "${query}". Executing direct browser search...`);
+        const directResults = await directBrowserYouTubeSearch(query);
+        if (directResults.length > 0) {
+          results = directResults;
+        }
+      }
+
+      console.log(`⚡ YouTube search "${query}" final results: ${results.length}`, results);
       set({ searchResults: results, isSearching: false, searchError: null });
     } catch (err: any) {
+      // On backend error, attempt direct browser search
+      try {
+        console.warn('⚠️ Backend search failed. Executing direct browser search...');
+        const directResults = await directBrowserYouTubeSearch(query);
+        if (directResults.length > 0) {
+          set({ searchResults: directResults, isSearching: false, searchError: null });
+          return;
+        }
+      } catch (_e) {}
+
       const errMsg = err?.response?.data?.message || err?.message || 'YouTube search failed.';
       console.error('YouTube search error:', errMsg);
       set({ searchResults: [], isSearching: false, searchError: errMsg });
