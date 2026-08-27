@@ -93,6 +93,12 @@ axiosClient.interceptors.response.use(
 
       try {
         const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+        if (!storedRefreshToken || storedRefreshToken === 'null' || storedRefreshToken === 'undefined' || !storedRefreshToken.trim()) {
+          processQueue(error, null);
+          setMemoryAccessToken(null);
+          return Promise.reject(error);
+        }
+
         const refreshResponse = await axios.post<ApiResponse>(
           `${API_BASE_URL}/auth/refresh-token`,
           { refreshToken: storedRefreshToken },

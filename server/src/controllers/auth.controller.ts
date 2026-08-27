@@ -332,40 +332,59 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
  * Refresh Access Token
  */
 export const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const rawRefreshToken = req.cookies[PLATFORM_CONSTANTS.COOKIE_REFRESH_TOKEN_KEY] ||
-                          req.body.refreshToken ||
-                          req.headers['x-refresh-token'] ||
-                          req.headers['authorization']?.toString().replace('Bearer ', '');
+  let rawRefreshToken = req.cookies?.[PLATFORM_CONSTANTS.COOKIE_REFRESH_TOKEN_KEY] ||
+                        req.body?.refreshToken ||
+                        req.headers?.['x-refresh-token'] ||
+                        req.headers?.['authorization']?.toString().replace('Bearer ', '');
 
-  if (!rawRefreshToken) {
-    throw new AppError('Refresh token is missing. Please log in again.', HTTP_STATUS.UNAUTHORIZED);
+  if (
+    !rawRefreshToken ||
+    typeof rawRefreshToken !== 'string' ||
+    rawRefreshToken === 'null' ||
+    rawRefreshToken === 'undefined' ||
+    !rawRefreshToken.trim()
+  ) {
+    clearRefreshTokenCookie(res);
+    return ApiResponse.error(res, 'Refresh token is missing. Please log in again.', HTTP_STATUS.UNAUTHORIZED);
   }
+
+  rawRefreshToken = rawRefreshToken.trim();
 
   let decoded: any;
   try {
     decoded = verifyRefreshToken(rawRefreshToken);
-  } catch (err) {
+  } catch (_err) {
     clearRefreshTokenCookie(res);
-    throw new AppError('Invalid or expired refresh token.', HTTP_STATUS.UNAUTHORIZED);
+    return ApiResponse.error(res, 'Invalid or expired refresh token.', HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  if (!decoded || !decoded.userId) {
+    clearRefreshTokenCookie(res);
+    return ApiResponse.error(res, 'Invalid refresh token payload.', HTTP_STATUS.UNAUTHORIZED);
   }
 
   const tokenHash = hashToken(rawRefreshToken);
+  if (!tokenHash) {
+    clearRefreshTokenCookie(res);
+    return ApiResponse.error(res, 'Invalid refresh token format.', HTTP_STATUS.UNAUTHORIZED);
+  }
+
   const session = await Session.findOne({ refreshTokenHash: tokenHash, isValid: true });
 
-  if (!session || session.expiresAt < new Date()) {
+  if (!session || (session.expiresAt && session.expiresAt < new Date())) {
     clearRefreshTokenCookie(res);
-    throw new AppError('Session expired or revoked. Please log in again.', HTTP_STATUS.UNAUTHORIZED);
+    return ApiResponse.error(res, 'Session expired or revoked. Please log in again.', HTTP_STATUS.UNAUTHORIZED);
   }
 
   const user = await User.findById(decoded.userId);
-  if (!user || user.status === USER_STATUS.SUSPENDED) {
+  if (!user || user.status === USER_STATUS.SUSPENDED || user.isDeleted) {
     clearRefreshTokenCookie(res);
-    throw new AppError('User account unavailable or suspended.', HTTP_STATUS.UNAUTHORIZED);
+    return ApiResponse.error(res, 'User account unavailable or suspended.', HTTP_STATUS.UNAUTHORIZED);
   }
 
   // Update session activity timestamp
   session.lastActiveAt = new Date();
-  await session.save();
+  await session.save().catch(() => {});
 
   // Issue new access token
   const newAccessToken = generateAccessToken({

@@ -33,6 +33,7 @@ export const verifyRefreshToken = (token: string): TokenPayload => {
 };
 
 export const hashToken = (rawToken: string): string => {
+  if (!rawToken || typeof rawToken !== 'string') return '';
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 };
 
